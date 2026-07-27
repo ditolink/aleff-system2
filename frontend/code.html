@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <title>Código — Dev</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/dev-bar.js" defer></script>
+  <style>
+    :root{--bg:#050505;--panel:#0b0b0b;--line:rgba(255,255,255,.07);--mute:#666;--text:#e8e8e8;--green:#25d366}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;height:100vh;overflow:hidden}
+    nav{
+      height:52px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+      padding:0 24px;border-bottom:1px solid var(--line);background:#080808;
+    }
+    .badge{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--green);border:1px solid rgba(37,211,102,.35);padding:4px 10px;border-radius:999px}
+    .warn{font-size:11px;color:#888;font-weight:300}
+    .layout{display:grid;grid-template-columns:280px 1fr;height:calc(100vh - 52px)}
+    .tree{
+      border-right:1px solid var(--line);overflow:auto;padding:12px;background:var(--panel);
+    }
+    .crumb{font-size:11px;color:#555;margin-bottom:10px;word-break:break-all;font-family:'IBM Plex Mono',monospace}
+    .entry{
+      display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+      background:transparent;border:none;color:#bbb;padding:8px 10px;border-radius:8px;
+      font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;
+    }
+    .entry:hover{background:rgba(255,255,255,.04);color:#fff}
+    .entry.dir{color:#9ad4ff}
+    .entry.file{color:#cfcfcf}
+    .entry .ico{opacity:.55;width:14px}
+    .viewer{display:flex;flex-direction:column;min-width:0}
+    .viewer-head{
+      padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;
+      min-height:48px;
+    }
+    .viewer-head strong{font-size:13px;font-weight:700;letter-spacing:.04em}
+    .viewer-head span{font-size:11px;color:#666;font-family:'IBM Plex Mono',monospace}
+    pre{
+      flex:1;overflow:auto;margin:0;padding:20px 22px;font-family:'IBM Plex Mono',monospace;
+      font-size:12.5px;line-height:1.55;color:#d6d6d6;background:#060606;
+      white-space:pre;tab-size:2;
+    }
+    .empty{
+      flex:1;display:grid;place-items:center;color:#444;font-size:14px;font-weight:300;text-align:center;padding:40px;
+    }
+    .back{background:none;border:1px solid var(--line);color:#999;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px}
+    .back:hover{color:#fff}
+    @media(max-width:800px){.layout{grid-template-columns:1fr}.tree{max-height:36vh}}
+  </style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo logo--compact" aria-label="Aleff">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Code</span></span>
+  </a>
+  <span class="badge">Somente Dev</span>
+  <p class="warn">.env · credenciais · bancos — bloqueados</p>
+  <a href="dashboard.html" style="color:#888;font-size:12px;text-decoration:none">Dashboard</a>
+</nav>
+<div class="layout">
+  <aside class="tree">
+    <div class="crumb" id="crumb">/</div>
+    <button type="button" class="back" id="upBtn" hidden>↑ pasta acima</button>
+    <div id="entries"></div>
+  </aside>
+  <section class="viewer">
+    <div class="viewer-head">
+      <strong id="fileName">Selecione um arquivo</strong>
+      <span id="fileMeta"></span>
+    </div>
+    <div class="empty" id="emptyState">Navegue em <em>backend</em> ou <em>frontend</em>.<br/>Leitura segura — sem escrita, sem secrets.</div>
+    <pre id="codeView" hidden></pre>
+  </section>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const me = await Auth.requireLogin();
+  if (!me) return;
+  if (!Auth.can('code') && me.role !== 'dev') {
+    Toast.error('Bloqueado', 'Código só para conta Dev.');
+    location.href = '/dashboard.html';
+    return;
+  }
+
+  let currentDir = '';
+  const entriesEl = document.getElementById('entries');
+  const crumb = document.getElementById('crumb');
+  const upBtn = document.getElementById('upBtn');
+  const codeView = document.getElementById('codeView');
+  const emptyState = document.getElementById('emptyState');
+  const fileName = document.getElementById('fileName');
+  const fileMeta = document.getElementById('fileMeta');
+
+  async function loadTree(path='') {
+    currentDir = path;
+    crumb.textContent = '/' + (path || '');
+    upBtn.hidden = !path;
+    const r = await Auth.fetch('/api/dev/tree?path=' + encodeURIComponent(path));
+    const d = await r.json();
+    if (!r.ok) { Toast.error('Erro', d.message || 'Árvore'); return; }
+    const data = d.data || d;
+    const list = data.entries || [];
+    entriesEl.innerHTML = '';
+    list.forEach((e) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'entry ' + e.type;
+      b.innerHTML = `<span class="ico">${e.type === 'dir' ? '▸' : '·'}</span>${e.name}`;
+      b.addEventListener('click', () => {
+        if (e.type === 'dir') loadTree(e.path);
+        else openFile(e.path);
+      });
+      entriesEl.appendChild(b);
+    });
+  }
+
+  async function openFile(path) {
+    const r = await Auth.fetch('/api/dev/file?path=' + encodeURIComponent(path));
+    const d = await r.json();
+    if (!r.ok) { Toast.error('Bloqueado', d.message || 'Arquivo'); return; }
+    const data = d.data || d;
+    fileName.textContent = data.name || path;
+    fileMeta.textContent = `${data.path} · ${data.size || 0} B`;
+    emptyState.hidden = true;
+    codeView.hidden = false;
+    codeView.textContent = data.content || '';
+  }
+
+  upBtn.addEventListener('click', () => {
+    if (!currentDir) return;
+    const parts = currentDir.split('/').filter(Boolean);
+    parts.pop();
+    loadTree(parts.join('/'));
+  });
+
+  loadTree('');
+});
+</script>
+</body>
+</html>

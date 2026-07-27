@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <title>Slots — Portfólio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/dev-bar.js" defer></script>
+  <style>
+    :root{--bg:#070707;--line:rgba(255,255,255,.08);--mute:#6a6a6a;--text:#f2f2f2;--green:#25d366}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;min-height:100vh}
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:200;
+      display:flex;align-items:center;justify-content:space-between;gap:16px;
+      padding:14px 40px;background:rgba(7,7,7,.92);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav-links{display:flex;gap:18px;list-style:none}
+    .nav-links a{color:#888;text-decoration:none;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+    .nav-links a:hover,.nav-links a.on{color:#fff}
+    .page{padding:110px 40px 80px;max-width:1100px;margin:0 auto}
+    .hero-line{margin-bottom:48px}
+    .eyebrow{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--mute);margin-bottom:12px}
+    h1{font-size:clamp(32px,5vw,52px);font-weight:900;letter-spacing:-.03em;line-height:1}
+    h1 em{font-weight:300;font-style:italic;color:rgba(255,255,255,.45)}
+    .sub{margin-top:14px;max-width:480px;color:#8a8a8a;font-weight:300;line-height:1.55;font-size:15px}
+    .slots{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:18px;
+    }
+    @media(max-width:720px){.slots{grid-template-columns:1fr}.page,.nav{padding-left:20px;padding-right:20px}.nav-links{display:none}}
+    .slot{
+      position:relative;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+      background:#0c0c0c;min-height:280px;isolation:isolate;
+      transition:border-color .3s,transform .35s cubic-bezier(.22,1,.36,1);
+    }
+    .slot:hover{border-color:rgba(255,255,255,.18);transform:translateY(-2px)}
+    .slot.filled{border-color:rgba(37,211,102,.25)}
+    .slot-media{position:absolute;inset:0}
+    .slot-media img,.slot-media video{width:100%;height:100%;object-fit:contain;display:block;background:#050505}
+    .slot-media::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(to top,rgba(0,0,0,.85),transparent 55%);
+    }
+    .slot-empty{
+      position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:10px;color:#3a3a3a;pointer-events:none;
+    }
+    .slot-empty svg{width:36px;height:28px;opacity:.5}
+    .slot-meta{position:absolute;left:18px;right:18px;bottom:18px;z-index:2}
+    .slot-id{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#666;margin-bottom:6px}
+    .slot-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
+    .slot-cat{font-size:12px;color:#888;margin-top:4px;font-weight:300}
+    .slot-actions{
+      position:absolute;top:14px;right:14px;z-index:3;display:flex;gap:8px;opacity:0;
+      transition:opacity .25s;
+    }
+    .slot:hover .slot-actions,.slot:focus-within .slot-actions{opacity:1}
+    .sbtn{
+      border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.55);color:#ddd;
+      font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-radius:999px;
+      cursor:pointer;font-family:inherit;backdrop-filter:blur(8px);
+      transition:background .2s,border-color .2s,color .2s;
+    }
+    .sbtn:hover{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.28)}
+    .sbtn.danger:hover{border-color:rgba(229,62,62,.55);color:#ffb4b4;background:rgba(229,62,62,.12)}
+    .slot-drop{
+      position:absolute;inset:0;z-index:4;display:none;align-items:center;justify-content:center;
+      background:rgba(37,211,102,.12);border:2px dashed rgba(37,211,102,.5);pointer-events:none;
+      font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#9dffc0;
+    }
+    .slot.drag .slot-drop{display:flex}
+    .hint{margin-top:28px;font-size:12px;color:#555;letter-spacing:.06em}
+    input[type=file]{display:none}
+    .ed-wrap{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:900;display:none;align-items:center;justify-content:center;padding:20px}
+    .ed-wrap.open{display:flex}
+    .ed{
+      width:min(920px,96vw);max-height:90vh;overflow:auto;
+      background:#0d0d0d;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:18px;
+      display:grid;grid-template-columns:1.35fr .9fr;gap:16px;
+    }
+    .ed-preview{border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#050505;min-height:380px;display:flex;align-items:center;justify-content:center}
+    .ed-preview canvas{max-width:100%;max-height:62vh;display:block}
+    .ed-ctrl{display:flex;flex-direction:column;gap:10px}
+    .ed-ctrl label{font-size:11px;letter-spacing:.14em;color:#777;text-transform:uppercase}
+    .ed-ctrl input[type=range]{width:100%}
+    .ed-row{display:flex;gap:8px}
+    .ed-btn{flex:1;border:1px solid rgba(255,255,255,.14);background:#121212;color:#ddd;padding:10px;border-radius:10px;cursor:pointer}
+    .ed-btn:hover{border-color:rgba(255,255,255,.3);color:#fff}
+    .ed-btn.main{background:#f5f5f5;color:#111;border-color:#f5f5f5}
+    @media(max-width:880px){.ed{grid-template-columns:1fr}.ed-preview{min-height:280px}}
+  </style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo" aria-label="Aleff Thiago">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="dashboard.html">Dashboard</a></li>
+    <li><a href="upload.html">Upload</a></li>
+    <li><a href="admin.html">Galeria</a></li>
+    <li><a class="on" href="slots.html">Slots</a></li>
+  </ul>
+  <button type="button" class="sbtn" id="logoutBtn">Sair</button>
+</nav>
+
+<main class="page">
+  <div class="hero-line">
+    <p class="eyebrow">Portfólio · espaços vivos</p>
+    <h1>Preencha o que<br><em>ainda respira vazio.</em></h1>
+    <p class="sub">Quatro molduras da home. Arraste uma foto ou vídeo — o site atualiza sozinho. Simples, direto, sem editar código.</p>
+  </div>
+  <div class="slots" id="slotsGrid"></div>
+  <p class="hint">Admin e Dev podem preencher. Drive / CLIP / código continuam só no Dev.</p>
+</main>
+
+<div class="ed-wrap" id="editorWrap" aria-hidden="true">
+  <div class="ed">
+    <div class="ed-preview"><canvas id="editorCanvas"></canvas></div>
+    <div class="ed-ctrl">
+      <label>Brilho <input type="range" id="edBrightness" min="60" max="160" value="100"/></label>
+      <label>Contraste <input type="range" id="edContrast" min="60" max="170" value="100"/></label>
+      <label>Saturação <input type="range" id="edSaturation" min="20" max="200" value="100"/></label>
+      <label>Calor <input type="range" id="edWarmth" min="-35" max="35" value="0"/></label>
+      <div class="ed-row">
+        <button type="button" class="ed-btn" id="edResetBtn">Resetar</button>
+        <button type="button" class="ed-btn" id="edCancelBtn">Cancelar</button>
+      </div>
+      <button type="button" class="ed-btn main" id="edApplyBtn">Aplicar e enviar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const me = await Auth.requireLogin();
+  if (!me) return;
+  if (!Auth.can('slots') && me.role !== 'dev' && me.role !== 'admin') {
+    Toast.error('Sem permissão', 'Sua conta não gerencia slots.');
+    return;
+  }
+
+  const grid = document.getElementById('slotsGrid');
+  const fileInput = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*,video/*' });
+  document.body.appendChild(fileInput);
+  let activeSlot = null;
+  let pendingFile = null;
+  let editorImage = null;
+  const editorWrap = document.getElementById('editorWrap');
+  const editorCanvas = document.getElementById('editorCanvas');
+  const ectx = editorCanvas.getContext('2d', { willReadFrequently: true });
+
+  async function load() {
+    const r = await Auth.fetch('/api/portfolio/slots');
+    const d = await r.json();
+    const slots = (d.slots || d.data?.slots || {});
+    render(slots);
+  }
+
+  function render(slots) {
+    const order = ['01','02','03','04'];
+    grid.innerHTML = '';
+    order.forEach((id) => {
+      const s = slots[id] || { id, filled: false, label: 'Espaço', placeholder: 'Em breve' };
+      const card = document.createElement('article');
+      card.className = 'slot' + (s.filled ? ' filled' : '');
+      card.dataset.id = id;
+
+      const empty = `<div class="slot-empty"><svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#070707"/></svg><span>${s.placeholder || 'Em breve'}</span></div>`;
+      let media = empty;
+      if (s.filled && s.src) {
+        if (s.type === 'video') media = `<div class="slot-media"><video src="/${s.src}" muted loop playsinline autoplay></video></div>`;
+        else media = `<div class="slot-media"><img src="/${s.src}" alt=""/></div>`;
+      }
+
+      card.innerHTML = `
+        ${media}
+        <div class="slot-drop">Solte aqui</div>
+        <div class="slot-actions">
+          <button type="button" class="sbtn" data-act="fill">Preencher</button>
+          ${s.filled ? '<button type="button" class="sbtn danger" data-act="clear">Limpar</button>' : ''}
+        </div>
+        <div class="slot-meta">
+          <p class="slot-id">Slot ${id}</p>
+          <p class="slot-title">${s.filled ? (s.title || 'Sem título') : (s.label || 'Reservado')}</p>
+          <p class="slot-cat">${s.filled ? (s.cat || '') : 'Aguardando mídia'}</p>
+        </div>`;
+
+      card.querySelector('[data-act="fill"]')?.addEventListener('click', () => {
+        activeSlot = id;
+        fileInput.click();
+      });
+      card.querySelector('[data-act="clear"]')?.addEventListener('click', async () => {
+        const r = await Auth.fetch(`/api/portfolio/slots/${id}`, { method: 'DELETE' });
+        if (!r.ok) { Toast.error('Erro', 'Não limpou'); return; }
+        Toast.success('Slot limpo', id);
+        load();
+      });
+
+      card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('drag'); });
+      card.addEventListener('dragleave', () => card.classList.remove('drag'));
+      card.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        card.classList.remove('drag');
+        const f = e.dataTransfer.files?.[0];
+        if (f) upload(id, f);
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  async function upload(id, file) {
+    const title = prompt('Título no portfólio:', file.name.replace(/\.[^.]+$/, '')) || '';
+    const cat = prompt('Categoria (ex: Retrato — 2026):', 'Portfólio') || 'Portfólio';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('title', title);
+    fd.append('cat', cat);
+    Toast.info?.('Enviando…', file.name) || Toast.success('Enviando', file.name);
+    const r = await Auth.fetch(`/api/portfolio/slots/${id}/upload`, { method: 'POST', body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { Toast.error('Falha', d.message || 'Upload'); return; }
+    Toast.success('No ar', `Slot ${id} atualizado`);
+    load();
+    activeSlot = null;
+  }
+
+  function editorValues() {
+    return {
+      b: Number(document.getElementById('edBrightness').value) / 100,
+      c: Number(document.getElementById('edContrast').value) / 100,
+      s: Number(document.getElementById('edSaturation').value) / 100,
+      w: Number(document.getElementById('edWarmth').value),
+    };
+  }
+
+  function redrawEditor() {
+    if (!editorImage) return;
+    const vals = editorValues();
+    const ratio = editorImage.width / editorImage.height;
+    const maxW = 980;
+    const w = Math.min(maxW, editorImage.width);
+    const h = Math.max(1, Math.round(w / ratio));
+    editorCanvas.width = w;
+    editorCanvas.height = h;
+    ectx.filter = `brightness(${vals.b}) contrast(${vals.c}) saturate(${vals.s})`;
+    ectx.drawImage(editorImage, 0, 0, w, h);
+    if (vals.w !== 0) {
+      ectx.fillStyle = vals.w > 0 ? `rgba(255,140,60,${Math.abs(vals.w)/170})` : `rgba(70,130,255,${Math.abs(vals.w)/170})`;
+      ectx.fillRect(0, 0, w, h);
+    }
+    ectx.filter = 'none';
+  }
+
+  function openEditor(file) {
+    pendingFile = file;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      editorImage = img;
+      editorWrap.classList.add('open');
+      editorWrap.setAttribute('aria-hidden', 'false');
+      redrawEditor();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  function closeEditor() {
+    editorWrap.classList.remove('open');
+    editorWrap.setAttribute('aria-hidden', 'true');
+    pendingFile = null;
+    editorImage = null;
+  }
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (f && activeSlot) {
+      if (f.type.startsWith('image/')) openEditor(f);
+      else upload(activeSlot, f);
+    }
+    fileInput.value = '';
+  });
+
+  ['edBrightness', 'edContrast', 'edSaturation', 'edWarmth'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', redrawEditor);
+  });
+  document.getElementById('edResetBtn').addEventListener('click', () => {
+    document.getElementById('edBrightness').value = '100';
+    document.getElementById('edContrast').value = '100';
+    document.getElementById('edSaturation').value = '100';
+    document.getElementById('edWarmth').value = '0';
+    redrawEditor();
+  });
+  document.getElementById('edCancelBtn').addEventListener('click', () => {
+    closeEditor();
+    activeSlot = null;
+  });
+  document.getElementById('edApplyBtn').addEventListener('click', () => {
+    if (!pendingFile || !activeSlot) return;
+    editorCanvas.toBlob(async (blob) => {
+      if (!blob) return;
+      const edited = new File([blob], pendingFile.name.replace(/\.\w+$/, '') + '-editado.jpg', { type: 'image/jpeg' });
+      await upload(activeSlot, edited);
+      closeEditor();
+      activeSlot = null;
+    }, 'image/jpeg', 0.92);
+  }, { passive: true });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await Auth.logout();
+    location.href = '/loginsite.html';
+  });
+
+  load();
+});
+</script>
+</body>
+</html>

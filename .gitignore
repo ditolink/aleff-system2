@@ -1,0 +1,56 @@
+# ── Segredos (NUNCA subir) ──
+.env
+.env.*
+!.env.example
+!.env*.example
+service-account.json
+**/service-account*.json
+!service-account.example.json
+!**/service-account.example.json
+*-credentials.json
+credentials.json
+client_secret*.json
+token.json
+secrets/
+*.pem
+*.key
+*.p12
+*.sa.json
+
+# ── Python ──
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ── Dados / banco / uploads locais ──
+data/
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+tmp/
+temp/
+
+# ── OS / IDE ──
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.bak
+
+# ── Logs / caches ──
+*.log
+logs/
+.cache/
+__clip_cache__/
+
+# ── Vídeos grandes (GitHub max 100MB) — ficam só no PC ──
+frontend/videos/*.mp4
+frontend/videos/*.mov
+frontend/videos/*.avi
+!frontend/videos/.gitkeep

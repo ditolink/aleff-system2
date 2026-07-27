@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 56" fill="currentColor" aria-hidden="true">
+  <!-- flash rays -->
+  <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <path d="M30 3v7"/>
+    <path d="M20 6l4 5.5"/>
+    <path d="M40 6l-4 5.5"/>
+  </g>
+  <!-- pentaprism / viewfinder hump -->
+  <path d="M22 14h16l4 7H18l4-7z"/>
+  <!-- body -->
+  <rect x="8" y="20" width="44" height="26" rx="4"/>
+  <!-- grip -->
+  <path d="M48 23h12c2.2 0 4 1.8 4 4v12c0 2.2-1.8 4-4 4H48V23z"/>
+  <!-- main lens -->
+  <circle cx="28" cy="33" r="11" fill="currentColor"/>
+  <circle class="logo-lens-hole" cx="28" cy="33" r="7.2" fill="#0a0a0a"/>
+  <circle cx="28" cy="33" r="3.2" fill="currentColor" opacity=".55"/>
+  <!-- shutter button / dial -->
+  <circle cx="46" cy="25.5" r="2.2" fill="#0a0a0a"/>
+  <!-- hot shoe line -->
+  <rect x="26" y="12.5" width="8" height="2" rx="0.6" fill="#0a0a0a" opacity=".35"/>
+</svg>

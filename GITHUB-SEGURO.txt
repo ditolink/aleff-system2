@@ -1,0 +1,29 @@
+========================================
+  ANTES DE SUBIR NO GITHUB
+========================================
+
+NAO SUBA (ja no .gitignore):
+  .env
+  service-account.json
+  backend/services/service-account.json
+  data/  (banco SQLite)
+  .venv/
+
+PODE SUBIR (modelos vazios):
+  .env.example
+  service-account.example.json
+
+CHECKLIST
+1) Confirme que .env NAO esta na lista de arquivos do commit
+2) Confirme que nenhum *.json de service account real vai junto
+3) No GitHub: repo privado e preferivel (tem fotos/estrutura do negocio)
+4) No PC: copie .env.example -> .env e preencha de novo se precisar
+
+SE JA SUBIU SEGREDOS ANTES
+- Revogue a chave da Google Cloud (service account)
+- Gere SECRET_KEY e ADMIN_API_KEY novos
+- Troque senhas do login no .env
+- Remova o arquivo do historico do git (ou apague o repo e crie outro)
+
+Local continua igual: start.bat usa o .env da sua maquina.
+========================================

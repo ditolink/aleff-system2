@@ -1,0 +1,170 @@
+/* Barra só para conta DEV */
+.dev-bar {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  background: rgba(8,8,8,.96);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+  padding: 0 20px;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+.dev-bar::-webkit-scrollbar { display: none; }
+body.has-dev-bar .dev-bar { display: flex; }
+.admin-bar {
+  background: rgba(14, 11, 6, .96);
+  border-bottom-color: rgba(240,180,41,.16);
+}
+.admin-bar .dev-bar-label {
+  color: #f0b429;
+}
+.admin-bar .dev-pill:hover {
+  border-color: rgba(240,180,41,.32);
+  background: rgba(240,180,41,.08);
+  color: #fff3d0;
+}
+.admin-bar .dev-bar-user {
+  color: #8a6d2c;
+}
+body.has-dev-bar .site-nav,
+body.has-dev-bar nav:not(.dev-bar):not(.search-nav) {
+  top: 40px;
+}
+body.has-dev-bar .search-nav {
+  top: 40px;
+}
+body.has-dev-bar .hero {
+  padding-top: 40px;
+}
+body.has-dev-bar .search-hero {
+  padding-top: 150px;
+}
+body.has-dev-bar .upload-page,
+body.has-dev-bar .dash-page,
+body.has-dev-bar .admin-page {
+  padding-top: calc(100px + 40px);
+}
+
+.dev-bar-label {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #25d366;
+  font-weight: 700;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.dev-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.03);
+  color: #999;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+  transition: border-color .2s, color .2s, background .2s;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+}
+a.dev-pill,
+button.dev-pill {
+  appearance: none;
+  -webkit-appearance: none;
+}
+.dev-pill:hover {
+  color: #eee;
+  border-color: rgba(255,255,255,.22);
+  background: rgba(255,255,255,.06);
+}
+.dev-pill--out {
+  margin-left: 4px;
+  border-color: rgba(229,62,62,.35);
+  color: #e8a0a0;
+}
+.dev-pill--out:hover {
+  border-color: rgba(229,62,62,.7);
+  color: #fff;
+  background: rgba(229,62,62,.15);
+}
+
+/* Logout no nav público (admin / equipe) */
+.nav-session {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.nav-session-user {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #666;
+}
+.nav-logout-btn {
+  border: 1px solid rgba(255,255,255,.14);
+  background: transparent;
+  color: #bbb;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.nav-logout-btn:hover {
+  color: #fff;
+  border-color: rgba(229,62,62,.55);
+  background: rgba(229,62,62,.12);
+}
+.search-nav .nav-session { margin-left: 0; }
+.dev-pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #444;
+}
+.dev-pill[data-state="on"] .dot {
+  background: #25d366;
+  box-shadow: 0 0 6px rgba(37,211,102,.5);
+}
+.dev-pill[data-state="off"] .dot {
+  background: #e53e3e;
+}
+.dev-pill[data-state="warn"] .dot {
+  background: #f0b429;
+}
+.dev-bar-sep {
+  width: 1px; height: 16px;
+  background: rgba(255,255,255,.1);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.dev-bar-user {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #555;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .dev-bar-user { display: none; }
+}

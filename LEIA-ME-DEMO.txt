@@ -1,0 +1,22 @@
+========================================
+  DEMO LOCAL — ALEFF
+========================================
+
+1) Dois cliques: start.bat
+2) Abra SEMPRE: http://127.0.0.1:3001/
+   (nao use localhost — quebra login)
+
+MOSTRAR
+- Home (trabalhos + contato WhatsApp)
+- Buscar → Casamento / Casais / Shows
+- Entrar → use as contas do arquivo .env (AUTH_USERS)
+  NUNCA publique senhas no GitHub nem no site.
+
+DOMINIO
+- aleffthiago.com.br → leia HOSTING-aleffthiago.txt
+- OpenCLIP na Oracle Always Free
+
+NAO FECHE a janela preta do start.bat
+NAO SUBA o arquivo .env para nenhum lugar publico
+ANTES DO GITHUB: leia GITHUB-SEGURO.txt
+========================================

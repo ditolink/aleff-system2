@@ -1,0 +1,2 @@
+# Procfile — Railway / Render / Heroku-like
+web: waitress-serve --host=0.0.0.0 --port=$PORT backend.server:app

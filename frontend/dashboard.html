@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dashboard — Aleff Thiago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/dev-bar.js" defer></script>
+  <style>
+    .dash-page{min-height:100vh;padding:100px 48px 80px;max-width:1400px;margin:0 auto}
+    .dash-hdr{margin-bottom:52px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}
+    .dash-eyebrow{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+    .dash-eyebrow::before{content:'';width:16px;height:1px;background:#888;display:inline-block}
+    .dash-title{font-size:clamp(36px,5vw,58px);font-weight:900;letter-spacing:-.03em;line-height:.95}
+    .dash-title em{font-weight:300;font-style:italic;color:rgba(255,255,255,.5)}
+
+    /* KPI cards — premium: gradiente sutil, ícone em badge, contagem animada */
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:56px}
+    .kpi{
+      position:relative;overflow:hidden;
+      background:linear-gradient(160deg,#121212 0%,#0c0c0c 100%);
+      border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:26px 24px;
+      transition:border-color .3s,transform .3s,box-shadow .3s;
+    }
+    .kpi::after{
+      content:'';position:absolute;top:-40%;right:-30%;width:160px;height:160px;border-radius:50%;
+      background:radial-gradient(circle,rgba(37,211,102,.08),transparent 70%);
+      opacity:0;transition:opacity .4s;pointer-events:none;
+    }
+    .kpi:hover{border-color:rgba(255,255,255,.16);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+    .kpi:hover::after{opacity:1}
+    .kpi-icon{
+      width:38px;height:38px;border-radius:11px;
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+      display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+      color:#25d366;transition:background .3s,border-color .3s;
+    }
+    .kpi:hover .kpi-icon{background:rgba(37,211,102,.08);border-color:rgba(37,211,102,.25)}
+    .kpi-icon svg{width:18px;height:18px}
+    .kpi-val{font-size:clamp(32px,3.6vw,46px);font-weight:900;letter-spacing:-.03em;line-height:1;color:#f5f5f5;font-variant-numeric:tabular-nums}
+    .kpi-lbl{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#666;margin-top:9px;font-weight:600}
+    .kpi-sub{font-size:12px;color:#555;margin-top:2px;font-weight:300}
+
+    .dev-panel{
+      display:none;margin-bottom:40px;padding:22px 24px;border-radius:18px;
+      border:1px solid rgba(37,211,102,.22);background:linear-gradient(160deg,rgba(37,211,102,.06),rgba(255,255,255,.02));
+    }
+    .dev-panel.show{display:block}
+    .dev-panel h3{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#25d366;margin-bottom:10px}
+    .dev-panel p{font-size:13px;color:#999;line-height:1.55;margin-bottom:12px}
+    .dev-panel code{
+      display:inline-block;margin-top:4px;padding:8px 12px;border-radius:10px;
+      background:#0a0a0a;border:1px solid rgba(255,255,255,.08);color:#eee;font-size:12px;
+      word-break:break-all;user-select:all;
+    }
+    .dev-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .dev-actions a,.dev-actions button{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#eee;
+      font:700 12px/1 'Lato',sans-serif;letter-spacing:.08em;text-transform:uppercase;
+      text-decoration:none;cursor:pointer;transition:border-color .2s,background .2s;
+    }
+    .dev-actions a:hover,.dev-actions button:hover{border-color:rgba(37,211,102,.45);background:rgba(37,211,102,.08)}
+    .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+    .slot-card{
+      aspect-ratio:3/4;border-radius:14px;border:1px dashed rgba(255,255,255,.14);
+      background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:8px;color:#555;text-decoration:none;transition:border-color .25s,color .25s,background .25s;
+    }
+    .slot-card:hover{border-color:rgba(37,211,102,.45);color:#25d366;background:rgba(37,211,102,.04)}
+    .slot-card span{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+
+    /* Seções */
+    .sec{margin-bottom:56px}
+    .sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.07)}
+    .sec-hd-title{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;display:flex;align-items:center;gap:12px}
+    .sec-hd-title::before{content:'';width:16px;height:1px;background:#888;display:inline-block}
+    .sec-hd-link{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#888;text-decoration:none;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:6px 16px;transition:all .25s}
+    .sec-hd-link:hover{color:#0a0a0a;background:#f5f5f5;border-color:#f5f5f5}
+
+    /* Mini grid de mídias */
+    .mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .mini-card{
+      position:relative;overflow:hidden;background:#111;border-radius:14px;
+      aspect-ratio:1;cursor:pointer;border:1px solid rgba(255,255,255,.05);
+      transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s,border-color .3s;
+    }
+    .mini-card:hover{transform:translateY(-4px) scale(1.01);box-shadow:0 16px 36px rgba(0,0,0,.45);border-color:rgba(255,255,255,.14)}
+    .mini-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(70%) brightness(.75);transition:filter .5s ease}
+    .mini-card:hover .mini-thumb{filter:grayscale(5%) brightness(.95)}
+    .mini-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#333}
+    .mini-ov{
+      position:absolute;inset:0;
+      background:linear-gradient(to top,rgba(8,8,8,.97),transparent 62%);
+      opacity:0;transition:opacity .35s;
+      display:flex;flex-direction:column;justify-content:flex-end;padding:13px;
+    }
+    .mini-card:hover .mini-ov{opacity:1}
+    .mini-name{font-size:12px;font-weight:700;color:#f5f5f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mini-meta{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px}
+    .mini-badge{position:absolute;top:9px;right:9px;background:rgba(8,8,8,.75);backdrop-filter:blur(3px);border-radius:20px;padding:4px 9px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#999;font-weight:600}
+    .mini-badge.views{color:#25d366}
+    .mini-badge.dl{color:#4285f4}
+
+    /* Categoria bars */
+    .cat-bars{display:flex;flex-direction:column;gap:12px}
+    .cat-bar-row{display:grid;grid-template-columns:130px 1fr 42px;gap:16px;align-items:center}
+    .cat-bar-lbl{font-size:13px;color:#999;text-transform:capitalize;text-align:right;font-weight:300}
+    .cat-bar-track{background:rgba(255,255,255,.05);border-radius:6px;height:8px;overflow:hidden}
+    .cat-bar-fill{height:100%;background:linear-gradient(to right,#1a8f4c,#25d366);border-radius:6px;transition:width 1s cubic-bezier(.16,1,.3,1);box-shadow:0 0 12px rgba(37,211,102,.35)}
+    .cat-bar-num{font-size:12px;color:#666;font-family:monospace}
+
+    /* Drive status */
+    .drive-badge{
+      display:inline-flex;align-items:center;gap:9px;
+      border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:9px 17px;
+      font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#999;
+      background:rgba(255,255,255,.02);
+    }
+    .drive-dot{width:7px;height:7px;border-radius:50%;background:#444;transition:background .4s,box-shadow .4s}
+    .drive-dot.on{background:#25d366;box-shadow:0 0 8px rgba(37,211,102,.6)}
+    .drive-dot.off{background:#e53e3e;box-shadow:0 0 8px rgba(229,62,62,.4)}
+
+    /* Sync btn */
+    .sync-btn{
+      display:flex;align-items:center;gap:9px;
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);
+      color:#ccc;border-radius:11px;padding:10px 19px;
+      font-size:13px;font-family:'Lato',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+      cursor:pointer;transition:all .25s;
+    }
+    .sync-btn:hover{border-color:rgba(37,211,102,.4);color:#f5f5f5;background:rgba(37,211,102,.06)}
+    .sync-btn:disabled{opacity:.6;cursor:default}
+    .sync-btn.spinning svg{animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    @media(max-width:900px){
+      .dash-page{padding:88px 20px 60px}
+      .kpi-grid{grid-template-columns:1fr 1fr}
+      .mini-grid{grid-template-columns:repeat(2,1fr)}
+      .cat-bar-row{grid-template-columns:90px 1fr 36px}
+    }
+    @media(max-width:480px){
+      .kpi-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo" aria-label="Aleff Thiago">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Portfólio</a></li>
+    <li><a href="search.html">Buscar</a></li>
+    <li><a href="upload.html">Upload</a></li>
+    <li><a href="admin.html">Galeria</a></li>
+    <li><a href="slots.html">Slots</a></li>
+  </ul>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="drive-badge">
+      <div class="drive-dot" id="driveDot"></div>
+      <span id="driveLabel">Drive…</span>
+    </div>
+    <button class="sync-btn" id="syncBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Sync Drive
+    </button>
+    <span id="navUser" style="font-size:12px;color:#666;letter-spacing:.08em;text-transform:uppercase"></span>
+    <button type="button" class="sync-btn" id="logoutBtn" style="padding:9px 14px">Sair</button>
+  </div>
+</nav>
+
+<main class="dash-page">
+  <div class="dash-hdr">
+    <div>
+      <p class="dash-eyebrow">Painel administrativo</p>
+      <h1 class="dash-title">Dashboard<br><em>do acervo</em></h1>
+    </div>
+  </div>
+
+  <div class="dev-panel" id="driveConnectPanel">
+    <h3>Conectar Google Drive</h3>
+    <p id="driveConnectMsg">Verificando conexão…</p>
+    <code id="driveSaEmail" hidden></code>
+    <div class="dev-actions">
+      <button type="button" id="btnRecheckDrive">Reverificar</button>
+      <a href="upload.html">Ir ao upload</a>
+      <a href="admin.html">Abrir galeria</a>
+    </div>
+  </div>
+
+  <div class="dev-panel" id="devSlotsPanel">
+    <h3>Slots do portfólio</h3>
+    <p>Preencha os espaços vazios da home — arraste foto ou vídeo na aba dedicada.</p>
+    <div class="slot-grid">
+      <a class="slot-card" href="slots.html"><span>Gerenciar slots</span></a>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi">
+      <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m21 15-5-4-9 7"/></svg></span>
+      <p class="kpi-val" id="kTotalFotos">—</p><p class="kpi-lbl">Fotos</p>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-4v12l-6-4"/></svg></span>
+      <p class="kpi-val" id="kTotalVideos">—</p><p class="kpi-lbl">Vídeos</p>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17a4.5 4.5 0 0 1-1-8.9A5.5 5.5 0 0 1 16.5 6a4.5 4.5 0 0 1 1.5 8.9"/><path d="M12 12v6M9 15l3 3 3-3"/></svg></span>
+      <p class="kpi-val" id="kEspaco">—</p><p class="kpi-lbl">Espaço usado</p><p class="kpi-sub">Google Drive</p>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      <p class="kpi-val" id="kViews">—</p><p class="kpi-lbl">Visualizações</p>
+    </div>
+  </div>
+
+  <!-- Últimos uploads -->
+  <div class="sec">
+    <div class="sec-hd">
+      <p class="sec-hd-title">Últimos uploads</p>
+      <a href="admin.html" class="sec-hd-link">Ver todos</a>
+    </div>
+    <div class="mini-grid" id="gridUploads"></div>
+  </div>
+
+  <!-- Mais vistos + mais baixados -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:52px">
+    <div class="sec">
+      <div class="sec-hd"><p class="sec-hd-title">Mais vistos</p></div>
+      <div class="mini-grid" id="gridViews" style="grid-template-columns:repeat(3,1fr)"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-hd"><p class="sec-hd-title">Mais baixados</p></div>
+      <div class="mini-grid" id="gridDownloads" style="grid-template-columns:repeat(3,1fr)"></div>
+    </div>
+  </div>
+
+  <!-- Categorias -->
+  <div class="sec">
+    <div class="sec-hd"><p class="sec-hd-title">Por categoria</p></div>
+    <div class="cat-bars" id="catBars"></div>
+  </div>
+</main>
+
+<script>
+const API = '/api';
+const _kpiPrev = {};
+
+function animateKpi(id, target) {
+  const el = document.getElementById(id);
+  const start = _kpiPrev[id] || 0;
+  _kpiPrev[id] = target;
+
+  if (start === target) { el.textContent = target.toLocaleString('pt-BR'); return; }
+
+  const dur = 900;
+  let t0 = null;
+  const step = ts => {
+    if (!t0) t0 = ts;
+    const p = Math.min((ts - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(start + (target - start) * eased);
+    el.textContent = val.toLocaleString('pt-BR');
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ── Status do Drive ──────────────────────────────────────── */
+async function checkDriveStatus(notify = false) {
+  const dot   = document.getElementById('driveDot');
+  const label = document.getElementById('driveLabel');
+  const panel = document.getElementById('driveConnectPanel');
+  const msg = document.getElementById('driveConnectMsg');
+  const emailEl = document.getElementById('driveSaEmail');
+
+  try {
+    const r = await fetch(`${API}/drive/status`, { cache: 'no-store' });
+    const d = await r.json();
+    const online = r.ok && d.online === true && d.status !== 'error';
+
+    if (!online) {
+      dot.className = 'drive-dot off';
+      label.textContent = 'Drive offline';
+      if (panel) {
+        panel.classList.add('show');
+        if (msg) msg.textContent = d.error || d.hint || 'Compartilhe a pasta do Drive com a service account (Editor).';
+        if (emailEl && d.service_account) {
+          emailEl.hidden = false;
+          emailEl.textContent = d.service_account;
+        }
+      }
+      if (notify) {
+        Toast.error('Drive offline', d.error || d.message || 'Não foi possível conectar ao Google Drive.');
+      }
+      return false;
+    }
+
+    dot.className = 'drive-dot on';
+    label.textContent = 'Drive online';
+    if (panel && msg) {
+      if (window.__isDev) {
+        panel.classList.add('show');
+        msg.textContent = 'Drive conectado. Pasta acessível pela service account.';
+        if (emailEl && d.service_account) {
+          emailEl.hidden = false;
+          emailEl.textContent = d.service_account;
+        }
+      } else {
+        panel.classList.remove('show');
+      }
+    }
+    if (notify) {
+      Toast.success('Drive conectado', 'Conexão com o Google Drive estabelecida.');
+    }
+    return true;
+
+  } catch (error) {
+    console.error('Drive status error:', error);
+    dot.className = 'drive-dot off';
+    label.textContent = 'Erro ao verificar Drive';
+    if (panel && msg) {
+      panel.classList.add('show');
+      msg.textContent = error.message || 'Sem conexão com o servidor.';
+    }
+    if (notify) {
+      Toast.error('Falha ao verificar Drive', error.message || 'Sem conexão com o servidor.');
+    }
+    return false;
+  }
+}
+
+/* ── Carrega tudo ─────────────────────────────────────────── */
+async function loadDashboard(notifyDrive = false) {
+  if (typeof Auth !== 'undefined') {
+    const me = await Auth.requireLogin();
+    if (!me) return;
+    const ul = document.getElementById('navUser');
+    const roleLabel = me.role === 'dev' ? 'dev' : 'admin';
+    if (ul) ul.textContent = `${me.user || 'user'} · ${roleLabel}`;
+
+    window.__isDev = me.role === 'dev' || (me.perms || []).includes('system');
+    const slots = document.getElementById('devSlotsPanel');
+    if (slots) slots.classList.toggle('show', Auth.can('slots') || window.__isDev);
+
+    const syncBtn = document.getElementById('syncBtn');
+    if (syncBtn) {
+      const canSync = (me.perms || []).includes('sync') || me.role === 'dev';
+      syncBtn.hidden = !canSync;
+    }
+  }
+  await checkDriveStatus(notifyDrive);
+
+  // Stats
+  try {
+    const r    = await Auth.fetch(`${API}/dashboard`);
+    const data = await r.json();
+    const s    = data.stats;
+
+    animateKpi('kTotalFotos', s.total_imagens || 0);
+    animateKpi('kTotalVideos', s.total_videos || 0);
+    document.getElementById('kEspaco').textContent = s.espaco_formatado;
+
+    const totalViews = [...s.mais_vistos, ...s.ultimos_uploads]
+      .reduce((a, i) => a + (i.visualizacoes || 0), 0);
+    animateKpi('kViews', totalViews);
+
+    renderMiniGrid('gridUploads',   s.ultimos_uploads,   'date');
+    renderMiniGrid('gridViews',     s.mais_vistos,       'views');
+    renderMiniGrid('gridDownloads', s.mais_baixados,     'dl');
+    renderCatBars(s.por_categoria);
+  } catch(e) {
+    console.error('Dashboard error:', e);
+    Toast.error('Erro ao carregar dados', 'Não foi possível carregar as estatísticas do dashboard.');
+  }
+}
+
+function renderMiniGrid(id, items, badge) {
+  const el = document.getElementById(id);
+  if (!items || !items.length) {
+    el.innerHTML = '<p style="color:#333;font-size:13px;grid-column:span 4">Nenhum item ainda.</p>';
+    return;
+  }
+  el.innerHTML = items.map(item => `
+    <div class="mini-card" onclick="window.location='admin.html?id=${item.id}'">
+      ${item.thumb_url
+        ? `<img class="mini-thumb" src="${escAttr(item.thumb_url)}" alt="${esc(item.nome)}" loading="lazy" onerror="this.style.display='none'"/>`
+        : `<div class="mini-ph">${item.tipo === 'video' ? 'Vídeo' : 'Foto'}</div>`}
+      <div class="mini-ov">
+        <p class="mini-name">${esc(item.nome)}</p>
+        <p class="mini-meta">${item.data_upload || ''}</p>
+      </div>
+      <span class="mini-badge ${badge}">
+        ${badge === 'views'  ? `${item.visualizacoes} views`  :
+          badge === 'dl'     ? `${item.downloads} downloads`       :
+          item.tipo === 'video' ? 'vídeo' : 'foto'}
+      </span>
+    </div>`).join('');
+}
+
+function renderCatBars(cats) {
+  if (!cats || !cats.length) return;
+  const max = cats[0].total;
+  document.getElementById('catBars').innerHTML = cats.map(c => `
+    <div class="cat-bar-row">
+      <span class="cat-bar-lbl">${esc(c.categoria || 'sem cat.')}</span>
+      <div class="cat-bar-track">
+        <div class="cat-bar-fill" style="width:${(c.total/max*100).toFixed(1)}%"></div>
+      </div>
+      <span class="cat-bar-num">${c.total}</span>
+    </div>`).join('');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(s) {
+  const v = String(s||'');
+  if (!/^https:\/\/(drive\.google\.com|lh3\.googleusercontent\.com|[\w.-]+\.googleusercontent\.com)\//i.test(v)
+      && !/^https:\/\/drive\.google\.com\//i.test(v)) {
+    return '';
+  }
+  return esc(v);
+}
+
+/* ── Sync Drive ───────────────────────────────────────────── */
+document.getElementById('syncBtn')?.addEventListener('click', async function() {
+  this.classList.add('spinning');
+  this.disabled = true;
+
+  const dismissProgress = Toast.info('Sincronizando Drive...', 'Isso pode levar alguns segundos.', 0);
+
+  try {
+    const r = await Auth.fetch(`${API}/drive/sync`, {
+      method: 'POST'
+    });
+
+    const text = await r.text();
+    let d;
+    try {
+      d = JSON.parse(text);
+    } catch {
+      throw new Error('Resposta inválida do servidor: ' + text);
+    }
+
+    dismissProgress();
+
+    if (!r.ok || d.status === 'error') {
+      Toast.error('Falha ao sincronizar', d.message || 'Erro desconhecido.');
+    } else {
+      Toast.success('Sincronização concluída', d.message || 'Drive sincronizado com sucesso.');
+    }
+
+    await loadDashboard(false);
+
+  } catch(e) {
+    dismissProgress();
+    console.error(e);
+    Toast.error('Falha ao sincronizar', e.message || 'Sem conexão com o servidor.');
+  } finally {
+    this.classList.remove('spinning');
+    this.disabled = false;
+  }
+});
+
+/* ── Inicialização ────────────────────────────────────────── */
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+  await Auth.logout();
+  location.href = '/loginsite.html';
+});
+document.getElementById('btnRecheckDrive')?.addEventListener('click', () => checkDriveStatus(true));
+loadDashboard(true);</script>
+</body>
+</html>

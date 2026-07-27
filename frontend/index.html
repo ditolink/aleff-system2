@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Aleff Thiago — Fotógrafo & Videomaker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/dev-bar.js" defer></script>
+  <script src="js/main.js" defer></script>
+</head>
+<body>
+
+<nav class="site-nav site-nav--slim" id="siteNav">
+  <a href="index.html" class="logo" aria-label="Aleff Thiago">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#work">Trabalhos</a></li>
+    <li><a href="#contato">Contato</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="search.html" class="nav-search-btn btn-anim" id="navSearchBtn" title="Buscar (/)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      Buscar
+    </a>
+    <a href="loginsite.html" class="nav-search-btn btn-anim" title="Entrar">
+      Entrar
+    </a>
+  </div>
+</nav>
+
+<!-- HERO — rosto em parallax, composição limpa -->
+<section class="hero hero--face" id="hero">
+  <div class="hero-parallax" id="heroBg">
+    <img class="hero-face" src="fotos/aleff-hero.jpg" alt="Aleff Thiago" id="heroFace"/>
+    <div class="hero-overlay"></div>
+  </div>
+  <div class="hero-content" id="heroContent">
+    <h1 class="hero-title"><span class="t1">Aleff</span><span class="t2">Thiago</span></h1>
+    <p class="hero-desc">Fotógrafo &amp; filmmaker · Minas Gerais</p>
+    <div class="hero-ctas">
+      <a href="#work" class="btn-primary btn-anim">Ver trabalhos</a>
+    </div>
+  </div>
+</section>
+
+<!-- TRABALHOS -->
+<section class="work-section" id="work">
+  <div class="sec-hdr rv">
+    <span class="sec-label">Trabalhos selecionados</span>
+    <span class="sec-count">25 peças</span>
+  </div>
+  <div class="grid">
+    <div class="gi feature-cinema rv" data-idx="0"><video src="videos/Instagram.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Reel Instagram</p><p class="gi-cat">Destaque — Filmmaker</p></div></div>
+    <div class="gi feature rv" data-idx="1"><video src="videos/REELS1.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Ação &amp; Movimento</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi p-tall rv" data-idx="2"><img src="fotos/foto_thalles.jpg" alt="Thalles Roberto" loading="lazy"/><div class="gi-ov"><p class="gi-title">Thalles Roberto</p><p class="gi-cat">Show — Montes Claros MG</p></div></div>
+    <div class="gi p-tall rv" data-idx="3"><img src="fotos/foto11i.jpg" alt="Ensaio piscina" loading="lazy"/><div class="gi-ov"><p class="gi-title">Tarde na Piscina</p><p class="gi-cat">Ensaio — Casual</p></div></div>
+    <div class="gi p-tall rv" data-idx="4"><img src="fotos/foto20.webp" alt="Ensaio praia" loading="lazy"/><div class="gi-ov"><p class="gi-title">Tarde de Praia</p><p class="gi-cat">Ensaio — Verão</p></div></div>
+    <div class="gi p-tall rv" data-idx="5"><img src="fotos/foto55.jpg" alt="Retrato com tranças" loading="lazy"/><div class="gi-ov"><p class="gi-title">Luz da Tarde</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+
+    <div class="grid-break" role="presentation"><span>Shows &amp; cidade</span></div>
+
+    <div class="gi l-wide rv" data-idx="6"><img src="fotos/foto10.jpg" alt="Ponte das Bandeiras" loading="lazy"/><div class="gi-ov"><p class="gi-title">Ponte das Bandeiras</p><p class="gi-cat">Urbano — SP</p></div></div>
+    <div class="gi p-tall rv" data-idx="7"><img src="fotos/foto_detonautas.webp" alt="Detonautas" loading="lazy"/><div class="gi-ov"><p class="gi-title">Detonautas</p><p class="gi-cat">Show — Pirapora MG</p></div></div>
+    <div class="gi p-tall rv" data-idx="8"><img src="fotos/foto12.jpg" alt="Retrato Xadrez" loading="lazy"/><div class="gi-ov"><p class="gi-title">O Lance Certo</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+    <div class="gi p-tall rv" data-idx="9"><img src="fotos/foto_jotaquest.webp" alt="Jota Quest" loading="lazy"/><div class="gi-ov"><p class="gi-title">Jota Quest</p><p class="gi-cat">Show — Pirapora MG</p></div></div>
+    <div class="gi p-tall rv" data-idx="10"><img src="fotos/foto30.jpg" alt="Retrato Masculino" loading="lazy"/><div class="gi-ov"><p class="gi-title">Estilo &amp; Atitude</p><p class="gi-cat">Retrato — Masculino</p></div></div>
+    <div class="gi p-tall rv" data-idx="11"><img src="fotos/foto60.webp" alt="Retrato Iluminado" loading="lazy"/><div class="gi-ov"><p class="gi-title">Retrato Iluminado</p><p class="gi-cat">Ensaio — Luz Dourada</p></div></div>
+    <div class="gi gi-slot p-tall" data-slot-id="01" aria-label="Espaço reservado">
+      <div class="slot-inner">
+        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
+        <p class="slot-lbl">Em breve</p>
+        <p class="slot-sub">Próximo ensaio</p>
+      </div>
+    </div>
+
+    <div class="grid-break" role="presentation"><span>Casais &amp; cinema</span></div>
+
+    <div class="gi l-wide rv" data-idx="12"><img src="fotos/foto41.webp" alt="Casal estrada" loading="lazy"/><div class="gi-ov"><p class="gi-title">Brincadeira de Casal</p><p class="gi-cat">Ensaio — Pré-wedding</p></div></div>
+    <div class="gi p-tall rv" data-idx="13"><img src="fotos/foto40.webp" alt="Casamento no tronco" loading="lazy"/><div class="gi-ov"><p class="gi-title">Para Sempre</p><p class="gi-cat">Casamento — Beira-rio</p></div></div>
+    <div class="gi gi-slot p-tall" data-slot-id="02" aria-label="Espaço reservado">
+      <div class="slot-inner">
+        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
+        <p class="slot-lbl">Em breve</p>
+        <p class="slot-sub">Novo casal</p>
+      </div>
+    </div>
+    <div class="gi feature rv" data-idx="14"><video src="videos/video72.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Natureza Viva</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi feature-cinema rv" data-idx="15"><video src="videos/VIDEORAPS.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Sessão de Rap</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi l-cinema rv" data-idx="16"><video src="videos/VIDEORAPS.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Dia Inesquecível</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi p-tall rv" data-idx="17"><video src="videos/video73.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Frame Perfeito</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi gi-slot p-tall" data-slot-id="03" aria-label="Espaço reservado">
+      <div class="slot-inner">
+        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
+        <p class="slot-lbl">Em breve</p>
+        <p class="slot-sub">Novo vídeo</p>
+      </div>
+    </div>
+    <div class="gi l-wide rv" data-idx="18"><img src="fotos/foto50.webp" alt="Halloween infantil" loading="lazy"/><div class="gi-ov"><p class="gi-title">Noite de Halloween</p><p class="gi-cat">Ensaio — Infantil</p></div></div>
+
+    <div class="grid-break" role="presentation"><span>Retratos &amp; conceito</span></div>
+
+    <div class="gi l-wide rv" data-idx="19"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Produção Especial</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi p-tall rv" data-idx="20"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">No Estúdio</p><p class="gi-cat">Vídeo — 2024</p></div></div>
+    <div class="gi p-tall rv" data-idx="21"><img src="fotos/fotolely01.jpg" alt="Retrato pôr do sol" loading="lazy"/><div class="gi-ov"><p class="gi-title">Vento da Tarde</p><p class="gi-cat">Retrato — Pôr do Sol</p></div></div>
+    <div class="gi p-tall rv" data-idx="22"><img src="fotos/fotojoy01.jpg" alt="Retrato floral" loading="lazy"/><div class="gi-ov"><p class="gi-title">Doce Olhar</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+    <div class="gi p-tall rv" data-idx="23"><img src="fotos/fotolely02.jpg" alt="Moldura vermelha" loading="lazy"/><div class="gi-ov"><p class="gi-title">Dentro do Quadro</p><p class="gi-cat">Conceitual — Criativo</p></div></div>
+    <div class="gi p-tall rv" data-idx="24"><img src="fotos/foto94.webp" alt="Levitação no rio" loading="lazy"/><div class="gi-ov"><p class="gi-title">Suspensa no Tempo</p><p class="gi-cat">Conceitual — Levitação</p></div></div>
+    <div class="gi gi-slot l-wide" data-slot-id="04" aria-label="Espaço reservado">
+      <div class="slot-inner">
+        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
+        <p class="slot-lbl">Reservado</p>
+        <p class="slot-sub">Próximo destaque widescreen</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ACESSOS RÁPIDOS -->
+<section class="quick-paths" id="quickPaths">
+  <div class="quick-paths-inner rv">
+    <a href="search.html" class="quick-chip">Buscar no acervo</a>
+    <a href="#contato" class="quick-chip">Falar comigo</a>
+  </div>
+</section>
+
+<!-- NÚMEROS -->
+<div class="numbers-wrap rv">
+  <div class="numbers-grid">
+    <div class="num-item"><p class="num-val" data-target="5" data-suffix="+">0</p><p class="num-lbl">Anos de experiência</p><p class="num-desc">Capturando histórias desde 2019</p></div>
+    <div class="num-item"><p class="num-val" data-target="100" data-suffix="+">0</p><p class="num-lbl">Projetos entregues</p><p class="num-desc">De ensaios a grandes shows</p></div>
+    <div class="num-item"><p class="num-val" data-target="40" data-suffix="+">0</p><p class="num-lbl">Clientes satisfeitos</p><p class="num-desc">Bandas, artistas e marcas</p></div>
+    <div class="num-item"><p class="num-val" data-target="3" data-suffix="">0</p><p class="num-lbl">Grandes shows cobertos</p><p class="num-desc">Jota Quest, Detonautas, Thalles</p></div>
+  </div>
+</div>
+
+<!-- SOBRE MIM -->
+<section class="sobre" id="sobre">
+  <div class="sobre-grid">
+    <div class="rv">
+      <div class="sobre-img-wrap">
+        <img class="sobre-img" src="fotos/aleff-profile.png" alt="Aleff Thiago"/>
+        <div class="sobre-img-badge"><p class="badge-num">5+</p><p class="badge-lbl">Anos capturando</p></div>
+      </div>
+    </div>
+    <div class="rv d1">
+      <p class="sobre-eyebrow">Sobre mim</p>
+      <h2 class="sobre-title">Olho afiado,<br><em>alma presente.</em></h2>
+      <p class="sobre-bio">Sou o <strong>Aleff Thiago</strong>, fotógrafo e videomaker de <strong>Minas Gerais</strong>. Cubro shows e eventos ao vivo — já trabalhei com <strong>Thalles Roberto, Jota Quest e Detonautas</strong>. Faço retratos, ensaios de casal, pista &amp; ação e projetos editoriais. Cada projeto recebe atenção total, do planejamento à entrega.</p>
+      <div class="tags" id="sobreTags">
+        <span class="tag tag-rv">Casamento</span><span class="tag tag-rv">Shows &amp; Eventos</span><span class="tag tag-rv">Retratos</span><span class="tag tag-rv">Casais</span><span class="tag tag-rv">Pista &amp; Ação</span><span class="tag tag-rv">Vídeo</span><span class="tag tag-rv">Editorial</span>
+      </div>
+      <div class="gear-list">
+        <p class="gear-lbl">Equipamento principal</p>
+        <div class="gear-item"><span class="gear-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M8 6L9.5 3h5L16 6"/><circle cx="12" cy="13" r="3"/></svg></span><div><p class="gear-name">Canon EOS</p><p class="gear-desc">Corpo principal para foto e vídeo</p></div></div>
+        <div class="gear-item"><span class="gear-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20M2 14h20M7 6v12M17 6v12"/></svg></span><div><p class="gear-name">Edição profissional</p><p class="gear-desc">Premiere Pro · Lightroom · After Effects</p></div></div>
+        <div class="gear-item"><span class="gear-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a6 6 0 0 1 6 6c0 2-1 3.5-2.5 4.5S14 14 14 16v2H10v-2c0-2-.5-3.5-2-4.5S6 10 6 8a6 6 0 0 1 6-6z"/></svg></span><div><p class="gear-name">Iluminação</p><p class="gear-desc">Strobes, softbox e luz natural</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOBRE CURTO -->
+<section class="mini-about">
+  <div class="mini-about-inner rv">
+    <span class="mini-kicker">Sobre</span>
+    <p>Aleff Thiago é fotógrafo e filmmaker em Minas Gerais, com foco em shows, retratos e ensaios de casal. Direção simples, entrega rápida e linguagem visual limpa.</p>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="timeline-section">
+  <div class="sec-hdr rv" style="padding:0;border:none"><span class="sec-label">Minha jornada</span></div>
+  <div class="timeline" id="timeline">
+    <div class="timeline-progress" id="timelineProgress"></div>
+    <div class="tl-item rv"><p class="tl-year">2019</p><p class="tl-title">O primeiro clique</p><p class="tl-desc">Comecei fotografar com equipamento emprestado, descobrindo que cada imagem conta uma história diferente.</p></div>
+    <div class="tl-item rv d1"><p class="tl-year">2021</p><p class="tl-title">Primeiros eventos ao vivo</p><p class="tl-desc">Entrei no mundo da cobertura de shows e eventos. A adrenalina de capturar o momento exato no palco me fisgou.</p></div>
+    <div class="tl-item rv d2"><p class="tl-year">2022</p><p class="tl-title">Expandindo para vídeo</p><p class="tl-desc">Comecei a produzir reels e vídeos institucionais, unindo fotografia e audiovisual em uma identidade própria.</p></div>
+    <div class="tl-item rv"><p class="tl-year">2023</p><p class="tl-title">Grandes nomes no portfólio</p><p class="tl-desc">Cobri shows do Jota Quest e Detonautas em Pirapora-MG e trabalhei com Thalles Roberto em Montes Claros.</p></div>
+    <div class="tl-item rv d1"><p class="tl-year">2024</p><p class="tl-title">Consolidando o trabalho</p><p class="tl-desc">Hoje atendo marcas, artistas e clientes particulares com entrega de altíssima qualidade em foto e vídeo.</p></div>
+  </div>
+</section>
+
+<!-- BASTIDORES -->
+<section class="strip-section">
+  <div class="sec-hdr rv" style="padding:0;border:none"><span class="sec-label">Bastidores &amp; Momentos</span></div>
+  <div class="foto-strip">
+    <div class="foto-item r-vert rv"><video src="videos/Reel01.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 01</p></div>
+    <div class="foto-item r-vert rv d1"><video src="videos/Reel02.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 02</p></div>
+    <div class="foto-item r-vert rv d2"><video src="videos/video67.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 04</p></div>
+    <div class="foto-item r-vert rv d3"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 05</p></div>
+    <div class="foto-item r-vert rv d3"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 06</p></div>
+    <div class="foto-item r-wide rv d3"><video src="videos/Reel03.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 03</p></div>
+  </div>
+</section>
+
+<!-- SERVIÇOS -->
+<section class="servicos" id="servicos">
+  <div class="sec-hdr rv" style="padding:0;border:none"><span class="sec-label">O que ofereço</span></div>
+  <div class="srv-grid">
+    <div class="srv rv"><p class="srv-n">01</p><span class="srv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14"/><path d="M7 5h3l2 4h4l2-4h3"/><rect x="5" y="8" width="14" height="10" rx="2"/></svg></span><h3 class="srv-name">Shows &amp; Eventos</h3><p class="srv-desc">Cobertura completa ao vivo com equipamento profissional.</p><ul class="srv-list"><li>Cobertura fotográfica completa</li><li>Alta qualidade em baixa luz</li><li>Edição e entrega rápida</li></ul></div>
+    <div class="srv rv d1"><p class="srv-n">02</p><span class="srv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M3 15h18"/></svg></span><h3 class="srv-name">Retratos &amp; Ensaios</h3><p class="srv-desc">Ensaios individuais, de casal e familiares com resultado cinematográfico.</p><ul class="srv-list"><li>Ensaio individual ou casal</li><li>Locações internas e externas</li><li>Galeria online de entrega</li></ul></div>
+    <div class="srv rv d2"><p class="srv-n">03</p><span class="srv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14"/><path d="M5 17h14"/><path d="M8 7v10"/><path d="M16 7v10"/></svg></span><h3 class="srv-name">Vídeo &amp; Reels</h3><p class="srv-desc">Produção audiovisual do conceito à entrega.</p><ul class="srv-list"><li>Roteiro e direção criativa</li><li>Edição profissional</li><li>Entrega em múltiplos formatos</li></ul></div>
+  </div>
+</section>
+
+<!-- DEPOIMENTOS -->
+<section class="dep-section">
+  <div class="sec-hdr rv" style="padding:0;border:none"><span class="sec-label">O que dizem</span></div>
+  <div class="dep-grid">
+    <div class="dep-card rv"><span class="dep-quote-mark">"</span><p class="dep-quote">As fotos do show capturaram exatamente a energia que queríamos transmitir. Profissionalismo e sensibilidade artística raros.</p><div class="dep-author"><div class="dep-avatar">TG</div><div><p class="dep-name">Equipe Thalles Roberto</p><p class="dep-role">Artista Gospel — Montes Claros</p></div></div></div>
+    <div class="dep-card rv d1"><span class="dep-quote-mark">"</span><p class="dep-quote">Trabalho impecável na cobertura do show em Pirapora. As fotos ficaram incríveis, capturou cada detalhe do palco.</p><div class="dep-author"><div class="dep-avatar">JQ</div><div><p class="dep-name">Organização Jota Quest</p><p class="dep-role">Show — Pirapora MG</p></div></div></div>
+    <div class="dep-card rv d2"><span class="dep-quote-mark">"</span><p class="dep-quote">Resultado cinematográfico, atenção aos detalhes e entrega dentro do prazo. Recomendo sem hesitar.</p><div class="dep-author"><div class="dep-avatar">VZ</div><div><p class="dep-name">Voluntariado Azul</p><p class="dep-role">Projeto Social — MG</p></div></div></div>
+  </div>
+</section>
+
+<!-- CONTATO -->
+<section class="contato" id="contato">
+  <div class="contato-stage">
+    <div class="contato-glow" aria-hidden="true"></div>
+    <div class="sec-hdr contato-hdr rv" style="padding:0 0 36px;border:none"><span class="sec-label">Fale comigo</span></div>
+    <div class="contato-card rv">
+      <div class="cc-left">
+        <p class="cc-eyebrow">Vamos criar juntos</p>
+        <h2 class="cc-title">Bora dar vida<br><em>ao seu projeto?</em></h2>
+        <p class="cc-desc">Preenche o formulário ou usa um dos contatos. Costumo responder em até 24h — com a mesma atenção que levo pro set.</p>
+        <div class="cc-info-list">
+          <a href="https://wa.me/5538999078483?text=Oi%2C%20Aleff!%20Venho%20em%20contato%20pelo%20site." target="_blank" class="cc-info wa">
+            <span class="cc-info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></span>
+            <span class="cc-info-text"><strong>(38) 9907-8483</strong><small>WhatsApp · resposta rápida</small></span>
+            <span class="cc-info-arrow">→</span>
+          </a>
+          <a href="mailto:aleffthigo@gmail.com" class="cc-info em" id="emailBtn">
+            <span class="cc-info-icon"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M6 10l18 13L42 10H6z"/><path fill="#34A853" d="M42 10v28H6V10l18 13z"/><path fill="#FBBC05" d="M6 10v28l10-14z"/><path fill="#4285F4" d="M42 10v28L32 24z"/><path fill="#C5221F" d="M6 38l10-14 8 5.6L32 24l10 14H6z"/></svg></span>
+            <span class="cc-info-text"><strong>aleffthigo@gmail.com</strong><small>E-mail · até 24h</small></span>
+            <span class="cc-info-arrow">→</span>
+          </a>
+          <a href="https://instagram.com/aleffthiagofilms" target="_blank" class="cc-info ig">
+            <span class="cc-info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><defs><linearGradient id="igG" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f09433"/><stop offset="50%" stop-color="#dc2743"/><stop offset="100%" stop-color="#bc1888"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" stroke="url(#igG)"/><circle cx="12" cy="12" r="4" stroke="url(#igG)"/><circle cx="17.5" cy="6.5" r="1.2" fill="url(#igG)" stroke="none"/></svg></span>
+            <span class="cc-info-text"><strong>@aleffthiago</strong><small>Instagram · bastidores e novidades</small></span>
+            <span class="cc-info-arrow">→</span>
+          </a>
+          <div class="cc-info cc-info-static">
+            <span class="cc-info-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.8"><path d="M12 21s-7-6.5-7-11a7 7 0 1 1 14 0c0 4.5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+            <span class="cc-info-text"><strong>Pirapora, MG</strong><small>Atendo toda a região e viagens a trabalho</small></span>
+          </div>
+        </div>
+      </div>
+      <div class="cc-right">
+        <div class="cc-form-badge" aria-hidden="true">
+          <svg viewBox="0 0 48 40"><rect x="2" y="10" width="30" height="22" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M32 16l12-5v22l-12-5V16z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="17" cy="21" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="17" cy="21" r="2.8" fill="currentColor"/></svg>
+        </div>
+        <div class="fg"><label class="flbl" for="ccNome">Nome completo</label><input id="ccNome" name="nome" type="text" class="finput cc-input" placeholder="Seu nome" autocomplete="name"/></div>
+        <div class="fg"><label class="flbl" for="ccContato">E-mail ou WhatsApp</label><input id="ccContato" name="contato" type="text" class="finput cc-input" placeholder="Para eu retornar o contato" autocomplete="email"/></div>
+        <div class="fg"><label class="flbl" for="ccTipo">Tipo de projeto</label><select id="ccTipo" name="tipo" class="finput cc-input cc-select"><option value="" disabled selected>Selecione</option><option>Show / evento ao vivo</option><option>Retrato / ensaio individual</option><option>Ensaio de casal</option><option>Casamento</option><option>Vídeo / reels</option><option>Outro</option></select></div>
+        <div class="fg"><label class="flbl" for="ccMsg">Mensagem</label><textarea class="ftarea cc-input" id="ccMsg" name="mensagem" placeholder="Me conta mais sobre o que você precisa..." maxlength="500"></textarea><span class="cc-counter" id="ccCounter">0/500</span></div>
+        <button class="btn-send cc-send" id="btnSend"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Enviar via WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="index.html" class="logo logo--muted" aria-label="Aleff Thiago">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
+  </a>
+  <span class="fcopy">© 2026 — Todos os direitos reservados</span>
+  <div class="f-social"><a href="https://instagram.com/aleffthiagofilms" target="_blank">Instagram</a><a href="https://wa.me/5538999078483?text=Oi%2C%20Aleff!%20Venho%20em%20contato%20pelo%20site." target="_blank">WhatsApp</a><a href="mailto:aleffthigo@gmail.com">E-mail</a></div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb">
+  <button class="lb-close" id="lbClose">Fechar</button>
+  <button class="lb-nav lb-prev" id="lbPrev">‹</button>
+  <div id="lbContent"></div>
+  <button class="lb-nav lb-next" id="lbNext">›</button>
+  <div class="lb-ctr" id="lbCtr"></div>
+  <div class="lb-name" id="lbName"></div>
+</div>
+
+</body>
+</html>

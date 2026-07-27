@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /search.html
+Disallow: /loginsite
+Disallow: /loginsite.html
+Disallow: /dashboard
+Disallow: /dashboard.html
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /upload
+Disallow: /upload.html
+Disallow: /slots
+Disallow: /slots.html
+Disallow: /code
+Disallow: /code.html
+Disallow: /api/

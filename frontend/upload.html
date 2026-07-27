@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Upload — Aleff Thiago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/dev-bar.js" defer></script>
+  <style>
+    .upload-page{min-height:100vh;padding:100px 48px 80px;max-width:900px;margin:0 auto}
+    .up-eyebrow{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+    .up-eyebrow::before{content:'';width:16px;height:1px;background:#888;display:inline-block}
+    .up-title{font-size:clamp(36px,5vw,58px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin-bottom:48px}
+    .up-title em{font-weight:300;font-style:italic;color:rgba(255,255,255,.5)}
+
+    /* Drop zone */
+    .drop-zone{
+      border:2px dashed rgba(255,255,255,0.12);border-radius:20px;
+      padding:60px 40px;text-align:center;cursor:pointer;
+      transition:border-color .3s,background .3s,transform .3s,box-shadow .3s;
+      background:linear-gradient(160deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.01) 100%);
+      position:relative;margin-bottom:32px;
+    }
+    .drop-zone:hover{border-color:rgba(255,255,255,0.2);box-shadow:0 12px 32px rgba(0,0,0,.25)}
+    .drop-zone.dragover{border-color:rgba(37,211,102,0.6);background:rgba(37,211,102,0.06);transform:translateY(-2px)}
+    .drop-icon{margin-bottom:16px;display:flex;justify-content:center;color:#555}
+    .drop-text{font-size:18px;font-weight:700;margin-bottom:8px}
+    .drop-hint{font-size:13px;color:#555;margin-bottom:20px}
+    .drop-browse{
+      display:inline-flex;align-items:center;gap:8px;
+      background:#f5f5f5;color:#0a0a0a;border:none;border-radius:10px;
+      padding:11px 24px;font-family:'Lato',sans-serif;font-size:14px;
+      font-weight:700;cursor:pointer;transition:opacity .2s;
+    }
+    .drop-browse:hover{opacity:.88}
+    #fileInput{display:none}
+    .drop-formats{font-size:11px;color:#444;margin-top:16px;letter-spacing:.08em;text-transform:uppercase}
+
+    /* Preview queue */
+    .file-queue{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+    .fq-item{
+      display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;
+      background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+      border-radius:12px;padding:12px 16px;
+    }
+    .fq-thumb{width:52px;height:52px;object-fit:cover;border-radius:8px;background:#111}
+    .fq-thumb-ico{width:52px;height:52px;border-radius:8px;background:#111;display:flex;align-items:center;justify-content:center;font-size:22px;color:#444}
+    .fq-info{min-width:0}
+    .fq-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .fq-size{font-size:12px;color:#555;margin-top:2px}
+    .fq-bar-wrap{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:8px}
+    .fq-bar{height:100%;background:#25d366;border-radius:2px;width:0;transition:width .3s}
+    .fq-status{font-size:11px;margin-top:4px;color:#666}
+    .fq-status.done{color:#25d366}
+    .fq-status.err{color:#e53e3e}
+    .fq-remove{background:none;border:none;color:#444;cursor:pointer;font-size:16px;padding:4px;border-radius:6px;transition:color .2s}
+    .fq-remove:hover{color:#f5f5f5}
+
+    /* Metadados */
+    .meta-section{
+      border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:28px;margin-bottom:28px;
+      background:linear-gradient(160deg,#121212 0%,#0c0c0c 100%);
+    }
+    .meta-title{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+    .meta-title::before{content:'';width:16px;height:1px;background:#888;display:inline-block}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .meta-fg{display:flex;flex-direction:column;gap:6px}
+    .meta-fg.full{grid-column:span 2}
+    .meta-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#555;font-weight:300}
+    .meta-inp{
+      background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+      border-left:3px solid rgba(255,255,255,0.08);border-radius:10px;
+      color:#f5f5f5;padding:11px 14px;font-size:14px;font-family:'Lato',sans-serif;
+      outline:none;transition:border-color .2s,border-left-color .2s;
+    }
+    .meta-inp:focus{border-color:rgba(255,255,255,0.2);border-left-color:#25d366}
+    .meta-inp::placeholder{color:rgba(255,255,255,0.2)}
+    textarea.meta-inp{min-height:70px;resize:vertical}
+
+    /* Submit btn */
+    .up-submit{
+      width:100%;background:#16a34a;color:#fff;border:none;border-radius:12px;
+      padding:16px;font-family:'Lato',sans-serif;font-size:15px;font-weight:700;
+      letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      transition:opacity .2s,transform .15s;
+    }
+    .up-submit:hover{opacity:.9}
+    .up-submit:disabled{opacity:.4;cursor:not-allowed}
+    .up-submit.loading{animation:btn-pulse 1.2s ease infinite}
+    @keyframes btn-pulse{0%,100%{opacity:.7}50%{opacity:1}}
+
+    .drive-badge{
+      display:inline-flex;align-items:center;gap:8px;margin:0 0 28px;
+      padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.03);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#888;
+    }
+    .drive-dot{width:8px;height:8px;border-radius:50%;background:#444;transition:background .35s,box-shadow .35s}
+    .drive-dot.on{background:#25d366;box-shadow:0 0 8px rgba(37,211,102,.55)}
+    .drive-dot.off{background:#e53e3e;box-shadow:0 0 8px rgba(229,62,62,.4)}
+    .drive-dot.warn{background:#f5c842;box-shadow:0 0 8px rgba(245,200,66,.4)}
+
+    @media(max-width:768px){
+      .upload-page{padding:88px 20px 60px}
+      .meta-grid{grid-template-columns:1fr}
+      .meta-fg.full{grid-column:span 1}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo" aria-label="Aleff Thiago">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Portfólio</a></li>
+    <li><a href="search.html">Buscar</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+    <li><a href="slots.html">Slots</a></li>
+  </ul>
+  <a href="index.html" class="nav-search-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Voltar
+  </a>
+</nav>
+
+<main class="upload-page">
+  <p class="up-eyebrow">Envio de mídia</p>
+  <h1 class="up-title">Adicionar fotos<br><em>e vídeos</em></h1>
+  <div class="drive-badge" id="driveBadge" title="Status do Google Drive">
+    <span class="drive-dot" id="driveDot"></span>
+    <span id="driveLabel">Verificando Drive…</span>
+  </div>
+
+  <!-- Drop Zone -->
+  <div class="drop-zone" id="dropZone">
+    <span class="drop-icon" aria-hidden="true">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/></svg>
+    </span>
+    <p class="drop-text">Arraste os arquivos aqui</p>
+    <p class="drop-hint">ou clique para selecionar</p>
+    <button class="drop-browse" onclick="document.getElementById('fileInput').click()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Selecionar arquivos
+    </button>
+    <p class="drop-formats">JPG · PNG · WEBP · GIF · MP4 · MOV · AVI · WEBM</p>
+    <input type="file" id="fileInput" multiple accept="image/*,video/*"/>
+  </div>
+
+  <!-- Fila de arquivos -->
+  <div class="file-queue" id="fileQueue"></div>
+
+  <!-- Metadados -->
+  <div class="meta-section" id="metaSection" style="display:none">
+    <p class="meta-title">Informações dos arquivos</p>
+    <div class="meta-grid">
+      <div class="meta-fg">
+        <label class="meta-lbl">Categoria</label>
+        <select class="meta-inp" id="mCat">
+          <option value="">Selecione…</option>
+          <option>shows</option><option>retratos</option><option>casais</option>
+          <option>casamento</option><option>familia</option><option>infantil</option>
+          <option value="motocross">pista &amp; ação</option><option>editorial</option><option>natureza</option>
+          <option>urbano</option><option>video</option><option>outro</option>
+        </select>
+      </div>
+      <div class="meta-fg">
+        <label class="meta-lbl">Autor</label>
+        <input class="meta-inp" id="mAutor" type="text" placeholder="Aleff Thiago" value="Aleff Thiago"/>
+      </div>
+      <div class="meta-fg full">
+        <label class="meta-lbl">Tags (separadas por vírgula)</label>
+        <input class="meta-inp" id="mTags" type="text" placeholder="casamento, noiva, vestido, igreja"/>
+      </div>
+      <div class="meta-fg full">
+        <label class="meta-lbl">Descrição</label>
+        <textarea class="meta-inp" id="mDesc" placeholder="Descrição opcional do ensaio ou evento…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botão enviar -->
+  <button class="up-submit" id="upSubmit" disabled>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    Enviar para o Drive
+  </button>
+</main>
+
+<script>
+const API = '/api';
+let selectedFiles = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof Auth !== 'undefined') {
+    const me = await Auth.requireLogin();
+    if (!me) return;
+  }
+  checkDriveStatus();
+  setInterval(checkDriveStatus, 120000);
+});
+
+async function checkDriveStatus() {
+  const dot = document.getElementById('driveDot');
+  const label = document.getElementById('driveLabel');
+  if (!dot || !label) return;
+  try {
+    const r = await fetch(`${API}/drive/status`, { cache: 'no-store' });
+    const d = await r.json().catch(() => ({}));
+    const online = r.ok && d.online === true && d.status !== 'error';
+    if (online) {
+      dot.className = 'drive-dot on';
+      label.textContent = 'Drive online';
+    } else {
+      dot.className = 'drive-dot warn';
+      label.textContent = 'Manutenção — Drive offline';
+      if (typeof Toast !== 'undefined') {
+        /* silencioso no polling; só falha inicial pode avisar via UI */
+      }
+    }
+  } catch {
+    dot.className = 'drive-dot off';
+    label.textContent = 'Manutenção — sem conexão';
+  }
+}
+
+/* ── Drop Zone ──────────────────────────────────────────────── */
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileQueue = document.getElementById('fileQueue');
+const metaSec   = document.getElementById('metaSection');
+const upSubmit  = document.getElementById('upSubmit');
+
+['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, ev => {
+  ev.preventDefault(); dropZone.classList.add('dragover');
+}));
+['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {
+  ev.preventDefault(); dropZone.classList.remove('dragover');
+  if (e === 'drop') addFiles(ev.dataTransfer.files);
+}));
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => addFiles(fileInput.files));
+
+function addFiles(files) {
+  Array.from(files).forEach(f => {
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+      selectedFiles.push(f);
+    }
+  });
+  renderQueue();
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderQueue() {
+  fileQueue.innerHTML = '';
+  selectedFiles.forEach((f, i) => {
+    const isVideo = f.type.startsWith('video/');
+    const div = document.createElement('div');
+    div.className = 'fq-item'; div.id = `fq-${i}`;
+    div.innerHTML = `
+      <div class="fq-thumb-ico">${isVideo ? 'Vídeo' : 'Foto'}</div>
+      <div class="fq-info">
+        <p class="fq-name">${esc(f.name)}</p>
+        <p class="fq-size">${fmtSize(f.size)}</p>
+        <div class="fq-bar-wrap"><div class="fq-bar" id="bar-${i}"></div></div>
+        <p class="fq-status" id="st-${i}">Aguardando…</p>
+      </div>
+      <button class="fq-remove" onclick="removeFile(${i})">Remover</button>`;
+    fileQueue.appendChild(div);
+
+    // Preview de imagem
+    if (!isVideo) {
+      const thumb = div.querySelector('.fq-thumb-ico');
+      const reader = new FileReader();
+      reader.onload = () => {
+        thumb.outerHTML = `<img class="fq-thumb" src="${reader.result}"/>`;
+      };
+      reader.readAsDataURL(f);
+    }
+  });
+
+  const hasFiles = selectedFiles.length > 0;
+  metaSec.style.display = hasFiles ? 'block' : 'none';
+  upSubmit.disabled      = !hasFiles;
+}
+
+function removeFile(i) {
+  selectedFiles.splice(i, 1);
+  renderQueue();
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+/* ── Upload ──────────────────────────────────────────────────── */
+upSubmit.addEventListener('click', async () => {
+  if (!selectedFiles.length) return;
+  const me = await Auth.me();
+  if (!me.logged_in) {
+    location.href = '/loginsite.html?next=/upload.html';
+    return;
+  }
+  upSubmit.disabled = true;
+  upSubmit.classList.add('loading');
+  upSubmit.textContent = 'Enviando…';
+
+  const cat   = document.getElementById('mCat').value;
+  const autor = document.getElementById('mAutor').value;
+  const tags  = document.getElementById('mTags').value;
+  const desc  = document.getElementById('mDesc').value;
+
+  let ok = 0, fail = 0;
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const f   = selectedFiles[i];
+    const bar = document.getElementById(`bar-${i}`);
+    const st  = document.getElementById(`st-${i}`);
+
+    st.textContent = 'Enviando…'; st.className = 'fq-status';
+
+    const fd = new FormData();
+    fd.append('file',       f);
+    fd.append('nome',       f.name.replace(/\.[^/.]+$/, ''));
+    fd.append('categoria',  cat);
+    fd.append('autor',      autor);
+    fd.append('tags',       tags);
+    fd.append('descricao',  desc);
+
+    try {
+      let prog = 0;
+      const progInterval = setInterval(() => {
+        prog = Math.min(prog + 5, 90);
+        bar.style.width = prog + '%';
+      }, 200);
+
+      const res  = await Auth.fetch(`${API}/media`, { method: 'POST', body: fd });
+      clearInterval(progInterval);
+      const data = await res.json();
+
+      if (res.ok) {
+        bar.style.width = '100%';
+        st.textContent = '✓ Enviado com sucesso!'; st.className = 'fq-status done';
+        ok++;
+      } else {
+        bar.style.background = '#e53e3e'; bar.style.width = '100%';
+        st.textContent = `✗ ${data.message || 'Falha'}`; st.className = 'fq-status err';
+        fail++;
+      }
+    } catch(e) {
+      bar.style.background = '#e53e3e';
+      st.textContent = '✗ Erro de rede'; st.className = 'fq-status err';
+      fail++;
+    }
+  }
+
+  upSubmit.classList.remove('loading');
+  upSubmit.disabled  = false;
+  upSubmit.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Enviar para o Drive`;
+
+  if (ok > 0) {
+    Toast.success('Upload concluído', `${ok} arquivo(s) enviado(s) com sucesso.`);
+  } else {
+    Toast.error('Falha no upload', `${fail} arquivo(s) não foram enviados.`);
+  }
+
+  if (ok === selectedFiles.length) {
+    selectedFiles = [];
+    setTimeout(() => { renderQueue(); }, 2000);
+  }
+});
+
+</script>
+</body>
+</html>

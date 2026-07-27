@@ -1,0 +1,96 @@
+========================================
+  ORACLE CLOUD ALWAYS FREE + OPENCLIP
+  aleffthiago.com.br — 24/7 GRÁTIS
+========================================
+
+PARTE 1 — CONTA E VM (no navegador)
+-----------------------------------
+1) https://www.oracle.com/cloud/free/ → Start for free
+2) Crie a conta (pede cartão; Always Free não cobra)
+3) Home region: escolha uma estável (ex.: South America East / Brazil ou US)
+   IMPORTANTE: Always Free só nessa região.
+4) Console → Compute → Instances → Create instance
+   - Name: aleff
+   - Image: Canonical Ubuntu 22.04 (ou 24.04)
+   - Shape: Ampere (Always Free-eligible) — VM.Standard.A1.Flex
+   - OCPU: 2 a 4 | Memory: 12 a 24 GB (só Always Free)
+   - Networking: assign public IPv4
+   - SSH key: gere/salve a chave .key (guarde bem)
+5) Create → anote o IP PÚBLICO
+6) Networking → VCN → Security List → Ingress:
+   - TCP 22 (SSH)
+   - TCP 80 (HTTP)
+   - TCP 443 (HTTPS)
+
+PARTE 2 — COPIAR O PROJETO
+--------------------------
+No SEU PC (PowerShell), com a chave SSH:
+
+  scp -i caminho\chave.key -r C:\Users\Pichau\Documents\aleff-system2 ubuntu@IP_DA_VM:/tmp/aleff-system2
+
+Na VM (SSH):
+
+  ssh -i caminho\chave.key ubuntu@IP_DA_VM
+  sudo mv /tmp/aleff-system2 /opt/aleff-system2
+  sudo chown -R ubuntu:ubuntu /opt/aleff-system2
+
+(Ou: git clone do GitHub direto em /opt/aleff-system2 — SEM .env)
+
+PARTE 3 — .ENV NA VM
+--------------------
+  nano /opt/aleff-system2/.env
+
+Cole as variáveis do seu .env local, com:
+
+  HOST=127.0.0.1
+  FLASK_ENV=production
+  SESSION_COOKIE_SECURE=true
+  CLIP_ENABLED=true
+  CODE_VIEWER_ENABLED=false
+  CORS_ORIGINS=https://aleffthiago.com.br,https://www.aleffthiago.com.br
+  AUTH_USERS=...
+  SECRET_KEY=...
+  DRIVE_FOLDER_ID=...
+  GOOGLE_APPLICATION_CREDENTIALS={...json...}
+
+PARTE 4 — INSTALAR (script pronto)
+----------------------------------
+  cd /opt/aleff-system2
+  sudo bash deploy/oracle/setup-oracle.sh
+
+Isso instala Python, OpenCLIP, Waitress, Nginx e sobe o serviço.
+
+PARTE 5 — DOMÍNIO
+-----------------
+No DNS do aleffthiago.com.br (fora da Netlify):
+
+  A     @      → IP_PUBLICO_DA_VM
+  A     www    → IP_PUBLICO_DA_VM
+
+Espere propagar (minutos a 1h).
+
+HTTPS:
+
+  sudo certbot --nginx -d aleffthiago.com.br -d www.aleffthiago.com.br
+
+PARTE 6 — TESTAR
+----------------
+  https://aleffthiago.com.br/health
+  https://aleffthiago.com.br/
+  https://aleffthiago.com.br/loginsite.html
+  Dashboard → Sync Drive
+
+COMANDOS ÚTEIS
+--------------
+  sudo systemctl status aleff
+  sudo systemctl restart aleff
+  sudo journalctl -u aleff -f
+
+NÃO FAÇA
+--------
+- Upgrade pra conta paga sem precisar
+- Criar shape que não é Always Free-eligible
+- Subir .env no GitHub
+
+Railway / Netlify: NÃO use pra este stack.
+========================================

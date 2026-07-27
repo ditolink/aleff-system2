@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Galeria Admin — Aleff Thiago</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/dev-bar.js" defer></script>
+  <style>
+    .admin-page{min-height:100vh;padding:100px 48px 80px;max-width:1400px;margin:0 auto}
+    .admin-hdr{margin-bottom:36px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}
+    .admin-eyebrow{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+    .admin-eyebrow::before{content:'';width:16px;height:1px;background:#888;display:inline-block}
+    .admin-title{font-size:clamp(36px,5vw,54px);font-weight:900;letter-spacing:-.03em;line-height:.95}
+    .admin-title em{font-weight:300;font-style:italic;color:rgba(255,255,255,.5)}
+    .admin-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+    .auth-banner{
+      display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+      background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.25);
+      border-radius:14px;padding:14px 18px;margin-bottom:28px;
+    }
+    .auth-banner.show{display:flex}
+    .auth-banner p{font-size:13px;color:#ccc;line-height:1.5}
+    .auth-banner strong{color:#f0b429}
+    .auth-row{display:flex;gap:8px;flex-wrap:wrap}
+
+    /* Status / manutenção — só no admin */
+    .sys-board{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
+      margin-bottom:28px;
+    }
+    .sys-card{
+      background:linear-gradient(160deg,#121212,#0c0c0c);
+      border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 18px;
+      transition:border-color .25s;
+    }
+    .sys-card[data-state="online"],.sys-card[data-state="ok"]{border-color:rgba(37,211,102,.28)}
+    .sys-card[data-state="offline"]{border-color:rgba(229,62,62,.3)}
+    .sys-card[data-state="warn"]{border-color:rgba(240,180,41,.35)}
+    .sys-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .sys-card-dot{width:8px;height:8px;border-radius:50%;background:#444;flex-shrink:0}
+    .sys-card[data-state="online"] .sys-card-dot,
+    .sys-card[data-state="ok"] .sys-card-dot{background:#25d366;box-shadow:0 0 8px rgba(37,211,102,.5)}
+    .sys-card[data-state="offline"] .sys-card-dot{background:#e53e3e;box-shadow:0 0 8px rgba(229,62,62,.4)}
+    .sys-card[data-state="warn"] .sys-card-dot{background:#f0b429;box-shadow:0 0 8px rgba(240,180,41,.4)}
+    .sys-card-name{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#888;font-weight:600}
+    .sys-card-state{font-size:18px;font-weight:900;color:#f5f5f5;text-transform:capitalize}
+    .sys-card[data-state="online"] .sys-card-state,
+    .sys-card[data-state="ok"] .sys-card-state{color:#25d366}
+    .sys-card[data-state="offline"] .sys-card-state{color:#f87171}
+    .sys-card[data-state="warn"] .sys-card-state{color:#f0b429}
+    .sys-note{
+      grid-column:1/-1;font-size:13px;color:#666;line-height:1.5;
+      padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .sys-note.alert{color:#f0b429;border-color:rgba(240,180,41,.25);background:rgba(240,180,41,.06)}
+    .sys-note.err{color:#f87171;border-color:rgba(229,62,62,.25);background:rgba(229,62,62,.06)}
+    @media(max-width:900px){.sys-board{grid-template-columns:1fr 1fr}}
+    @media(max-width:480px){.sys-board{grid-template-columns:1fr}}
+
+    .auth-inp{
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);
+      border-radius:10px;color:#f5f5f5;padding:10px 14px;font-size:13px;
+      font-family:'Lato',sans-serif;outline:none;min-width:220px;
+    }
+    .auth-inp:focus{border-color:rgba(240,180,41,.5)}
+
+    .toolbar{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+      margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,.07);
+    }
+    .tb-search{
+      flex:1;min-width:200px;display:flex;align-items:center;gap:10px;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+      border-radius:12px;padding:0 14px;
+    }
+    .tb-search input{
+      flex:1;background:none;border:none;outline:none;color:#f5f5f5;
+      padding:12px 0;font-size:14px;font-family:'Lato',sans-serif;
+    }
+    .tb-search input::placeholder{color:#444}
+    .tb-select,.btn-sm{
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+      color:#ccc;border-radius:10px;padding:10px 14px;font-size:13px;
+      font-family:'Lato',sans-serif;cursor:pointer;transition:all .2s;
+    }
+    .tb-select option{background:#111}
+    .btn-sm:hover{border-color:rgba(255,255,255,.25);color:#fff}
+    .btn-primary-sm{
+      background:#f5f5f5;color:#0a0a0a;border:none;border-radius:10px;
+      padding:10px 18px;font-size:13px;font-weight:700;font-family:'Lato',sans-serif;
+      cursor:pointer;letter-spacing:.06em;text-transform:uppercase;
+      transition:transform .2s,opacity .2s;
+    }
+    .btn-primary-sm:hover{opacity:.9;transform:translateY(-1px)}
+    .btn-danger{
+      background:rgba(229,62,62,.12);border:1px solid rgba(229,62,62,.35);
+      color:#f87171;border-radius:10px;padding:10px 16px;font-size:13px;
+      font-family:'Lato',sans-serif;cursor:pointer;transition:all .2s;
+    }
+    .btn-danger:hover{background:rgba(229,62,62,.22)}
+    .res-meta{margin-left:auto;font-size:12px;color:#555;font-family:monospace}
+
+    .admin-grid{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
+    }
+    .acard{
+      position:relative;overflow:hidden;background:linear-gradient(160deg,#121212,#0c0c0c);
+      border:1px solid rgba(255,255,255,.07);border-radius:14px;aspect-ratio:1;
+      cursor:pointer;transition:transform .3s,border-color .3s,box-shadow .3s;
+    }
+    .acard:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.16);box-shadow:0 16px 36px rgba(0,0,0,.4)}
+    .acard.selected{border-color:#25d366;box-shadow:0 0 0 1px rgba(37,211,102,.35)}
+    .acard-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(60%) brightness(.72);transition:filter .4s}
+    .acard:hover .acard-thumb{filter:grayscale(10%) brightness(.9)}
+    .acard-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+    .acard-ov{
+      position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+      padding:12px;background:linear-gradient(to top,rgba(8,8,8,.95),transparent 55%);
+      opacity:0;transition:opacity .3s;
+    }
+    .acard:hover .acard-ov,.acard.selected .acard-ov{opacity:1}
+    .acard-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .acard-meta{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+    .acard-badge{
+      position:absolute;top:9px;left:9px;background:rgba(8,8,8,.75);backdrop-filter:blur(4px);
+      border-radius:20px;padding:3px 8px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#999;
+    }
+    .acard-check{
+      position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:6px;
+      border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.4);
+      display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;
+    }
+    .acard.selected .acard-check{background:#25d366;border-color:#25d366;color:#0a0a0a;font-weight:900}
+
+    .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:36px}
+    .pager button{
+      background:none;border:1px solid rgba(255,255,255,.1);color:#888;border-radius:10px;
+      padding:10px 18px;font-family:'Lato',sans-serif;cursor:pointer;transition:all .2s;
+    }
+    .pager button:hover:not(:disabled){color:#fff;border-color:rgba(255,255,255,.3)}
+    .pager button:disabled{opacity:.35;cursor:default}
+    .pager span{font-size:12px;color:#555;font-family:monospace}
+
+    .empty-state{text-align:center;padding:80px 20px;color:#555}
+    .empty-state h2{color:#888;font-size:22px;margin-bottom:8px}
+
+    /* Drawer edição */
+    .drawer-bg{
+      position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;
+      opacity:0;pointer-events:none;transition:opacity .3s;
+    }
+    .drawer-bg.open{opacity:1;pointer-events:all}
+    .drawer{
+      position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);
+      background:#111;border-left:1px solid rgba(255,255,255,.08);
+      z-index:510;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,1,.36,1);
+      display:flex;flex-direction:column;padding:28px 24px;overflow-y:auto;
+    }
+    .drawer.open{transform:none}
+    .drawer-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .drawer-hd h2{font-size:18px;font-weight:900}
+    .drawer-close{background:none;border:none;color:#666;font-size:22px;cursor:pointer}
+    .drawer-close:hover{color:#fff}
+    .drawer-preview{
+      width:100%;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:#0a0a0a;
+      margin-bottom:22px;border:1px solid rgba(255,255,255,.06);
+    }
+    .drawer-preview img,.drawer-preview video{width:100%;height:100%;object-fit:cover}
+    .fg{margin-bottom:14px}
+    .flbl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#555;margin-bottom:6px}
+    .finp{
+      width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+      border-radius:10px;color:#f5f5f5;padding:11px 14px;font-size:14px;font-family:'Lato',sans-serif;outline:none;
+    }
+    .finp:focus{border-color:rgba(37,211,102,.45)}
+    textarea.finp{min-height:80px;resize:vertical}
+    .drawer-btns{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+    .drawer-btns .btn-primary-sm{flex:1}
+    .drawer-btns .btn-danger{flex:1}
+
+    @media(max-width:900px){
+      .admin-page{padding:88px 20px 60px}
+      .admin-grid{grid-template-columns:repeat(2,1fr)}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="logo" aria-label="Aleff Thiago">
+    <span class="logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="12" cy="13" r="6.5"/>
+        <circle cx="12" cy="13" r="2.2" fill="currentColor" stroke="none"/>
+        <path d="M8 7.2h8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Portfólio</a></li>
+    <li><a href="search.html">Buscar</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+    <li><a href="upload.html">Upload</a></li>
+    <li><a href="slots.html">Slots</a></li>
+  </ul>
+  <a href="dashboard.html" class="nav-search-btn btn-anim">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Dashboard
+  </a>
+</nav>
+
+<main class="admin-page">
+  <div class="admin-hdr">
+    <div>
+      <p class="admin-eyebrow">Painel administrativo</p>
+      <h1 class="admin-title">Galeria<br><em>do acervo</em></h1>
+    </div>
+    <div class="admin-actions">
+      <span class="btn-sm" id="userLabel" style="cursor:default;opacity:.7">Admin</span>
+      <button type="button" class="btn-sm" id="btnLogout">Sair</button>
+      <a href="upload.html" class="btn-primary-sm">+ Upload</a>
+      <a href="slots.html" class="btn-primary-sm">Editor & Slots</a>
+    </div>
+  </div>
+
+  <div class="sys-board" id="sysBoard" aria-label="Status do sistema">
+    <div class="sys-card" data-key="server" data-state="">
+      <div class="sys-card-top"><span class="sys-card-dot"></span><span class="sys-card-name">Servidor</span></div>
+      <p class="sys-card-state">…</p>
+    </div>
+    <div class="sys-card" data-key="drive" data-state="">
+      <div class="sys-card-top"><span class="sys-card-dot"></span><span class="sys-card-name">Google Drive</span></div>
+      <p class="sys-card-state">…</p>
+    </div>
+    <div class="sys-card" data-key="clip" data-state="">
+      <div class="sys-card-top"><span class="sys-card-dot"></span><span class="sys-card-name">OpenCLIP</span></div>
+      <p class="sys-card-state">…</p>
+    </div>
+    <div class="sys-card" data-key="maint" data-state="">
+      <div class="sys-card-top"><span class="sys-card-dot"></span><span class="sys-card-name">Manutenção</span></div>
+      <p class="sys-card-state">…</p>
+    </div>
+    <p class="sys-note" id="sysNote">Verificando conexões…</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="tb-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="qInput" type="search" placeholder="Buscar nome, tag, pasta…"/>
+    </div>
+    <select class="tb-select" id="tipoFilter">
+      <option value="">Tipo: todos</option>
+      <option value="image">Fotos</option>
+      <option value="video">Vídeos</option>
+    </select>
+    <select class="tb-select" id="catFilter">
+      <option value="">Categoria: todas</option>
+      <option value="casamento">Casamento</option>
+      <option value="shows">Shows</option>
+      <option value="retratos">Retratos</option>
+      <option value="casais">Casais</option>
+      <option value="familia">Família</option>
+      <option value="infantil">Infantil</option>
+      <option value="motocross">Pista &amp; ação</option>
+      <option value="editorial">Editorial</option>
+      <option value="video">Vídeo</option>
+      <option value="outro">Outro</option>
+    </select>
+    <button type="button" class="btn-sm" id="btnReload">Atualizar</button>
+    <button type="button" class="btn-danger" id="btnBulkDel" hidden>Excluir selecionados</button>
+    <span class="res-meta" id="resMeta"></span>
+  </div>
+
+  <div class="admin-grid" id="adminGrid"></div>
+  <div class="empty-state" id="emptyState" hidden>
+    <h2>Nenhuma mídia</h2>
+    <p>Faça upload ou sincronize o Drive pelo dashboard.</p>
+  </div>
+  <div class="pager" id="pager" hidden>
+    <button type="button" id="prevPage">Anterior</button>
+    <span id="pageInfo"></span>
+    <button type="button" id="nextPage">Próxima</button>
+  </div>
+</main>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-hd">
+    <h2>Editar mídia</h2>
+    <button type="button" class="drawer-close" id="drawerClose" aria-label="Fechar">×</button>
+  </div>
+  <div class="drawer-preview" id="drawerPreview"></div>
+  <div class="fg"><label class="flbl">Nome</label><input class="finp" id="fNome"/></div>
+  <div class="fg"><label class="flbl">Categoria</label>
+    <select class="finp" id="fCat">
+      <option value="">—</option>
+      <option>casamento</option><option>shows</option><option>retratos</option>
+      <option>casais</option><option>familia</option><option>infantil</option>
+      <option value="motocross">pista &amp; ação</option>
+      <option>editorial</option><option>natureza</option><option>urbano</option>
+      <option>video</option><option>outro</option>
+    </select>
+  </div>
+  <div class="fg"><label class="flbl">Autor</label><input class="finp" id="fAutor"/></div>
+  <div class="fg"><label class="flbl">Pasta</label><input class="finp" id="fPasta"/></div>
+  <div class="fg"><label class="flbl">Tags</label><input class="finp" id="fTags" placeholder="noiva, igreja, festa"/></div>
+  <div class="fg"><label class="flbl">Descrição</label><textarea class="finp" id="fDesc"></textarea></div>
+  <div class="fg"><label class="flbl">Estrelas (0–5)</label><input class="finp" id="fStars" type="number" min="0" max="5" step="1"/></div>
+  <div class="drawer-btns">
+    <button type="button" class="btn-primary-sm" id="btnSave">Salvar</button>
+    <button type="button" class="btn-sm" id="btnClip">Tags CLIP</button>
+    <button type="button" class="btn-danger" id="btnDelete">Excluir</button>
+  </div>
+</aside>
+
+<script>
+(() => {
+  const API = '/api';
+  const $ = (id) => document.getElementById(id);
+
+  const state = {
+    page: 1,
+    pages: 1,
+    total: 0,
+    items: [],
+    selected: new Set(),
+    current: null,
+    q: '',
+    loggedIn: false,
+  };
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function safeUrl(url) {
+    const v = String(url || '');
+    if (/^https:\/\/(drive\.google\.com|[\w.-]*googleusercontent\.com)\b/i.test(v)) return esc(v);
+    return '';
+  }
+
+  function hasAuth() {
+    return !!state.loggedIn;
+  }
+
+  async function refreshSystemStatus() {
+    const note = $('sysNote');
+    const setCard = (key, state, label) => {
+      const card = document.querySelector(`.sys-card[data-key="${key}"]`);
+      if (!card) return;
+      card.dataset.state = state;
+      const el = card.querySelector('.sys-card-state');
+      if (el) el.textContent = label;
+    };
+
+    try {
+      // Drive e CLIP: status público (sem key) — leem credenciais do .env no servidor
+      const [health, drive, clip] = await Promise.all([
+        fetch('/health', { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
+        fetch(`${API}/drive/status`, { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
+        fetch(`${API}/ai/clip/status`, { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
+      ]);
+
+      const serverOnline = health.ok && health.data?.status === 'ok';
+      setCard('server', serverOnline ? 'online' : 'offline', serverOnline ? 'online' : 'offline');
+
+      const driveOnline = drive.ok && drive.data?.online === true && drive.data?.status !== 'error';
+      setCard('drive', driveOnline ? 'online' : 'offline', driveOnline ? 'online' : 'offline');
+
+      const clipInfo = clip.data?.clip || {};
+      const clipOk = clip.ok && (clipInfo.installed || clipInfo.loaded);
+      if (clipOk) setCard('clip', 'online', clipInfo.loaded ? 'ativo' : 'ok');
+      else if (clip.ok && clipInfo.installed === false) setCard('clip', 'warn', 'instalar');
+      else setCard('clip', 'offline', 'offline');
+
+      const needsMaint = !serverOnline || (!driveOnline && !clipOk);
+      const degraded = serverOnline && (!driveOnline || !clipOk);
+
+      if (needsMaint) {
+        setCard('maint', 'warn', 'necessária');
+        note.className = 'sys-note err';
+        note.textContent = !serverOnline
+          ? 'Servidor fora do ar — backend precisa de atenção.'
+          : 'Manutenção necessária: Drive e/ou OpenCLIP offline.';
+      } else if (degraded) {
+        setCard('maint', 'ok', 'ok');
+        note.className = 'sys-note alert';
+        const parts = [];
+        if (!driveOnline) parts.push('Drive offline');
+        if (!clipOk) parts.push('OpenCLIP indisponível');
+        note.textContent = parts.join(' · ') + '.';
+      } else {
+        setCard('maint', 'ok', 'ok');
+        note.className = 'sys-note';
+        note.textContent = 'Tudo operacional — servidor, Drive e OpenCLIP.';
+      }
+    } catch (e) {
+      setCard('server', 'offline', 'erro');
+      setCard('maint', 'warn', 'necessária');
+      note.className = 'sys-note err';
+      note.textContent = 'Não foi possível verificar o status do sistema.';
+    }
+  }
+
+  async function apiFetch(url, opts = {}) {
+    if (typeof Auth !== 'undefined') return Auth.fetch(url, opts);
+    return fetch(url, opts);
+  }
+
+  async function loadList() {
+    const tipo = $('tipoFilter').value;
+    const cat = $('catFilter').value;
+    const q = $('qInput').value.trim();
+    state.q = q;
+
+    const params = new URLSearchParams({
+      page: String(state.page),
+      per_page: '24',
+    });
+    if (tipo) params.set('tipo', tipo);
+    if (cat) params.set('categoria', cat);
+
+    try {
+      let data;
+      if (q) {
+        params.set('q', q);
+        const r = await apiFetch(`${API}/search?${params}`);
+        data = await r.json();
+      } else {
+        const r = await apiFetch(`${API}/media?${params}`);
+        data = await r.json();
+      }
+      if (data.status === 'error') throw new Error(data.message);
+
+      state.items = data.items || [];
+      state.total = data.total || 0;
+      state.pages = data.pages || 1;
+      state.page = data.page || state.page;
+      renderGrid();
+    } catch (e) {
+      console.error(e);
+      if (typeof Toast !== 'undefined') Toast.error('Erro ao carregar', e.message || 'Falha na API');
+      state.items = [];
+      renderGrid();
+    }
+  }
+
+  function renderGrid() {
+    const grid = $('adminGrid');
+    const empty = $('emptyState');
+    const pager = $('pager');
+
+    $('resMeta').textContent = state.total
+      ? `${state.total} item(ns)`
+      : '';
+
+    if (!state.items.length) {
+      grid.innerHTML = '';
+      empty.hidden = false;
+      pager.hidden = true;
+      return;
+    }
+    empty.hidden = true;
+    pager.hidden = state.pages <= 1;
+    $('pageInfo').textContent = `${state.page} / ${state.pages}`;
+    $('prevPage').disabled = state.page <= 1;
+    $('nextPage').disabled = state.page >= state.pages;
+
+    grid.innerHTML = state.items.map((item) => {
+      const sel = state.selected.has(item.id) ? ' selected' : '';
+      const thumb = safeUrl(item.thumb_url);
+      return `
+        <article class="acard${sel}" data-id="${item.id}">
+          ${thumb
+            ? `<img class="acard-thumb" src="${thumb}" alt="${esc(item.nome)}" loading="lazy" onerror="this.style.display='none'"/>`
+            : `<div class="acard-ph">${item.tipo === 'video' ? 'Vídeo' : 'Foto'}</div>`}
+          <span class="acard-badge">${item.tipo === 'video' ? 'vídeo' : 'foto'}</span>
+          <span class="acard-check">✓</span>
+          <div class="acard-ov">
+            <p class="acard-name">${esc(item.nome)}</p>
+            <p class="acard-meta">${esc(item.categoria || '—')} · ${esc(item.data_upload || '')}</p>
+          </div>
+        </article>`;
+    }).join('');
+
+    grid.querySelectorAll('.acard').forEach((card) => {
+      card.addEventListener('click', (ev) => {
+        const id = +card.dataset.id;
+        if (ev.shiftKey || ev.metaKey || ev.ctrlKey) {
+          if (state.selected.has(id)) state.selected.delete(id);
+          else state.selected.add(id);
+          card.classList.toggle('selected');
+          $('btnBulkDel').hidden = state.selected.size === 0;
+          return;
+        }
+        openDrawer(id);
+      });
+    });
+
+    $('btnBulkDel').hidden = state.selected.size === 0;
+  }
+
+  function openDrawer(id) {
+    const item = state.items.find((x) => x.id === id);
+    if (!item) return;
+    state.current = item;
+
+    const thumb = safeUrl(item.thumb_url);
+    $('drawerPreview').innerHTML = thumb
+      ? (item.tipo === 'video'
+        ? `<video src="${thumb}" muted loop playsinline controls></video>`
+        : `<img src="${thumb}" alt="${esc(item.nome)}"/>`)
+      : `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
+
+    $('fNome').value = item.nome || '';
+    $('fCat').value = item.categoria || '';
+    $('fAutor').value = item.autor || '';
+    $('fPasta').value = item.pasta || '';
+    $('fTags').value = item.tags || '';
+    $('fDesc').value = item.descricao || '';
+    $('fStars').value = item.estrelas ?? 0;
+
+    $('drawer').classList.add('open');
+    $('drawerBg').classList.add('open');
+    $('drawer').setAttribute('aria-hidden', 'false');
+  }
+
+  function closeDrawer() {
+    $('drawer').classList.remove('open');
+    $('drawerBg').classList.remove('open');
+    $('drawer').setAttribute('aria-hidden', 'true');
+    state.current = null;
+  }
+
+  async function saveItem() {
+    if (!state.current) return;
+    if (!hasAuth()) {
+      Toast.error('Faça login', 'Sessão necessária para salvar.');
+      location.href = '/loginsite?next=/admin.html';
+      return;
+    }
+    const body = {
+      nome: $('fNome').value.trim(),
+      categoria: $('fCat').value,
+      autor: $('fAutor').value.trim(),
+      pasta: $('fPasta').value.trim(),
+      tags: $('fTags').value.trim(),
+      descricao: $('fDesc').value.trim(),
+      estrelas: Number($('fStars').value) || 0,
+    };
+    try {
+      const r = await apiFetch(`${API}/media/${state.current.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok || data.status === 'error') throw new Error(data.message || 'Falha ao salvar');
+      Toast.success('Salvo', 'Metadados atualizados.');
+      closeDrawer();
+      loadList();
+    } catch (e) {
+      Toast.error('Erro ao salvar', e.message);
+    }
+  }
+
+  async function deleteItem(id) {
+    if (!hasAuth()) {
+      Toast.error('Faça login', 'Sessão necessária para excluir.');
+      location.href = '/loginsite?next=/admin.html';
+      return;
+    }
+    if (!confirm('Excluir esta mídia do acervo (e do Drive, se configurado)?')) return;
+    try {
+      const r = await apiFetch(`${API}/media/${id}`, { method: 'DELETE' });
+      const data = await r.json();
+      if (!r.ok || data.status === 'error') throw new Error(data.message || 'Falha ao excluir');
+      Toast.success('Excluído', 'Mídia removida.');
+      state.selected.delete(id);
+      closeDrawer();
+      loadList();
+    } catch (e) {
+      Toast.error('Erro ao excluir', e.message);
+    }
+  }
+
+  async function runClip() {
+    if (!state.current) return;
+    if (!hasAuth()) {
+      Toast.error('Faça login', 'Sessão necessária.');
+      location.href = '/loginsite?next=/admin.html';
+      return;
+    }
+    const dismiss = Toast.info('OpenCLIP…', 'Gerando tags…', 0);
+    try {
+      const r = await apiFetch(`${API}/ai/clip/tags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_id: state.current.id }),
+      });
+      const data = await r.json();
+      dismiss();
+      if (!r.ok || data.status === 'error') throw new Error(data.message || 'CLIP falhou');
+      const tags = data.clip_result?.tags || [];
+      if (tags.length) {
+        $('fTags').value = tags.join(', ');
+        Toast.success('Tags geradas', tags.slice(0, 6).join(', '));
+      } else {
+        Toast.warning('Sem tags', 'O modelo não retornou tags.');
+      }
+    } catch (e) {
+      dismiss();
+      Toast.error('CLIP', e.message);
+    }
+  }
+
+  /* events */
+  $('btnLogout')?.addEventListener('click', async () => {
+    await Auth.logout();
+    location.href = '/loginsite.html';
+  });
+
+  let qTimer;
+  $('qInput').addEventListener('input', () => {
+    clearTimeout(qTimer);
+    qTimer = setTimeout(() => { state.page = 1; loadList(); }, 280);
+  });
+  $('tipoFilter').addEventListener('change', () => { state.page = 1; loadList(); });
+  $('catFilter').addEventListener('change', () => { state.page = 1; loadList(); });
+  $('btnReload').addEventListener('click', () => { loadList(); refreshSystemStatus(); });
+  $('prevPage').addEventListener('click', () => { if (state.page > 1) { state.page--; loadList(); } });
+  $('nextPage').addEventListener('click', () => { if (state.page < state.pages) { state.page++; loadList(); } });
+
+  $('drawerClose').addEventListener('click', closeDrawer);
+  $('drawerBg').addEventListener('click', closeDrawer);
+  $('btnSave').addEventListener('click', saveItem);
+  $('btnDelete').addEventListener('click', () => state.current && deleteItem(state.current.id));
+  $('btnClip').addEventListener('click', runClip);
+
+  $('btnBulkDel').addEventListener('click', async () => {
+    if (!state.selected.size) return;
+    if (!confirm(`Excluir ${state.selected.size} item(ns)?`)) return;
+    for (const id of [...state.selected]) {
+      await deleteItem(id);
+    }
+    state.selected.clear();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // deep-link ?id=
+  const params = new URLSearchParams(location.search);
+  const focusId = params.get('id');
+
+  (async () => {
+    const me = await Auth.requireLogin();
+    if (!me) return;
+    state.loggedIn = true;
+    const roleLabel = me.role === 'dev' ? 'dev' : 'admin';
+    if ($('userLabel')) $('userLabel').textContent = `${me.user || 'user'} · ${roleLabel}`;
+
+    // Painel de status / CLIP só para dev
+    const isDev = me.role === 'dev' || (me.perms || []).includes('system');
+    if ($('sysBoard')) $('sysBoard').hidden = !isDev;
+    if ($('btnClip')) $('btnClip').hidden = !(me.perms || []).includes('clip');
+
+    if (isDev) {
+      refreshSystemStatus();
+      setInterval(refreshSystemStatus, 120000);
+    }
+    loadList().then(() => {
+      if (focusId) {
+        const id = +focusId;
+        if (state.items.some((i) => i.id === id)) openDrawer(id);
+        else {
+          apiFetch(`${API}/media/${id}`)
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.item) {
+                state.items = [d.item, ...state.items];
+                openDrawer(id);
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    });
+  })();
+})();
+</script>
+</body>
+</html>
