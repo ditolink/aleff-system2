@@ -24,7 +24,12 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3001 ^| findstr LISTENING') 
   taskkill /F /PID %%a >nul 2>&1
 )
 
-start "" cmd /c "timeout /t 4 /nobreak >nul && start http://127.0.0.1:3001/"
+echo  Subindo servidor...
+echo  Em 5 segundos o site abre sozinho.
+echo.
+
+REM Abre o navegador 5s depois — tempo pra Flask subir
+start "" cmd /c "timeout /t 5 /nobreak >nul && start http://127.0.0.1:3001/"
 
 python -m backend.server
 if errorlevel 1 (

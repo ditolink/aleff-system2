@@ -259,6 +259,89 @@ def get_all_embeddings():
     return {r[0]: r[1] for r in rows}
 
 
+def get_embeddings_for_ids(media_ids):
+    """Carrega só os embeddings dos IDs pedidos — bem mais leve que get_all_embeddings."""
+    ids = [int(i) for i in (media_ids or []) if i is not None]
+    if not ids:
+        return {}
+    conn = get_conn()
+    out = {}
+    # SQLite limita variáveis — fatia em blocos
+    for i in range(0, len(ids), 400):
+        chunk = ids[i:i + 400]
+        placeholders = ','.join('?' * len(chunk))
+        rows = conn.execute(
+            f"SELECT media_id, embedding FROM media_embeddings WHERE media_id IN ({placeholders})",
+            chunk,
+        ).fetchall()
+        for r in rows:
+            out[r[0]] = r[1]
+    conn.close()
+    return out
+
+
+def embedding_stats():
+    conn = get_conn()
+    total_img = conn.execute("SELECT COUNT(*) FROM media WHERE tipo='image'").fetchone()[0]
+    with_emb = conn.execute("SELECT COUNT(*) FROM media_embeddings").fetchone()[0]
+    conn.close()
+    return {
+        'images': total_img,
+        'embeddings': with_emb,
+        'missing': max(0, total_img - with_emb),
+    }
+
+
+def get_media_missing_embeddings(limit=40):
+    """Imagens sem vetor CLIP — usadas no backfill em background."""
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT m.id, m.drive_id, m.thumb_url, m.nome, m.tipo
+        FROM media m
+        LEFT JOIN media_embeddings e ON e.media_id = m.id
+        WHERE m.tipo='image' AND e.media_id IS NULL
+        ORDER BY m.id DESC
+        LIMIT ?
+        """,
+        (int(limit),),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def update_pasta_by_drive_id(drive_id, pasta):
+    """Atualiza pasta (e invalida cache) sem recriar a mídia."""
+    pasta = (pasta or '').strip()
+    if not drive_id:
+        return False
+    conn = get_conn()
+    cur = conn.execute(
+        "UPDATE media SET pasta=? WHERE drive_id=? AND (pasta IS NULL OR pasta='' OR pasta!=?)",
+        (pasta, drive_id, pasta),
+    )
+    changed = cur.rowcount > 0
+    if changed:
+        invalidate_read_caches()
+    conn.commit()
+    conn.close()
+    return changed
+
+
+def annotate_storage(item: dict, thumb_size: int = 280) -> dict:
+    out = dict(item)
+    did = str(out.get('drive_id') or '')
+    out['storage'] = 'local' if did.startswith('local:') else 'drive'
+    mid = out.get('id')
+    if mid and did.startswith('local:'):
+        uid = did.split(':', 1)[1]
+        out['thumb_url'] = f'/api/local/{uid}'
+    elif mid:
+        # Proxy com cache em disco — sz menor = grid mais rápido
+        out['thumb_url'] = f'/api/media/{int(mid)}/thumb?sz={int(thumb_size) or 280}'
+    return out
+
+
 def update_media(media_id, data):
     allowed = {'nome','descricao','tags','categoria','autor','thumb_url','drive_link',
                'estrelas','destaque','cor','pasta','camera','localizacao'}
@@ -323,6 +406,12 @@ def search_media(query='', filters=None, page=1, per_page=24, sort='relevance'):
         if filters.get(col):
             where.append(f"m.{col}=?"); params.append(int(filters[col]))
 
+    storage = (filters.get('storage') or '').strip().lower()
+    if storage == 'local':
+        where.append("m.drive_id LIKE 'local:%'")
+    elif storage == 'drive':
+        where.append("(m.drive_id IS NULL OR m.drive_id NOT LIKE 'local:%')")
+
     where_sql = ('AND '+' AND '.join(where)) if where else ''
     order_map = {
         'relevance':  'fts.rank' if used_fts else 'm.created_at DESC',
@@ -340,8 +429,15 @@ def search_media(query='', filters=None, page=1, per_page=24, sort='relevance'):
     rows  = conn.execute(f"{full_sql} LIMIT ? OFFSET ?", params+[per_page, offset]).fetchall()
     conn.close()
 
+    items = []
+    for r in rows:
+        item = dict(r)
+        did = str(item.get('drive_id') or '')
+        item['storage'] = 'local' if did.startswith('local:') else 'drive'
+        items.append(item)
+
     return {
-        'items':    [dict(r) for r in rows],
+        'items':    items,
         'total':    total,
         'page':     page,
         'per_page': per_page,
@@ -349,15 +445,8 @@ def search_media(query='', filters=None, page=1, per_page=24, sort='relevance'):
     }
 
 
-def get_candidates(text_terms, hard_filters):
-    """
-    Retorna um conjunto amplo de candidatos pra busca inteligente:
-    qualquer item que bata em pelo menos UM termo de texto (em nome,
-    descricao, tags, categoria, autor OU pasta), respeitando os filtros
-    rígidos (ano/mes/dia/tipo etc). Se não houver termos de texto,
-    retorna todos os itens que batem nos filtros (pra busca só por data,
-    por exemplo). O ranqueamento fino é feito em Python, em search_engine.py.
-    """
+def get_candidates(text_terms, hard_filters, limit=500):
+    """Candidatos pra busca inteligente (texto + filtros)."""
     conn = get_conn()
     params = []
     where = []
@@ -381,11 +470,30 @@ def get_candidates(text_terms, hard_filters):
             where.append(f"m.{col}=?"); params.append(int(hard_filters[col]))
 
     where_sql = ('AND '+' AND '.join(where)) if where else ''
-    full_sql = f"{base_sql} {where_sql} LIMIT 500"
+    order_sql = "ORDER BY m.created_at DESC" if not text_terms else ""
+    lim = int(limit) if limit else 500
+    full_sql = f"{base_sql} {where_sql} {order_sql} LIMIT {lim}"
 
     rows = conn.execute(full_sql, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def count_media(hard_filters=None):
+    hard_filters = hard_filters or {}
+    conn = get_conn()
+    params = []
+    where = []
+    for col in ('tipo','categoria','autor','pasta'):
+        if hard_filters.get(col):
+            where.append(f"{col}=?"); params.append(hard_filters[col])
+    for col in ('ano','mes','dia'):
+        if hard_filters.get(col):
+            where.append(f"{col}=?"); params.append(int(hard_filters[col]))
+    where_sql = ('WHERE '+' AND '.join(where)) if where else ''
+    n = conn.execute(f"SELECT COUNT(*) FROM media {where_sql}", params).fetchone()[0]
+    conn.close()
+    return int(n)
 
 
 def get_stats():
@@ -420,6 +528,63 @@ def get_all_tags():
     return _cache_set("tags", sorted(tags))
 
 
+def get_by_tags(tag_terms, hard_filters=None, limit=2000):
+    """Itens cuja coluna tags contém pelo menos uma das tags (match de token).
+
+    Aceita CSV com ou sem espaço após vírgula: "noiva,vestido" / "noiva, vestido".
+    """
+    hard_filters = hard_filters or {}
+    tags = [str(t or '').strip().lower() for t in (tag_terms or []) if str(t or '').strip()]
+    if not tags:
+        return []
+
+    conn = get_conn()
+    params = []
+    where = []
+    tag_clauses = []
+    # Normaliza espaços ao redor de vírgulas pra comparar tokens
+    norm = (
+        "TRIM(REPLACE(REPLACE(REPLACE(LOWER(COALESCE(m.tags,'')), ', ', ','), ' ,', ','), ',,', ','))"
+    )
+    for t in tags:
+        tag_clauses.append(
+            "("
+            f"{norm} = ? OR "
+            f"{norm} LIKE ? OR "
+            f"{norm} LIKE ? OR "
+            f"{norm} LIKE ?"
+            ")"
+        )
+        params.extend([
+            t,
+            f"{t},%",
+            f"%,{t}",
+            f"%,{t},%",
+        ])
+    where.append('(' + ' OR '.join(tag_clauses) + ')')
+
+    for col in ('tipo', 'categoria', 'autor', 'pasta'):
+        if hard_filters.get(col):
+            where.append(f"m.{col}=?")
+            params.append(hard_filters[col])
+    for col in ('ano', 'mes', 'dia'):
+        if hard_filters.get(col):
+            where.append(f"m.{col}=?")
+            params.append(int(hard_filters[col]))
+
+    storage = (hard_filters.get('storage') or '').strip().lower()
+    if storage == 'local':
+        where.append("m.drive_id LIKE 'local:%'")
+    elif storage == 'drive':
+        where.append("(m.drive_id IS NULL OR m.drive_id NOT LIKE 'local:%')")
+
+    lim = max(1, min(int(limit or 2000), 5000))
+    sql = f"SELECT m.* FROM media m WHERE {' AND '.join(where)} ORDER BY m.created_at DESC LIMIT {lim}"
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def get_all_pastas():
     """Lista de pastas (pessoas/casais) distintas já sincronizadas — usada em autocomplete."""
     cached = _cache_get("pastas")
@@ -431,6 +596,11 @@ def get_all_pastas():
     return _cache_set("pastas", [r[0] for r in rows])
 
 
-def list_media(page=1, per_page=24, tipo=None, categoria=None):
-    return search_media(query='', page=page, per_page=per_page,
-                        filters={'tipo':tipo,'categoria':categoria}, sort='date_desc')
+def list_media(page=1, per_page=24, tipo=None, categoria=None, storage=None, sort='date_desc'):
+    return search_media(
+        query='',
+        page=page,
+        per_page=per_page,
+        filters={'tipo': tipo, 'categoria': categoria, 'storage': storage},
+        sort=sort or 'date_desc',
+    )

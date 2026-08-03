@@ -1,7 +1,7 @@
 import os, io, mimetypes
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, redirect
 
 from backend.models.database import (
     insert_media,
@@ -14,6 +14,7 @@ from backend.models.database import (
     get_all_tags,
     increment_views,
     increment_downloads,
+    annotate_storage,
 )
 
 from backend.services import drive as drive_svc
@@ -46,6 +47,8 @@ from backend.utils.security import (
     clear_login_failures,
     issue_csrf_token,
     verify_csrf_token,
+    touch_session,
+    current_can,
 )
 
 
@@ -142,6 +145,8 @@ def auth_logout_ep():
 
 @api.route('/auth/me', methods=['GET'])
 def auth_me_ep():
+    if is_logged_in():
+        touch_session()
     role = current_role()
     return ok({
         'logged_in': is_logged_in(),
@@ -163,12 +168,20 @@ def list_media_ep():
 
     page = safe_int(request.args.get('page', 1), default=1, min_v=1, max_v=10_000)
     per_page = safe_int(request.args.get('per_page', 24), default=24, min_v=1, max_v=100)
+    storage = (request.args.get('storage') or '').strip().lower()
+    if storage not in ('', 'local', 'drive'):
+        storage = ''
+    sort = (request.args.get('sort') or 'date_desc').strip()
+    if sort not in ('date_desc', 'date_asc', 'views', 'downloads', 'name', 'stars'):
+        sort = 'date_desc'
 
     result = list_media(
         page=page,
         per_page=per_page,
         tipo=request.args.get('tipo'),
-        categoria=request.args.get('categoria')
+        categoria=request.args.get('categoria'),
+        storage=storage or None,
+        sort=sort,
     )
 
     return ok(result)
@@ -188,8 +201,9 @@ def get_media_ep(media_id):
 
     increment_views(media_id)
 
+    from backend.models.database import annotate_storage
     return ok({
-        'item': item
+        'item': annotate_storage(item)
     })
 
 
@@ -244,20 +258,37 @@ def upload_ep():
             }
         )
 
-    except Exception as e:
+    except HttpError as e:
+        status = getattr(e, 'resp', None) and e.resp.status
+        msg = str(e)
+        print(f'[Upload] Drive HttpError {status}: {msg}')
+        if 'storage quota' in msg.lower() or 'do not have storage' in msg.lower():
+            return err(
+                'Google bloqueou escrita da service account no Meu Drive. '
+                'Reinicie o start.bat — o sistema agora salva localmente.',
+                502,
+            )
+        if status == 403:
+            return err('Sem permissão para enviar ao Drive. Compartilhe a pasta com a service account.', 403)
+        return err(f'Erro do Google Drive (HTTP {status or "?"}).', 502)
 
+    except Exception as e:
+        print(f'[Upload] {e}')
         return err(
-            'Erro no upload para o Drive.',
+            f'Erro no upload: {e}',
             500
         )
 
 
     now = datetime.now()
 
+    pasta_val = sanitize_string(request.form.get('pasta', ''))
+    if drive_result.get('storage') == 'local' and not pasta_val:
+        pasta_val = 'Site (local)'
 
     media_id = insert_media({
 
-        **drive_result,
+        **{k: v for k, v in drive_result.items() if k != 'storage'},
 
         'nome':
             sanitize_string(
@@ -295,12 +326,7 @@ def upload_ep():
             ),
 
         'pasta':
-            sanitize_string(
-                request.form.get(
-                    'pasta',
-                    ''
-                )
-            ),
+            pasta_val,
 
         'tipo':
             get_mime_category(
@@ -333,10 +359,16 @@ def upload_ep():
     if get_mime_category(mime_type) == 'image' and drive_result.get('thumb_url'):
         import threading
 
+        clip_src = drive_result['thumb_url']
+        if drive_result.get('storage') == 'local':
+            local_path = drive_svc.resolve_local_path(drive_result['drive_id'])
+            if local_path:
+                clip_src = str(local_path)
+
         def _gen_embedding(mid, thumb_url):
             try:
                 from backend.services.clip_tagger import encode_image_embedding
-                emb = encode_image_embedding(thumb_url)
+                emb = encode_image_embedding(thumb_url, media_id=mid)
                 if emb:
                     from backend.models.database import save_media_embedding
                     save_media_embedding(mid, emb)
@@ -345,16 +377,17 @@ def upload_ep():
 
         threading.Thread(
             target=_gen_embedding,
-            args=(media_id, drive_result['thumb_url']),
+            args=(media_id, clip_src),
             daemon=True
         ).start()
 
     return ok(
         {
             'item':
-                get_media(media_id)
+                get_media(media_id),
+            'storage': drive_result.get('storage') or 'drive',
         },
-        'Upload realizado!',
+        'Upload realizado!' if drive_result.get('storage') != 'local' else 'Upload salvo no servidor (Drive sem cota de escrita).',
         201
     )
 
@@ -466,6 +499,28 @@ def delete_media_ep(media_id):
 
 
 
+@api.route('/local/<uid>', methods=['GET'])
+def local_media_ep(uid):
+    """Serve arquivo local com Range (seek no player de vídeo)."""
+    import re
+    if not re.fullmatch(r'[a-f0-9]{16,64}', uid or ''):
+        return err('Arquivo inválido.', 400)
+    path = drive_svc.resolve_local_path(f'local:{uid}')
+    if not path or not path.is_file():
+        return err('Arquivo não encontrado.', 404)
+    mime = mimetypes.guess_type(path.name)[0] or sniff_mime_from_bytes(path.read_bytes()[:32], path.name)
+    # send_file no path real → conditional/etag/Range (não carrega tudo na RAM)
+    return send_file(
+        path,
+        mimetype=mime,
+        as_attachment=False,
+        conditional=True,
+        etag=True,
+        last_modified=True,
+        max_age=86400,
+    )
+
+
 @api.route('/media/<int:media_id>/download', methods=['GET'])
 def download_ep(media_id):
 
@@ -519,6 +574,33 @@ def download_ep(media_id):
         )
 
 
+@api.route('/media/<int:media_id>/thumb', methods=['GET'])
+def media_thumb_ep(media_id):
+    """Thumbnail com cache em disco — 1ª vez baixa do Drive, depois é instantâneo."""
+    item = get_media(media_id)
+    if not item:
+        return err('Mídia não encontrada.', 404)
+    try:
+        size = safe_int(request.args.get('sz', 280), default=280, min_v=120, max_v=1200)
+        # ETag fraco pra browser/CDN
+        raw, mime = drive_svc.fetch_thumbnail_bytes(item['drive_id'], size=size, use_cache=True)
+        resp = send_file(
+            io.BytesIO(raw),
+            mimetype=mime or 'image/jpeg',
+            as_attachment=False,
+            download_name=f'thumb-{media_id}.jpg',
+            max_age=604800,
+        )
+        resp.headers['Cache-Control'] = 'public, max-age=604800, immutable'
+        resp.headers['X-Thumb-Cache'] = 'hit' if drive_svc.thumb_cache_path(item['drive_id'], size).is_file() else 'miss'
+        return resp
+    except Exception as e:
+        print(f'[Thumb] media={media_id}: {e}')
+        legacy = (item.get('thumb_url') or '').strip()
+        if legacy.startswith('https://'):
+            return redirect(legacy, code=302)
+        return err('Thumbnail indisponível.', 404)
+
 
 # ==================================================
 # BUSCA
@@ -553,6 +635,7 @@ def search_ep():
 
 
     from backend.services.search_engine import intelligent_search
+    from backend.models.database import annotate_storage
 
     result = intelligent_search(
         query=query,
@@ -560,7 +643,7 @@ def search_ep():
         page=safe_int(request.args.get('page', 1), default=1, min_v=1, max_v=10_000),
         per_page=safe_int(request.args.get('per_page', 24), default=24, min_v=1, max_v=100),
     )
-
+    result['items'] = [annotate_storage(it, thumb_size=280) for it in (result.get('items') or [])]
 
     return ok(result)
 
@@ -599,14 +682,14 @@ def autocomplete_ep():
             {
                 'text': p,
                 'type': 'pasta',
-                'icon': '👤'
+                'icon': 'pasta'
             }
             for p in pastas
         ] + [
             {
                 'text': t,
                 'type': 'tag',
-                'icon': '🏷️'
+                'icon': 'tag'
             }
             for t in tags
         ]
@@ -628,6 +711,8 @@ def dashboard_ep():
         stats['espaco_total']
     )
 
+    for key in ('ultimos_uploads', 'mais_vistos', 'mais_baixados', 'destaques'):
+        stats[key] = [annotate_storage(dict(it), thumb_size=400) for it in (stats.get(key) or [])]
 
     return ok({
         'stats': stats
@@ -680,23 +765,26 @@ def tags_ep():
 
 @api.route('/drive/status', methods=['GET'])
 def drive_status_ep():
-
+    """Público: só online/offline. Detalhes (SA, folder) só sync/system (dev)."""
     online, error_msg = drive_svc.drive_ping()
-    email = drive_svc.get_service_account_email()
-    folder = getattr(drive_svc, 'FOLDER_ID', None) or ''
-
-    return ok(
-        {
-            'online': online,
-            'error': None if online else (error_msg or 'Drive offline'),
+    payload = {
+        'online': online,
+        'error': None if online else (error_msg or 'Drive offline'),
+    }
+    if current_can('sync') or current_can('system'):
+        email = drive_svc.get_service_account_email()
+        folder = getattr(drive_svc, 'FOLDER_ID', None) or ''
+        payload.update({
             'service_account': email,
             'folder_id': folder,
             'hint': (
                 None if online else
                 'Compartilhe a pasta do Drive com o e-mail da service account (permissão Editor).'
             ),
-        },
-        'Drive online' if online else (error_msg or 'Drive offline')
+        })
+    return ok(
+        payload,
+        'Drive online' if online else (error_msg or 'Drive offline'),
     )
 
 # ==================================================
@@ -715,6 +803,7 @@ def drive_sync_ep():
         conn = get_conn()
 
         added = 0
+        updated_pasta = 0
         pending_embeddings = []  # [(media_id, thumb_url), ...] pra processar depois
 
 
@@ -726,12 +815,18 @@ def drive_sync_ep():
             for f in page_result['files']:
 
                 exists = conn.execute(
-                    "SELECT id FROM media WHERE drive_id=?",
+                    "SELECT id, pasta FROM media WHERE drive_id=?",
                     (f['id'],)
                 ).fetchone()
 
 
                 if exists:
+                    # Repara pasta vazia em itens já sincronizados
+                    folder_name = sanitize_string(f.get('folder_name', ''), max_len=300)
+                    if folder_name and not (exists['pasta'] or '').strip():
+                        from backend.models.database import update_pasta_by_drive_id
+                        if update_pasta_by_drive_id(f['id'], folder_name):
+                            updated_pasta += 1
                     continue
 
 
@@ -876,7 +971,7 @@ def drive_sync_ep():
                     return
                 for mid, url in items:
                     try:
-                        emb = encode_image_embedding(url)
+                        emb = encode_image_embedding(url, media_id=mid)
                         if emb:
                             save_media_embedding(mid, emb)
                     except Exception as e:
@@ -889,11 +984,15 @@ def drive_sync_ep():
             ).start()
 
 
+        msg = f'{added} arquivo(s) sincronizado(s).'
+        if updated_pasta:
+            msg += f' {updated_pasta} pasta(s) atualizada(s).'
         return ok(
             {
-                'added': added
+                'added': added,
+                'updated_pasta': updated_pasta,
             },
-            f'{added} arquivo(s) sincronizado(s).'
+            msg
         )
 
 
@@ -933,14 +1032,45 @@ def drive_sync_ep():
 
 @api.route('/ai/clip/status', methods=['GET'])
 def clip_status_ep():
-
+    """Público: ready/enabled. Modelo, device e índice só clip/system (dev)."""
     from backend.services.clip_tagger import get_model_info
 
+    info = get_model_info()
+    if current_can('clip') or current_can('system'):
+        return ok({'clip': info})
     return ok({
-        'clip':
-            get_model_info()
+        'clip': {
+            'enabled': bool(info.get('enabled')),
+            'ready': bool(info.get('installed') or info.get('loaded')),
+            'loaded': bool(info.get('loaded')),
+            'installed': bool(info.get('installed')),
+        }
     })
 
+
+@api.route('/ai/clip/backfill', methods=['POST'])
+@require_perm('clip')
+def clip_backfill_ep():
+    """Dispara indexação CLIP das imagens que ainda não têm embedding."""
+    import threading
+    from backend.services.clip_tagger import backfill_embeddings, is_enabled
+    from backend.models.database import embedding_stats
+
+    if not is_enabled():
+        return err('OpenCLIP desativado (CLIP_ENABLED=false).', 400)
+
+    data = request.get_json(silent=True) or {}
+    batch = safe_int(data.get('batch_size', 24), default=24, min_v=1, max_v=80)
+    max_batches = safe_int(data.get('max_batches', 0), default=0, min_v=0, max_v=500)
+
+    def _run():
+        backfill_embeddings(batch_size=batch, max_batches=max_batches)
+
+    threading.Thread(target=_run, daemon=True, name='clip-backfill').start()
+    return ok(
+        {'index': embedding_stats(), 'started': True},
+        'Backfill CLIP iniciado em background.',
+    )
 
 
 @api.route('/ai/clip/tags', methods=['POST'])
@@ -1135,6 +1265,51 @@ def portfolio_slots_upload_ep(slot_id):
     except OSError as e:
         return err(f'Falha ao salvar: {e}', 500)
     return ok({'slot': item}, 'Slot preenchido')
+
+
+# ==================================================
+# DEV SYSTEM (somente papel com perm system)
+# ==================================================
+
+def _env_flag(name: str, default: str = 'false') -> bool:
+    return (os.getenv(name, default) or default).lower().strip() in ('1', 'true', 'yes', 'on')
+
+
+@api.route('/dev/system', methods=['GET'])
+@require_perm('system')
+def dev_system_ep():
+    """Resumo seguro do servidor — sem senhas, tokens ou caminhos secretos."""
+    from backend.services.clip_tagger import get_model_info
+    from backend.models.database import embedding_stats, count_media
+
+    online, error_msg = drive_svc.drive_ping()
+    clip = get_model_info()
+    try:
+        media_total = count_media()
+    except Exception:
+        media_total = None
+
+    return ok({
+        'role': current_role(),
+        'user': current_user(),
+        'flags': {
+            'clip_enabled': _env_flag('CLIP_ENABLED', 'true'),
+            'code_viewer_enabled': _env_flag('CODE_VIEWER_ENABLED', 'false'),
+            'api_lockdown': _env_flag('API_LOCKDOWN', 'true'),
+            'public_drive_files': _env_flag('PUBLIC_DRIVE_FILES', 'false'),
+            'session_days': max(1, safe_int(os.getenv('SESSION_DAYS', '90'), default=90, min_v=1, max_v=3650)),
+            'flask_env': (os.getenv('FLASK_ENV') or 'production').strip() or 'production',
+        },
+        'drive': {
+            'online': online,
+            'error': None if online else (error_msg or 'Drive offline'),
+            'service_account': drive_svc.get_service_account_email(),
+            'folder_id': getattr(drive_svc, 'FOLDER_ID', None) or '',
+        },
+        'clip': clip,
+        'media_total': media_total,
+        'index': clip.get('index') or embedding_stats(),
+    })
 
 
 # ==================================================

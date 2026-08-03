@@ -22,6 +22,13 @@ PROTECTED_HTML = frozenset({
     'upload.html', 'upload',
     'slots.html', 'slots',
     'code.html', 'code',
+    'settings.html', 'settings',
+})
+
+# Páginas exclusivas do papel com perm `code` / `system`
+DEV_ONLY_HTML = frozenset({
+    'code.html', 'code',
+    'settings.html', 'settings',
 })
 
 # Permissões por papel
@@ -145,7 +152,16 @@ def login_user(username: str, role: str) -> None:
     session['user'] = username.strip().lower()
     session['role'] = role
     session['csrf'] = secrets.token_urlsafe(32)
+    # Permanente até logout explícito (prazo em PERMANENT_SESSION_LIFETIME)
     session.permanent = True
+    session.modified = True
+
+
+def touch_session() -> None:
+    """Mantém a sessão viva enquanto o usuário navega (admin/dev)."""
+    if session.get('admin') is True:
+        session.permanent = True
+        session.modified = True
 
 
 # Rate limit de login (em memória)
@@ -309,6 +325,10 @@ def clear_login_failures() -> None:
 def issue_csrf_token() -> str:
     token = secrets.token_urlsafe(32)
     session['csrf'] = token
+    # Não derruba login existente ao renovar CSRF
+    if session.get('admin') is True:
+        session.permanent = True
+    session.modified = True
     return token
 
 
@@ -321,6 +341,7 @@ def verify_csrf_token(token: str | None) -> bool:
 
 def logout_user() -> None:
     session.clear()
+    session.modified = True
 
 
 def is_logged_in() -> bool:
@@ -463,6 +484,10 @@ def lockdown_before_request():
     if request.method.upper() == 'OPTIONS':
         return None
 
+    # Renova cookie de sessão em qualquer hit autenticado
+    if session.get('admin') is True:
+        session.permanent = True
+
     blocked, wait = api_flood_limited()
     if blocked:
         return jsonify({
@@ -484,11 +509,15 @@ def lockdown_before_request():
     if (method, path) in _ALWAYS_PUBLIC:
         return None
 
-    # GET /api/media/<id> e download públicos (só visualização na busca)
+    # GET /api/media/<id> e download/thumb públicos (só visualização na busca)
     if method == 'GET':
         if re.fullmatch(r'/api/media/\d+', path):
             return None
         if re.fullmatch(r'/api/media/\d+/download', path):
+            return None
+        if re.fullmatch(r'/api/media/\d+/thumb', path):
+            return None
+        if re.fullmatch(r'/api/local/[a-f0-9]+', path):
             return None
 
     # Lista /api/media (sem id) e dashboard exigem login
@@ -502,6 +531,28 @@ def path_needs_login(path: str) -> bool:
     base = p.split('/')[-1]
     name = base[:-5] if base.endswith('.html') else base
     return base in PROTECTED_HTML or name in PROTECTED_HTML
+
+
+def path_needs_dev(path: str) -> bool:
+    """Código / Config: só role com system ou code (dev)."""
+    p = (path or '').lstrip('/').split('?')[0].lower()
+    if not p:
+        return False
+    base = p.split('/')[-1]
+    name = base[:-5] if base.endswith('.html') else base
+    return base in DEV_ONLY_HTML or name in DEV_ONLY_HTML
+
+
+def path_dev_perm(path: str) -> str | None:
+    """Permissão exigida para página DEV-only, ou None."""
+    p = (path or '').lstrip('/').split('?')[0].lower()
+    base = p.split('/')[-1] if p else ''
+    name = base[:-5] if base.endswith('.html') else base
+    if name in ('code',) or base in ('code.html', 'code'):
+        return 'code'
+    if name in ('settings',) or base in ('settings.html', 'settings'):
+        return 'system'
+    return None
 
 
 def safe_int(value, default=1, min_v=1, max_v=10_000):
@@ -544,6 +595,11 @@ def is_safe_image_url(url: str) -> bool:
     url = url.strip()
     if len(url) > 2000:
         return False
+    # Paths internos do próprio app (proxy / local)
+    if re.fullmatch(r'/api/local/[a-f0-9]+', url):
+        return True
+    if re.fullmatch(r'/api/media/\d+/thumb(?:\?.*)?', url):
+        return True
     try:
         parsed = urlparse(url)
     except Exception:

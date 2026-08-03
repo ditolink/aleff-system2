@@ -50,12 +50,20 @@
 .logo--muted .logo-text span { color: #3a3a3a; }
 .logo--muted .logo-mark { color: #555; }
 
-/* Slot vazio */
+/* Slot vazio — altura própria no masonry */
 .gi.gi-slot {
   background: #0d0d0d;
   border: 1px dashed rgba(255,255,255,0.12);
   cursor: default;
   box-shadow: none;
+  aspect-ratio: 3 / 4;
+  min-height: 160px;
+}
+.gi.gi-slot.l-wide,
+.gi.gi-slot.l-wide-16 {
+  aspect-ratio: 16 / 10;
+  column-span: all;
+  min-height: 120px;
 }
 .gi.gi-slot::before { display: none; }
 .gi.gi-slot:hover {

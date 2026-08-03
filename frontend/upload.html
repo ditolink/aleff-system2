@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
@@ -8,16 +8,82 @@
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js" defer></script>
-  <script src="js/dev-bar.js" defer></script>
+  <script src="js/auth.js?v=20260801au" defer></script>
+  <script src="js/dev-bar.js?v=20260801av" defer></script>
   <style>
     .upload-page{min-height:100vh;padding:100px 48px 80px;max-width:900px;margin:0 auto}
     .up-eyebrow{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:12px}
     .up-eyebrow::before{content:'';width:16px;height:1px;background:#888;display:inline-block}
-    .up-title{font-size:clamp(36px,5vw,58px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin-bottom:48px}
+    .up-title-row{
+      display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+      margin-bottom:48px;flex-wrap:wrap;
+    }
+    .up-title{font-size:clamp(36px,5vw,58px);font-weight:900;letter-spacing:-.03em;line-height:.95;margin:0}
     .up-title em{font-weight:300;font-style:italic;color:rgba(255,255,255,.5)}
+
+ /* Cmera idle + quique no upload (60fps / GPU) */
+    .up-cam{
+      width:64px;height:50px;flex-shrink:0;color:#f5f5f5;
+      transform-origin:50% 70%;
+      will-change:transform;
+      transform:translateZ(0);
+      animation:up-cam-float 2.8s ease-in-out infinite;
+    }
+    .up-cam .cam-svg{width:100%;height:100%;overflow:visible;display:block}
+    .up-cam.is-bounce{
+      animation:up-cam-bounce .85s cubic-bezier(.22,.85,.3,1) both;
+    }
+    .up-cam.is-bounce .cam-rays{
+      animation:up-cam-flash .85s ease-out both;
+    }
+    .up-cam.is-bounce .cam-iris{
+      animation:up-cam-shutter .85s ease-out both;
+    }
+    @keyframes up-cam-float{
+      0%,100%{transform:translate3d(0,0,0) rotate(-2deg)}
+      50%{transform:translate3d(0,-6px,0) rotate(2deg)}
+    }
+    @keyframes up-cam-bounce{
+      0%{transform:translate3d(0,0,0) rotate(-2deg) scale(1)}
+      14%{transform:translate3d(0,-22px,0) rotate(10deg) scale(1.1)}
+      28%{transform:translate3d(0,2px,0) rotate(-6deg) scale(.94)}
+      42%{transform:translate3d(0,-12px,0) rotate(6deg) scale(1.06)}
+      56%{transform:translate3d(0,1px,0) rotate(-3deg) scale(.98)}
+      70%{transform:translate3d(0,-6px,0) rotate(3deg) scale(1.03)}
+      84%{transform:translate3d(0,0,0) rotate(-1deg) scale(1)}
+      100%{transform:translate3d(0,0,0) rotate(-2deg) scale(1)}
+    }
+    @keyframes up-cam-flash{
+      0%,100%{opacity:.75;filter:none}
+      18%{opacity:1;filter:drop-shadow(0 0 8px rgba(255,255,255,.85))}
+      40%{opacity:.5;filter:none}
+    }
+    @keyframes up-cam-shutter{
+      0%,100%{opacity:.45;transform:scale(1)}
+      16%{opacity:.08;transform:scale(.35)}
+      28%{opacity:1;transform:scale(1.25)}
+      50%{opacity:.45;transform:scale(1)}
+    }
+    @media (max-width:768px){
+      .up-cam{animation:up-cam-float-lite 4s ease-in-out infinite}
+      .up-cam.is-bounce{animation:up-cam-bounce-lite .95s cubic-bezier(.22,.85,.3,1) both}
+      @keyframes up-cam-float-lite{
+        0%,100%{transform:translate3d(0,0,0) rotate(-1deg)}
+        50%{transform:translate3d(0,-4px,0) rotate(1deg)}
+      }
+      @keyframes up-cam-bounce-lite{
+        0%{transform:translate3d(0,0,0) scale(1)}
+        30%{transform:translate3d(0,-12px,0) rotate(4deg) scale(1.05)}
+        55%{transform:translate3d(0,1px,0) scale(.98)}
+        75%{transform:translate3d(0,-5px,0) scale(1.02)}
+        100%{transform:translate3d(0,0,0) scale(1)}
+      }
+    }
+    @media (prefers-reduced-motion:reduce){
+      .up-cam,.up-cam.is-bounce,.up-cam.is-bounce .cam-rays,.up-cam.is-bounce .cam-iris{animation:none!important}
+    }
 
     /* Drop zone */
     .drop-zone{
@@ -140,25 +206,38 @@
 
 <main class="upload-page">
   <p class="up-eyebrow">Envio de mídia</p>
+  <div class="up-title-row">
   <h1 class="up-title">Adicionar fotos<br><em>e vídeos</em></h1>
+ <div class="up-cam" id="upCam" aria-hidden="true" title="Cmera">
+      <svg class="cam-svg" viewBox="0 0 72 56">
+        <g class="cam-rays" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g>
+        <path class="cam-prism" d="M22 14h16l4 7H18l4-7z" fill="currentColor"/>
+        <rect class="cam-body" x="8" y="20" width="44" height="26" rx="4" fill="currentColor"/>
+        <path class="cam-grip" d="M48 23h12c2.2 0 4 1.8 4 4v12c0 2.2-1.8 4-4 4H48V23z" fill="currentColor"/>
+        <circle class="cam-lens" cx="28" cy="33" r="11" fill="currentColor"/>
+        <circle class="cam-lens-hole" cx="28" cy="33" r="7.2" fill="#0a0a0a"/>
+        <circle class="cam-iris" cx="28" cy="33" r="3.2" fill="currentColor" opacity=".55"/>
+      </svg>
+    </div>
+  </div>
   <div class="drive-badge" id="driveBadge" title="Status do Google Drive">
     <span class="drive-dot" id="driveDot"></span>
     <span id="driveLabel">Verificando Drive…</span>
   </div>
 
   <!-- Drop Zone -->
-  <div class="drop-zone" id="dropZone">
+ <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Selecionar fotos ou vdeos">
     <span class="drop-icon" aria-hidden="true">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/></svg>
     </span>
     <p class="drop-text">Arraste os arquivos aqui</p>
     <p class="drop-hint">ou clique para selecionar</p>
-    <button class="drop-browse" onclick="document.getElementById('fileInput').click()">
+    <button type="button" class="drop-browse" id="dropBrowse">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Selecionar arquivos
     </button>
     <p class="drop-formats">JPG · PNG · WEBP · GIF · MP4 · MOV · AVI · WEBM</p>
-    <input type="file" id="fileInput" multiple accept="image/*,video/*"/>
+    <input type="file" id="fileInput" multiple accept="image/*,video/*,.jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.avi,.webm"/>
   </div>
 
   <!-- Fila de arquivos -->
@@ -239,29 +318,81 @@ async function checkDriveStatus() {
   }
 }
 
-/* ── Drop Zone ──────────────────────────────────────────────── */
+/* -- Drop Zone ------------------------------------------------ */
 const dropZone  = document.getElementById('dropZone');
+const dropBrowse = document.getElementById('dropBrowse');
 const fileInput = document.getElementById('fileInput');
 const fileQueue = document.getElementById('fileQueue');
 const metaSec   = document.getElementById('metaSection');
 const upSubmit  = document.getElementById('upSubmit');
 
-['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, ev => {
-  ev.preventDefault(); dropZone.classList.add('dragover');
-}));
-['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {
-  ev.preventDefault(); dropZone.classList.remove('dragover');
-  if (e === 'drop') addFiles(ev.dataTransfer.files);
-}));
-dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', () => addFiles(fileInput.files));
+function openFilePicker(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+ // S um click() dois abrem/fecham o dilogo e parece que no pega
+  fileInput.click();
+}
+
+['dragenter', 'dragover'].forEach(type => {
+  dropZone.addEventListener(type, ev => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    dropZone.classList.add('dragover');
+  });
+});
+['dragleave', 'drop'].forEach(type => {
+  dropZone.addEventListener(type, ev => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    dropZone.classList.remove('dragover');
+    if (type === 'drop') addFiles(ev.dataTransfer && ev.dataTransfer.files);
+  });
+});
+
+// Clique na zona (no no boto) abre o seletor
+dropZone.addEventListener('click', (ev) => {
+  if (ev.target.closest('#dropBrowse, #fileInput, button, a')) return;
+  openFilePicker(ev);
+});
+dropZone.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' || ev.key === ' ') openFilePicker(ev);
+});
+
+// Boto: stopPropagation evita o 2 click da zona
+dropBrowse.addEventListener('click', openFilePicker);
+
+fileInput.addEventListener('change', () => {
+  addFiles(fileInput.files);
+  fileInput.value = ''; // permite escolher o mesmo arquivo de novo
+});
+
+function bounceCam() {
+  const el = document.getElementById('upCam');
+  if (!el) return;
+  el.classList.remove('is-bounce');
+  void el.offsetWidth;
+  el.classList.add('is-bounce');
+  const done = (ev) => {
+    if (ev.target !== el || ev.animationName !== 'up-cam-bounce') return;
+    el.classList.remove('is-bounce');
+    el.removeEventListener('animationend', done);
+  };
+  el.addEventListener('animationend', done);
+}
 
 function addFiles(files) {
+  if (!files || !files.length) return;
+  let added = 0;
   Array.from(files).forEach(f => {
-    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+    if (!f || !f.size) return;
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified)) {
       selectedFiles.push(f);
+      added++;
     }
   });
+  if (added) bounceCam();
   renderQueue();
 }
 
@@ -291,14 +422,12 @@ function renderQueue() {
       <button class="fq-remove" onclick="removeFile(${i})">Remover</button>`;
     fileQueue.appendChild(div);
 
-    // Preview de imagem
+ // Preview de imagem (ObjectURL mais leve que FileReader no celular)
     if (!isVideo) {
       const thumb = div.querySelector('.fq-thumb-ico');
-      const reader = new FileReader();
-      reader.onload = () => {
-        thumb.outerHTML = `<img class="fq-thumb" src="${reader.result}"/>`;
-      };
-      reader.readAsDataURL(f);
+      const url = URL.createObjectURL(f);
+      f._previewUrl = url;
+      thumb.outerHTML = `<img class="fq-thumb" src="${url}" alt=""/>`;
     }
   });
 
@@ -308,6 +437,10 @@ function renderQueue() {
 }
 
 function removeFile(i) {
+  const f = selectedFiles[i];
+  if (f && f._previewUrl) {
+    try { URL.revokeObjectURL(f._previewUrl); } catch { /* ignore */ }
+  }
   selectedFiles.splice(i, 1);
   renderQueue();
 }
@@ -318,7 +451,7 @@ function fmtSize(bytes) {
   return (bytes/(1024*1024)).toFixed(1) + ' MB';
 }
 
-/* ── Upload ──────────────────────────────────────────────────── */
+/* -- Upload ---------------------------------------------------- */
 upSubmit.addEventListener('click', async () => {
   if (!selectedFiles.length) return;
   const me = await Auth.me();
@@ -365,16 +498,17 @@ upSubmit.addEventListener('click', async () => {
 
       if (res.ok) {
         bar.style.width = '100%';
-        st.textContent = '✓ Enviado com sucesso!'; st.className = 'fq-status done';
+        st.textContent = `? ${data.message || 'Enviado!'}`; st.className = 'fq-status done';
+        bounceCam();
         ok++;
       } else {
         bar.style.background = '#e53e3e'; bar.style.width = '100%';
-        st.textContent = `✗ ${data.message || 'Falha'}`; st.className = 'fq-status err';
+        st.textContent = `? ${data.message || 'Falha'}`; st.className = 'fq-status err';
         fail++;
       }
     } catch(e) {
       bar.style.background = '#e53e3e';
-      st.textContent = '✗ Erro de rede'; st.className = 'fq-status err';
+      st.textContent = '? Erro de rede'; st.className = 'fq-status err';
       fail++;
     }
   }

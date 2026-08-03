@@ -180,16 +180,50 @@ def _load_model():
 
 def _fetch_image(url):
     try:
+        # Caminho local (upload fallback)
+        if url and not str(url).lower().startswith(('http://', 'https://')):
+            from pathlib import Path
+            p = Path(url)
+            if p.is_file():
+                return Image.open(p).convert("RGB")
+            return None
+
+        # URL relativa do próprio servidor
+        s = str(url or '')
+        if s.startswith('/api/local/'):
+            from backend.services.drive import resolve_local_path
+            uid = s.rstrip('/').split('/')[-1]
+            p = resolve_local_path(f'local:{uid}')
+            if p and p.is_file():
+                return Image.open(p).convert("RGB")
+            return None
+
+        if s.startswith('/api/media/') and s.rstrip('/').endswith('/thumb'):
+            # Resolve via banco + Drive SA (mesmo pipeline do proxy)
+            try:
+                mid = int(s.split('/')[3])
+                return _fetch_image_for_media_id(mid)
+            except Exception:
+                return None
+
         r = _requests_session.get(
             url,
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            },
+            headers={"User-Agent": "Mozilla/5.0"},
             timeout=20,
-            allow_redirects=True
+            allow_redirects=True,
         )
+        if r.status_code != 200 or not r.content:
+            return None
 
-        if "image" not in r.headers.get("Content-Type", ""):
+        ctype = r.headers.get("Content-Type", "")
+        # Drive às vezes devolve text/html de login; aceita magic bytes de imagem
+        is_img = (
+            "image" in ctype
+            or r.content[:3] == b"\xff\xd8"
+            or r.content[:8] == b"\x89PNG\r\n\x1a\n"
+            or r.content[:4] == b"RIFF"
+        )
+        if not is_img:
             return None
 
         return Image.open(io.BytesIO(r.content)).convert("RGB")
@@ -197,6 +231,191 @@ def _fetch_image(url):
     except Exception as e:
         print(f"[CLIP] Falha ao baixar imagem: {e}")
         return None
+
+
+def _fetch_image_for_media_id(media_id):
+    """Carrega imagem via Drive SA / arquivo local — não depende de thumb pública."""
+    try:
+        from backend.models.database import get_media
+        from backend.services.drive import fetch_thumbnail_bytes, resolve_local_path, is_local_media_id
+        item = get_media(int(media_id))
+        if not item:
+            return None
+        did = item.get('drive_id') or ''
+        if is_local_media_id(did):
+            p = resolve_local_path(did)
+            if p and p.is_file():
+                return Image.open(p).convert('RGB')
+            return None
+        raw, _mime = fetch_thumbnail_bytes(did, size=512)
+        return Image.open(io.BytesIO(raw)).convert('RGB')
+    except Exception as e:
+        print(f"[CLIP] Falha ao carregar mídia {media_id}: {e}")
+        return None
+
+
+def encode_image_embedding(image_url, media_id=None):
+    """
+    Gera o embedding (vetor CLIP) de uma imagem, pra salvar no banco
+    (media_embeddings) e usar depois na busca semântica.
+    Retorna bytes (float32) prontos pra sqlite BLOB, ou None se falhar.
+    """
+    try:
+        import numpy as np
+        torch = _get_torch()
+        model, preprocess, tokenizer = _load_model()
+        device = next(model.parameters()).device
+        image = None
+        if media_id is not None:
+            image = _fetch_image_for_media_id(media_id)
+        if image is None:
+            image = _fetch_image(image_url)
+        if image is None:
+            return None
+        img_in = preprocess(image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            feat = model.encode_image(img_in)
+            feat = feat / feat.norm(dim=-1, keepdim=True)
+        return feat.cpu().numpy().astype('float32').tobytes()
+    except Exception as e:
+        print(f"[CLIP] Falha ao gerar embedding de imagem: {e}")
+        return None
+
+
+_text_emb_cache = {}
+_TEXT_CACHE_MAX = 128
+
+
+def encode_text_query(text):
+    """
+    Embedding CLIP do texto. Instantâneo se o modelo ainda não estiver pronto
+    (retorna None → busca segue só com FTS). Com modelo quente, usa cache.
+    """
+    if not CLIP_ENABLED or _model_cache is None:
+        return None
+    key = (text or '').strip().lower()
+    if not key:
+        return None
+    cached = _text_emb_cache.get(key)
+    if cached is not None:
+        return cached
+    try:
+        import numpy as np
+        torch = _get_torch()
+        model, preprocess, tokenizer = _model_cache, _preprocess_cache, _tokenizer_cache
+        device = next(model.parameters()).device
+        txt_in = tokenizer([text.strip()]).to(device)
+        with torch.no_grad():
+            feat = model.encode_text(txt_in)
+            feat = feat / feat.norm(dim=-1, keepdim=True)
+        vec = feat.cpu().numpy().astype('float32')[0]
+        if len(_text_emb_cache) >= _TEXT_CACHE_MAX:
+            # descarta o mais antigo
+            try:
+                _text_emb_cache.pop(next(iter(_text_emb_cache)))
+            except Exception:
+                _text_emb_cache.clear()
+        _text_emb_cache[key] = vec
+        return vec
+    except Exception as e:
+        print(f"[CLIP] Falha ao gerar embedding de texto: {e}")
+        return None
+
+
+_backfill_running = False
+
+
+def backfill_embeddings(batch_size=24, max_batches=0, pause_sec=0.05):
+    """
+    Indexa imagens antigas sem embedding. Roda em background após warmup.
+    max_batches=0 → continua até acabar (ou falhar tudo).
+    """
+    global _backfill_running
+    if not CLIP_ENABLED:
+        return {'done': 0, 'failed': 0, 'skipped': True}
+    if _backfill_running:
+        return {'done': 0, 'failed': 0, 'skipped': True, 'reason': 'already_running'}
+    _backfill_running = True
+    done = failed = 0
+    try:
+        from backend.models.database import (
+            get_media_missing_embeddings,
+            save_media_embedding,
+            embedding_stats,
+        )
+        import time
+        batches = 0
+        while True:
+            missing = get_media_missing_embeddings(limit=batch_size)
+            if not missing:
+                break
+            for item in missing:
+                mid = item['id']
+                try:
+                    emb = encode_image_embedding(item.get('thumb_url'), media_id=mid)
+                    if emb:
+                        save_media_embedding(mid, emb)
+                        done += 1
+                    else:
+                        failed += 1
+                except Exception as e:
+                    failed += 1
+                    print(f"[CLIP] Backfill item {mid} falhou: {e}")
+                if pause_sec:
+                    time.sleep(pause_sec)
+            batches += 1
+            stats = embedding_stats()
+            print(f"[CLIP] Backfill: +{done} ok, {failed} falhas | índice {stats['embeddings']}/{stats['images']}")
+            if max_batches and batches >= max_batches:
+                break
+            # evita loop infinito se todas as do lote falham
+            if failed >= done + len(missing) and done == 0:
+                print("[CLIP] Backfill parou — nenhuma imagem acessível neste lote.")
+                break
+        return {'done': done, 'failed': failed, 'stats': embedding_stats()}
+    except Exception as e:
+        print(f"[CLIP] Backfill abortado: {e}")
+        return {'done': done, 'failed': failed, 'error': str(e)}
+    finally:
+        _backfill_running = False
+
+
+def warmup(thumb_urls=None):
+    """
+    Pré-carrega o modelo CLIP na memória. Se thumb_urls for passado
+    (lista de URLs de thumbnails), faz um encode de teste na primeira
+    imagem disponível — garante que o pipeline completo já rodou.
+    """
+    if not CLIP_ENABLED:
+        print("[CLIP] Desativado (CLIP_ENABLED=false) — busca só por texto.")
+        return
+    try:
+        torch = _get_torch()
+        model, preprocess, tokenizer = _load_model()
+
+        if thumb_urls:
+            for url in thumb_urls:
+                image = _fetch_image(url)
+                if image is None and str(url).startswith('/api/media/'):
+                    try:
+                        mid = int(str(url).split('/')[3])
+                        image = _fetch_image_for_media_id(mid)
+                    except Exception:
+                        image = None
+                if image is None:
+                    continue
+                device = next(model.parameters()).device
+                img_in = preprocess(image).unsqueeze(0).to(device)
+                with torch.no_grad():
+                    model.encode_image(img_in)
+                break
+
+        return True
+
+    except Exception as e:
+        print(f"[CLIP] Warmup falhou: {e}")
+        return False
+
 
 def generate_tags(image_url, top_k=12, threshold=0.15):
     """
@@ -216,6 +435,11 @@ def generate_tags(image_url, top_k=12, threshold=0.15):
         model, preprocess, tokenizer = _load_model()
         device = next(model.parameters()).device
         image  = _fetch_image(image_url)
+        if not image and str(image_url).startswith('/api/media/'):
+            try:
+                image = _fetch_image_for_media_id(int(str(image_url).split('/')[3]))
+            except Exception:
+                image = None
         if not image:
             return {'tags':[],'scores':{},'status':'error','message':'Não foi possível baixar a imagem.','model':f'{DEFAULT_MODEL}/{DEFAULT_PRETRAIN}'}
         img_in  = preprocess(image).unsqueeze(0).to(device)
@@ -246,7 +470,15 @@ def generate_tags(image_url, top_k=12, threshold=0.15):
         print(f"[CLIP] Erro: {e}")
         return {'tags':[],'scores':{},'status':'error','message':str(e),'model':DEFAULT_MODEL}
 
+_info_cache = {'at': 0.0, 'result': None}
+_INFO_TTL_SEC = 12.0
+
 def get_model_info():
+    import time
+    now = time.monotonic()
+    if _info_cache['result'] is not None and (now - _info_cache['at']) < _INFO_TTL_SEC:
+        return _info_cache['result']
+
     installed = _check_installed()
     torch_ok = False
     try:
@@ -254,7 +486,7 @@ def get_model_info():
         torch_ok = True
     except ImportError:
         torch_ok = False
-    return {
+    info = {
         'model':     DEFAULT_MODEL,
         'pretrained':DEFAULT_PRETRAIN,
         'enabled':   CLIP_ENABLED,
@@ -264,91 +496,20 @@ def get_model_info():
         'vocab_size':len(TAG_PT),
         'installed': installed and torch_ok,
         'torch_available': torch_ok,
+        'backfill_running': _backfill_running,
     }
+    try:
+        from backend.models.database import embedding_stats
+        info['index'] = embedding_stats()
+    except Exception:
+        info['index'] = {'images': 0, 'embeddings': 0, 'missing': 0}
+    _info_cache['result'] = info
+    _info_cache['at'] = time.monotonic()
+    return info
 
 def _check_installed():
     try:
         import open_clip
         return True
     except ImportError:
-        return False
-
-
-def encode_image_embedding(image_url):
-    """
-    Gera o embedding (vetor CLIP) de uma imagem, pra salvar no banco
-    (media_embeddings) e usar depois na busca semântica.
-    Retorna bytes (float32) prontos pra sqlite BLOB, ou None se falhar
-    (imagem inacessível, OpenCLIP não instalado etc — nunca levanta exceção).
-    """
-    try:
-        import numpy as np
-        torch = _get_torch()
-        model, preprocess, tokenizer = _load_model()
-        device = next(model.parameters()).device
-        image = _fetch_image(image_url)
-        if image is None:
-            return None
-        img_in = preprocess(image).unsqueeze(0).to(device)
-        with torch.no_grad():
-            feat = model.encode_image(img_in)
-            feat = feat / feat.norm(dim=-1, keepdim=True)
-        return feat.cpu().numpy().astype('float32').tobytes()
-    except Exception as e:
-        print(f"[CLIP] Falha ao gerar embedding de imagem: {e}")
-        return None
-
-
-def encode_text_query(text):
-    """
-    Gera o embedding (vetor CLIP) de um texto de busca.
-    NÃO carrega o modelo sob demanda na busca — se ainda não estiver pronto,
-    retorna None e a busca segue só com texto/FTS (sem atraso).
-    """
-    if not CLIP_ENABLED or _model_cache is None:
-        return None
-    try:
-        import numpy as np
-        torch = _get_torch()
-        model, preprocess, tokenizer = _model_cache, _preprocess_cache, _tokenizer_cache
-        device = next(model.parameters()).device
-        txt_in = tokenizer([text]).to(device)
-        with torch.no_grad():
-            feat = model.encode_text(txt_in)
-            feat = feat / feat.norm(dim=-1, keepdim=True)
-        return feat.cpu().numpy().astype('float32')[0]
-    except Exception as e:
-        print(f"[CLIP] Falha ao gerar embedding de texto: {e}")
-        return None
-
-def warmup(thumb_urls=None):
-    """
-    Pré-carrega o modelo CLIP na memória. Se thumb_urls for passado
-    (lista de URLs de thumbnails), faz um encode de teste na primeira
-    imagem disponível — garante que o pipeline completo (download +
-    preprocess + encode) já rodou uma vez antes do primeiro request
-    real do usuário, evitando que a primeira busca fique lenta.
-    """
-    if not CLIP_ENABLED:
-        print("[CLIP] Desativado (CLIP_ENABLED=false) — busca só por texto.")
-        return
-    try:
-        torch = _get_torch()
-        model, preprocess, tokenizer = _load_model()
-
-        if thumb_urls:
-            for url in thumb_urls:
-                image = _fetch_image(url)
-                if image is None:
-                    continue
-                device = next(model.parameters()).device
-                img_in = preprocess(image).unsqueeze(0).to(device)
-                with torch.no_grad():
-                    model.encode_image(img_in)
-                break  # uma imagem já é suficiente pra aquecer o pipeline
-
-        return True
-
-    except Exception as e:
-        print(f"[CLIP] Warmup falhou: {e}")
         return False

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
@@ -7,10 +7,10 @@
   <title>Código — Dev</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js" defer></script>
-  <script src="js/dev-bar.js" defer></script>
+  <script src="js/auth.js?v=20260801au" defer></script>
+  <script src="js/dev-bar.js?v=20260801av" defer></script>
   <style>
     :root{--bg:#050505;--panel:#0b0b0b;--line:rgba(255,255,255,.07);--mute:#666;--text:#e8e8e8;--green:#25d366}
     *{box-sizing:border-box;margin:0;padding:0}
@@ -34,7 +34,8 @@
     .entry:hover{background:rgba(255,255,255,.04);color:#fff}
     .entry.dir{color:#9ad4ff}
     .entry.file{color:#cfcfcf}
-    .entry .ico{opacity:.55;width:14px}
+    .entry .ico{opacity:.7;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+    .entry .ico svg{width:14px;height:14px;display:block}
     .viewer{display:flex;flex-direction:column;min-width:0}
     .viewer-head{
       padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;
@@ -74,7 +75,7 @@
 <div class="layout">
   <aside class="tree">
     <div class="crumb" id="crumb">/</div>
-    <button type="button" class="back" id="upBtn" hidden>↑ pasta acima</button>
+    <button type="button" class="back" id="upBtn" hidden>? pasta acima</button>
     <div id="entries"></div>
   </aside>
   <section class="viewer">
@@ -119,7 +120,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'entry ' + e.type;
-      b.innerHTML = `<span class="ico">${e.type === 'dir' ? '▸' : '·'}</span>${e.name}`;
+      const folderIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
+      const fileIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9l-5-6z"/><path d="M14 3v6h6"/></svg>';
+      b.innerHTML = `<span class="ico">${e.type === 'dir' ? folderIco : fileIco}</span>${e.name}`;
       b.addEventListener('click', () => {
         if (e.type === 'dir') loadTree(e.path);
         else openFile(e.path);

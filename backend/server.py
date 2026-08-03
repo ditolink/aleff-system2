@@ -22,8 +22,11 @@ from backend.services import clip_tagger
 from backend.utils.validators import MAX_FILE_SIZE
 from backend.utils.security import (
     path_needs_login,
+    path_needs_dev,
+    path_dev_perm,
     is_logged_in,
     is_auth_configured,
+    current_can,
     reset_login_rate_limits,
     is_scanner_probe,
 )
@@ -35,21 +38,37 @@ app.config["MAX_CONTENT_LENGTH"] = int(
     os.getenv("MAX_CONTENT_LENGTH", MAX_FILE_SIZE)
 )
 
-# Sessão segura (cookie HttpOnly)
+# Sessão segura (cookie HttpOnly). Sem SECRET_KEY no .env, persiste em data/
+# para admin/dev não perderem login a cada reinício do servidor.
 _secret = (os.getenv("SECRET_KEY") or "").strip()
 if not _secret:
-    _secret = secrets.token_hex(32)
-    print("[SECURITY] SECRET_KEY ausente no .env — usando chave temporária (sessões resetam ao reiniciar).")
+    _secret_path = PROJECT_ROOT / "data" / ".flask_secret"
+    try:
+        if _secret_path.is_file():
+            _secret = _secret_path.read_text(encoding="utf-8").strip()
+        if not _secret:
+            _secret_path.parent.mkdir(parents=True, exist_ok=True)
+            _secret = secrets.token_hex(32)
+            _secret_path.write_text(_secret, encoding="utf-8")
+            print("[SECURITY] SECRET_KEY gerada em data/.flask_secret (defina SECRET_KEY no .env).")
+    except OSError as _sk_err:
+        _secret = secrets.token_hex(32)
+        print(f"[SECURITY] Não gravou secret persistente ({_sk_err}) — sessões resetam ao reiniciar.")
 app.config["SECRET_KEY"] = _secret
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(
-    days=int(os.getenv("SESSION_DAYS", "7"))
+    days=int(os.getenv("SESSION_DAYS", "90"))
 )
+# Renova o cookie a cada request autenticado — fica logado até logout
+app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "false").lower() in (
     "1", "true", "yes",
 )
 app.config["SESSION_COOKIE_NAME"] = os.getenv("SESSION_COOKIE_NAME", "aleff_session")
+# Cookie válido pelo mesmo prazo da sessão permanente
+_session_days = max(1, int(os.getenv("SESSION_DAYS", "90")))
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=_session_days)
 # Não vazar traceback em produção
 app.config["PROPAGATE_EXCEPTIONS"] = False
 
@@ -131,6 +150,8 @@ def _is_blocked_request_path(path: str) -> bool:
 
 def _send_frontend(rel: str):
     """Envia arquivo SOMENTE de frontend/, com path traversal bloqueado."""
+    from flask import send_file
+
     rel = (rel or "").replace("\\", "/").lstrip("/")
     if not rel or ".." in rel.split("/"):
         abort(404)
@@ -148,6 +169,23 @@ def _send_frontend(rel: str):
     # Nunca servir arquivos com nome sensível mesmo dentro de frontend/
     if target.name.lower().startswith(".env") or target.name.lower() in _BLOCKED_NAMES:
         abort(404)
+
+    # Vídeos: send_file com conditional/etag pra Range (seek + stream completo)
+    if suf in (".mp4", ".webm", ".mov"):
+        mime = {
+            ".mp4": "video/mp4",
+            ".webm": "video/webm",
+            ".mov": "video/quicktime",
+        }.get(suf, "application/octet-stream")
+        return send_file(
+            target,
+            mimetype=mime,
+            conditional=True,
+            etag=True,
+            last_modified=True,
+            max_age=86400,
+        )
+
     return send_from_directory(FRONTEND_DIR, rel)
 
 
@@ -202,7 +240,12 @@ def set_security_headers(response):
         response.headers["Cache-Control"] = "no-store"
     elif path.startswith("/api/search/stats") or path.startswith("/api/tags"):
         response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
-    elif path.endswith((".css", ".js", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".mp4", ".webm")):
+    elif path.endswith((".mp4", ".webm", ".mov")):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        response.headers["Accept-Ranges"] = "bytes"
+    elif path.endswith((".css", ".js")):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    elif path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg")):
         response.headers["Cache-Control"] = "public, max-age=86400"
     elif path == "/" or path.endswith(".html"):
         response.headers["Cache-Control"] = "no-cache"
@@ -262,6 +305,7 @@ def _safe_next(raw) -> str:
         "/search": "/search.html",
         "/slots": "/slots.html",
         "/code": "/code.html",
+        "/settings": "/settings.html",
     }
     return bare.get(str(nxt), str(nxt))
 
@@ -289,6 +333,12 @@ def serve_frontend(path):
     if path_needs_login(path) and not is_logged_in():
         return redirect(f"/loginsite.html?next=/{path.lstrip('/')}")
 
+    # code / settings: só DEV (perm code|system) — admin não abre a shell
+    if path_needs_dev(path):
+        need = path_dev_perm(path) or "system"
+        if not current_can(need):
+            return redirect("/dashboard.html")
+
     # code.html só existe se o viewer estiver ligado
     base = path.lower().split("/")[-1]
     if base in ("code.html", "code") and os.getenv("CODE_VIEWER_ENABLED", "false").lower() not in (
@@ -305,6 +355,10 @@ def serve_frontend(path):
     html_path = path + ".html"
     if path_needs_login(html_path) and not is_logged_in():
         return redirect(f"/loginsite.html?next=/{html_path}")
+    if path_needs_dev(html_path):
+        need = path_dev_perm(html_path) or "system"
+        if not current_can(need):
+            return redirect("/dashboard.html")
     try:
         return _send_frontend(html_path)
     except NotFound:
@@ -335,19 +389,38 @@ if __name__ == "__main__":
             if not getattr(clip_tagger, "is_enabled", lambda: True)():
                 print("[CLIP] Desativado — busca rápida só com texto.")
                 return
-            thumb_urls = [
-                m["thumb_url"] for m in get_all_media(limit=8) if m.get("thumb_url")
-            ]
+            from backend.models.database import annotate_storage, embedding_stats
+            samples = [annotate_storage(m) for m in get_all_media(limit=8)]
+            thumb_urls = [m["thumb_url"] for m in samples if m.get("thumb_url")]
             clip_tagger.warmup(thumb_urls)
             print("[CLIP] Warmup em background concluído.")
+            stats = embedding_stats()
+            if stats.get("missing", 0) > 0:
+                print(
+                    f"[CLIP] Backfill: {stats['missing']} imagem(ns) sem índice — "
+                    "indexando em background…"
+                )
+                clip_tagger.backfill_embeddings(batch_size=12, pause_sec=0.15)
+                print("[CLIP] Backfill concluído:", embedding_stats())
         except Exception as e:
             print(f"[CLIP Warmup] falhou na inicialização: {e}")
 
     threading.Thread(target=_warmup_clip_bg, daemon=True, name="clip-warmup").start()
     if getattr(clip_tagger, "is_enabled", lambda: True)():
-        print("[CLIP] Warmup em background — site já pode abrir (busca não espera o modelo).")
+        print("[CLIP] Warmup + backfill em background — site já pode abrir.")
     else:
         print("[CLIP] Off — site leve, ideal pra hospedagem barata.")
+
+    def _prefetch_thumbs_bg():
+        try:
+            from backend.services import drive as drive_svc
+            recent = get_all_media(limit=64)
+            n = drive_svc.prefetch_thumbnails(recent, size=280, limit=64)
+            print(f"[Thumbs] Cache aquecido: {n} arquivo(s).")
+        except Exception as e:
+            print(f"[Thumbs] Prefetch falhou: {e}")
+
+    threading.Thread(target=_prefetch_thumbs_bg, daemon=True, name="thumb-prefetch").start()
 
     port = int(os.getenv("PORT", 3001))
     default_host = (
@@ -368,4 +441,23 @@ if __name__ == "__main__":
     print(f"Login equipe: http://{host}:{port}/loginsite.html")
     print(f"Portfólio:     http://{host}:{port}/")
     print(f"Busca:         http://{host}:{port}/search.html")
-    app.run(host=host, port=port, debug=debug, use_reloader=False)
+
+    # Waitress: vários workers — vídeos grandes não travam a página
+    if debug:
+        app.run(host=host, port=port, debug=True, use_reloader=False, threaded=True)
+    else:
+        try:
+            from waitress import serve
+            threads = int(os.getenv("WAITRESS_THREADS", "12"))
+            print(f"[HTTP] Waitress · {threads} threads (stream de vídeo ok)")
+            serve(
+                app,
+                host=host,
+                port=port,
+                threads=threads,
+                channel_timeout=120,
+                connection_limit=200,
+            )
+        except ImportError:
+            print("[HTTP] Waitress ausente — Flask threaded (instale: pip install waitress)")
+            app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)

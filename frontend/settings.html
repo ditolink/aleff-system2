@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <title>Config · Dev — Aleff</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/logo.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
+  <script src="js/toast.js" defer></script>
+  <script src="js/auth.js?v=20260801au" defer></script>
+  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <style>
+    :root{
+      --bg:#060606;--panel:#0d0d0d;--line:rgba(255,255,255,.08);
+      --mute:#6a6a6a;--text:#ececec;--accent:#25d366;--warn:#e8a838;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:
+        radial-gradient(900px 420px at 12% -10%, rgba(37,211,102,.07), transparent 55%),
+        radial-gradient(700px 380px at 100% 0%, rgba(255,255,255,.03), transparent 50%),
+        var(--bg);
+      color:var(--text);font-family:'Lato',sans-serif;min-height:100vh;
+    }
+    .page{max-width:1100px;margin:0 auto;padding:96px 28px 80px}
+    .eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#9a9a9a;font-weight:700;margin-bottom:12px}
+    .title{font-size:clamp(32px,4.5vw,48px);font-weight:900;letter-spacing:-.03em;line-height:1;margin-bottom:10px}
+    .title em{font-weight:300;font-style:italic;color:rgba(255,255,255,.45)}
+    .lead{font-size:15px;color:#888;font-weight:300;max-width:46ch;line-height:1.5;margin-bottom:36px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .card{
+      background:linear-gradient(165deg,#121212,#0b0b0b);border:1px solid var(--line);
+      border-radius:18px;padding:22px 22px 18px;min-height:180px;
+    }
+    .card.wide{grid-column:1 / -1}
+    .card h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+    .row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+    .row:last-child{border-bottom:none}
+    .row .k{color:#777}
+    .row .v{color:#eee;font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;word-break:break-all}
+    .pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+    .pill .dot{width:7px;height:7px;border-radius:50%;background:#444}
+    .pill[data-on="1"] .dot{background:var(--accent);box-shadow:0 0 0 3px rgba(37,211,102,.15)}
+    .pill[data-on="0"] .dot{background:#c44}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .btn{
+      appearance:none;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+      color:#eee;border-radius:10px;padding:10px 14px;font:700 11px/1 'Lato',sans-serif;
+      letter-spacing:.1em;text-transform:uppercase;cursor:pointer;text-decoration:none;
+      display:inline-flex;align-items:center;gap:8px;transition:border-color .2s,background .2s;
+    }
+    .btn:hover{border-color:rgba(37,211,102,.45);background:rgba(37,211,102,.08)}
+    .btn:disabled{opacity:.5;cursor:default}
+    .btn.primary{border-color:rgba(37,211,102,.35);color:#dfffea}
+    .prefs label{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:14px}
+    .prefs label:last-child{border-bottom:none}
+    .prefs select,.prefs input[type="checkbox"]{accent-color:var(--accent)}
+    .prefs select{
+      background:#0a0a0a;border:1px solid var(--line);color:#eee;border-radius:8px;
+      padding:8px 10px;font:500 12px/1 'IBM Plex Mono',monospace;
+    }
+    .note{font-size:12px;color:var(--mute);margin-top:12px;line-height:1.45}
+    .lock{font-size:11px;color:var(--warn);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+    @media(max-width:820px){.grid{grid-template-columns:1fr}.page{padding:88px 18px 60px}}
+  </style>
+</head>
+<body>
+<main class="page">
+  <p class="eyebrow">Somente Dev</p>
+  <h1 class="title">Config<br><em>do sistema</em></h1>
+  <p class="lead">Painel privado: Drive, OpenCLIP, flags do servidor e preferências locais. Admin não vê esta página.</p>
+
+  <div class="grid">
+    <section class="card" id="cardDrive">
+      <p class="lock">Infra · Sync</p>
+      <h2>Google Drive</h2>
+      <p class="pill" id="drivePill" data-on=""><span class="dot"></span><span class="txt">…</span></p>
+      <div id="driveRows"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btnRecheck">Reverificar</button>
+        <button type="button" class="btn primary" id="btnSync">Sync Drive</button>
+      </div>
+    </section>
+
+    <section class="card" id="cardClip">
+      <p class="lock">IA · Índice</p>
+      <h2>OpenCLIP</h2>
+      <p class="pill" id="clipPill" data-on=""><span class="dot"></span><span class="txt">…</span></p>
+      <div id="clipRows"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btnWarm">Warmup</button>
+        <button type="button" class="btn primary" id="btnBackfill">Backfill índice</button>
+      </div>
+    </section>
+
+    <section class="card" id="cardFlags">
+      <p class="lock">Flags · .env</p>
+      <h2>Servidor</h2>
+      <div id="flagRows"></div>
+      <p class="note">Somente leitura — segredos e senhas nunca aparecem aqui. Altere no .env e reinicie.</p>
+    </section>
+
+    <section class="card" id="cardCode">
+      <p class="lock">Código</p>
+      <h2>Viewer</h2>
+      <div id="codeRows"></div>
+      <div class="actions">
+        <a class="btn primary" id="linkCode" href="/code.html">Abrir código</a>
+        <a class="btn" href="/dashboard.html">Dashboard</a>
+      </div>
+      <p class="note">.env, credenciais e bancos ficam bloqueados no viewer.</p>
+    </section>
+
+    <section class="card wide prefs" id="cardPrefs">
+      <p class="lock">Preferências · este navegador</p>
+      <h2>Personalizado (Dev)</h2>
+      <label>
+        <span>Layout padrão da galeria</span>
+        <select id="prefLayout">
+          <option value="grid">Grade</option>
+          <option value="film">Filme</option>
+          <option value="mosaic">Mosaico</option>
+        </select>
+      </label>
+      <label>
+        <span>Mostrar pills Drive/CLIP na barra</span>
+        <input type="checkbox" id="prefStatusPills" checked/>
+      </label>
+      <label>
+        <span>Painel Drive no dashboard quando online</span>
+        <input type="checkbox" id="prefDrivePanel" checked/>
+      </label>
+      <div class="actions">
+        <button type="button" class="btn primary" id="btnSavePrefs">Salvar preferências</button>
+      </div>
+      <p class="note">Ficam só neste browser (localStorage). Não afetam a conta admin.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  const API = '/api';
+  const PREF_KEY = 'aleffDevPrefs';
+
+  function row(k, v) {
+    return `<div class="row"><span class="k">${k}</span><span class="v">${v ?? '—'}</span></div>`;
+  }
+
+  function loadPrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function savePrefs(p) {
+    localStorage.setItem(PREF_KEY, JSON.stringify(p));
+    try {
+      sessionStorage.setItem('studioStatusCache', JSON.stringify({
+        ...(JSON.parse(sessionStorage.getItem('studioStatusCache') || '{}') || {}),
+        hidePills: p.statusPills === false,
+      }));
+    } catch { /* ignore */ }
+  }
+
+  function applyPrefsForm() {
+    const p = loadPrefs();
+    document.getElementById('prefLayout').value = p.layout || 'grid';
+    document.getElementById('prefStatusPills').checked = p.statusPills !== false;
+    document.getElementById('prefDrivePanel').checked = p.drivePanel !== false;
+  }
+
+  async function loadSystem() {
+    const r = await Auth.fetch(`${API}/dev/system`);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (typeof Toast !== 'undefined') Toast.error('Config', d.message || 'Sem acesso');
+      location.href = '/dashboard.html';
+      return;
+    }
+
+    const drive = d.drive || {};
+    const clip = d.clip || {};
+    const flags = d.flags || {};
+    const idx = d.index || clip.index || {};
+
+    const driveOn = !!drive.online;
+    const drivePill = document.getElementById('drivePill');
+    drivePill.dataset.on = driveOn ? '1' : '0';
+    drivePill.querySelector('.txt').textContent = driveOn ? 'Online' : 'Offline';
+    document.getElementById('driveRows').innerHTML = [
+      row('Service account', drive.service_account || '—'),
+      row('Folder ID', drive.folder_id || '—'),
+      row('Erro', drive.error || '—'),
+    ].join('');
+
+    const clipReady = !!(clip.installed || clip.loaded);
+    const clipPill = document.getElementById('clipPill');
+    clipPill.dataset.on = clipReady ? '1' : '0';
+    clipPill.querySelector('.txt').textContent = clip.enabled === false ? 'Desligado' : (clipReady ? 'Pronto' : 'Carregando');
+    document.getElementById('clipRows').innerHTML = [
+      row('Modelo', `${clip.model || '—'} / ${clip.pretrained || '—'}`),
+      row('Device', clip.device || '—'),
+      row('Índice', `${idx.embeddings ?? 0} / ${idx.images ?? 0} (faltam ${idx.missing ?? 0})`),
+      row('Backfill', clip.backfill_running ? 'rodando' : 'idle'),
+    ].join('');
+
+    document.getElementById('flagRows').innerHTML = [
+      row('CLIP_ENABLED', String(!!flags.clip_enabled)),
+      row('CODE_VIEWER_ENABLED', String(!!flags.code_viewer_enabled)),
+      row('API_LOCKDOWN', String(!!flags.api_lockdown)),
+      row('PUBLIC_DRIVE_FILES', String(!!flags.public_drive_files)),
+      row('SESSION_DAYS', String(flags.session_days ?? '—')),
+      row('FLASK_ENV', flags.flask_env || '—'),
+      row('Mídia total', d.media_total ?? '—'),
+    ].join('');
+
+    const codeOn = !!flags.code_viewer_enabled;
+    document.getElementById('codeRows').innerHTML = [
+      row('Viewer', codeOn ? 'ligado' : 'desligado no .env'),
+    ].join('');
+    const link = document.getElementById('linkCode');
+    if (!codeOn) {
+      link.classList.add('btn');
+      link.style.opacity = '.45';
+      link.title = 'Ligue CODE_VIEWER_ENABLED=true no .env';
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (typeof Toast !== 'undefined') Toast.error('Code viewer off', 'Defina CODE_VIEWER_ENABLED=true e reinicie.');
+      });
+    }
+  }
+
+  document.getElementById('btnSavePrefs').addEventListener('click', () => {
+    const p = {
+      layout: document.getElementById('prefLayout').value,
+      statusPills: document.getElementById('prefStatusPills').checked,
+      drivePanel: document.getElementById('prefDrivePanel').checked,
+    };
+    savePrefs(p);
+    if (typeof Toast !== 'undefined') Toast.success('Preferências', 'Salvas neste navegador.');
+  });
+
+  document.getElementById('btnRecheck').addEventListener('click', async () => {
+    await loadSystem();
+    if (typeof Toast !== 'undefined') Toast.success('Drive', 'Status atualizado.');
+  });
+
+  document.getElementById('btnSync').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const r = await Auth.fetch(`${API}/drive/sync`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.message || 'Sync falhou');
+      if (typeof Toast !== 'undefined') Toast.success('Sync', d.message || 'Drive sincronizado.');
+      await loadSystem();
+    } catch (err) {
+      if (typeof Toast !== 'undefined') Toast.error('Sync', err.message || 'Falha');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('btnWarm').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const r = await Auth.fetch(`${API}/ai/clip/warmup`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.message || 'Warmup falhou');
+      if (typeof Toast !== 'undefined') Toast.success('CLIP', d.message || 'Warmup ok.');
+      await loadSystem();
+    } catch (err) {
+      if (typeof Toast !== 'undefined') Toast.error('CLIP', err.message || 'Falha');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('btnBackfill').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const r = await Auth.fetch(`${API}/ai/clip/backfill`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batch_size: 24 }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.message || 'Backfill falhou');
+      if (typeof Toast !== 'undefined') Toast.success('CLIP', d.message || 'Backfill iniciado.');
+      await loadSystem();
+    } catch (err) {
+      if (typeof Toast !== 'undefined') Toast.error('CLIP', err.message || 'Falha');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  (async () => {
+    const me = await Auth.requireLogin();
+    if (!me) return;
+    if (!Auth.can('system')) {
+      location.href = '/dashboard.html';
+      return;
+    }
+    applyPrefsForm();
+    await loadSystem();
+  })();
+})();
+</script>
+</body>
+</html>

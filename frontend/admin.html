@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
@@ -8,10 +8,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js" defer></script>
-  <script src="js/dev-bar.js" defer></script>
+  <script src="js/auth.js?v=20260801au" defer></script>
+  <script src="js/dev-bar.js?v=20260801av" defer></script>
   <style>
     .admin-page{min-height:100vh;padding:100px 48px 80px;max-width:1400px;margin:0 auto}
     .admin-hdr{margin-bottom:36px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}
@@ -121,6 +121,17 @@
     .acard.selected{border-color:#25d366;box-shadow:0 0 0 1px rgba(37,211,102,.35)}
     .acard-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(60%) brightness(.72);transition:filter .4s}
     .acard:hover .acard-thumb{filter:grayscale(10%) brightness(.9)}
+    @media (max-width:768px){
+      .acard-thumb{filter:grayscale(22%) brightness(.9);transition:filter .25s ease}
+      .acard:hover .acard-thumb,.acard:active .acard-thumb{filter:grayscale(0%) brightness(1)}
+      .acard-badge,.acard-check{backdrop-filter:blur(3px)}
+      .acard{touch-action:manipulation;content-visibility:auto;contain-intrinsic-size:200px}
+      .acard-enter{animation-duration:.32s}
+    }
+    @media (prefers-reduced-motion:reduce){
+      .acard-thumb,.acard:hover .acard-thumb{filter:none!important;transition:none!important}
+      .acard-enter{animation:none}
+    }
     .acard-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
     .acard-ov{
       position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
@@ -134,12 +145,104 @@
       position:absolute;top:9px;left:9px;background:rgba(8,8,8,.75);backdrop-filter:blur(4px);
       border-radius:20px;padding:3px 8px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#999;
     }
+    .acard-badge.local{
+      left:auto;right:40px;background:rgba(37,211,102,.18);border:1px solid rgba(37,211,102,.35);color:#86efac;
+    }
+    .acard-badge.drive-src{
+      left:auto;right:40px;background:rgba(255,255,255,.08);color:#888;
+    }
+    .src-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+    .src-tab{
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#888;
+      border-radius:999px;padding:8px 16px;font-size:12px;font-family:'Lato',sans-serif;
+      font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s;
+    }
+    .src-tab:hover{color:#fff;border-color:rgba(255,255,255,.25)}
+    .src-tab.active{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.4);color:#86efac}
+    .gal-sec{
+      grid-column:1/-1;display:flex;align-items:center;gap:12px;
+      margin:8px 0 4px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#666;font-weight:600;
+    }
+    .gal-sec::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
+    .gal-sec.local{color:#86efac}
+    .gal-sec.local::after{background:rgba(37,211,102,.2)}
     .acard-check{
       position:absolute;top:9px;right:9px;width:22px;height:22px;border-radius:6px;
       border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.4);
       display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;
     }
     .acard.selected .acard-check{background:#25d366;border-color:#25d366;color:#0a0a0a;font-weight:900}
+
+    /* Creative gallery extras */
+    .gal-mood{
+      display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+      margin:0 0 20px;padding:14px 18px;border-radius:14px;
+      background:linear-gradient(120deg,rgba(255,255,255,.04),rgba(255,255,255,.015));
+      border:1px solid rgba(255,255,255,.07);
+    }
+    .gal-mood-text{font-size:14px;color:#aaa;font-weight:300;line-height:1.4}
+    .gal-mood-text strong{color:#f5f5f5;font-weight:700}
+    .gal-mood-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .layout-toggle{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+    .layout-btn{
+      background:transparent;border:none;color:#666;border-radius:8px;padding:8px 12px;
+      font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+      font-family:'Lato',sans-serif;cursor:pointer;transition:all .2s;
+    }
+    .layout-btn:hover{color:#fff}
+    .layout-btn.active{background:rgba(255,255,255,.1);color:#f5f5f5}
+    .admin-grid.layout-film{
+      display:flex;overflow-x:auto;gap:14px;padding-bottom:12px;
+      scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+    }
+    .admin-grid.layout-film .acard{
+      flex:0 0 min(72vw,280px);aspect-ratio:3/4;scroll-snap-align:start;
+    }
+    .admin-grid.layout-mosaic{
+      grid-template-columns:repeat(6,1fr);grid-auto-rows:120px;
+    }
+    .admin-grid.layout-mosaic .acard{aspect-ratio:auto;min-height:120px}
+    .admin-grid.layout-mosaic .acard:nth-child(7n+1){grid-column:span 2;grid-row:span 2}
+    .admin-grid.layout-mosaic .acard:nth-child(11n+3){grid-column:span 2}
+    .acard-stars{
+      position:absolute;bottom:10px;left:10px;font-size:11px;letter-spacing:.12em;
+      color:#f0b429;opacity:0;transition:opacity .25s;z-index:2;
+    }
+    .acard:hover .acard-stars,.acard.selected .acard-stars{opacity:1}
+    .acard-views{
+      position:absolute;bottom:10px;right:10px;font-size:10px;color:rgba(255,255,255,.45);
+      opacity:0;transition:opacity .25s;z-index:2;letter-spacing:.04em;
+    }
+    .acard:hover .acard-views{opacity:1}
+    .acard-enter{animation:acardIn .45s cubic-bezier(.22,1,.36,1) both}
+    @keyframes acardIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+
+    /* Reveal / sorteio */
+    .reveal-bg{
+      position:fixed;inset:0;z-index:600;background:rgba(5,5,5,.88);
+      display:none;align-items:center;justify-content:center;padding:24px;
+    }
+    .reveal-bg.open{display:flex}
+    .reveal-card{
+      width:min(420px,100%);background:#111;border:1px solid rgba(255,255,255,.1);
+      border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);
+      animation:revealPop .5s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes revealPop{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
+    .reveal-media{aspect-ratio:4/5;background:#0a0a0a;position:relative}
+    .reveal-media img,.reveal-media video{width:100%;height:100%;object-fit:cover;display:block}
+    .reveal-body{padding:20px 22px 22px}
+    .reveal-kicker{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#86efac;margin-bottom:8px;font-weight:700}
+    .reveal-title{font-size:22px;font-weight:900;letter-spacing:-.02em;margin-bottom:6px}
+    .reveal-meta{font-size:13px;color:#777;margin-bottom:18px}
+    .reveal-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .reveal-btns .btn-sm,.reveal-btns .btn-primary-sm{flex:1;text-align:center;justify-content:center}
+
+    @media(max-width:900px){
+      .admin-grid{grid-template-columns:repeat(2,1fr)}
+      .admin-grid.layout-mosaic{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto}
+      .admin-grid.layout-mosaic .acard:nth-child(n){grid-column:span 1;grid-row:span 1;aspect-ratio:1}
+    }
 
     .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:36px}
     .pager button{
@@ -233,7 +336,7 @@
     </div>
   </div>
 
-  <div class="sys-board" id="sysBoard" aria-label="Status do sistema">
+  <div class="sys-board" id="sysBoard" aria-label="Status do sistema" hidden>
     <div class="sys-card" data-key="server" data-state="">
       <div class="sys-card-top"><span class="sys-card-dot"></span><span class="sys-card-name">Servidor</span></div>
       <p class="sys-card-state">…</p>
@@ -251,6 +354,24 @@
       <p class="sys-card-state">…</p>
     </div>
     <p class="sys-note" id="sysNote">Verificando conexões…</p>
+  </div>
+
+  <div class="src-tabs" id="srcTabs" role="tablist" aria-label="Filtro da galeria">
+    <button type="button" class="src-tab active" data-storage="">Todas</button>
+    <button type="button" class="src-tab" data-storage="local">Adicionadas no PC (local)</button>
+    <button type="button" class="src-tab" data-storage="drive">Só Google Drive</button>
+  </div>
+
+  <div class="gal-mood" id="galMood">
+    <p class="gal-mood-text" id="galMoodText">Carregando o rolo…</p>
+    <div class="gal-mood-actions">
+      <div class="layout-toggle" role="group" aria-label="Layout">
+        <button type="button" class="layout-btn active" data-layout="grid">Grade</button>
+        <button type="button" class="layout-btn" data-layout="film">Filme</button>
+        <button type="button" class="layout-btn" data-layout="mosaic">Mosaico</button>
+      </div>
+      <button type="button" class="btn-sm" id="btnReveal" title="Sorteia uma peça do acervo">Revelar</button>
+    </div>
   </div>
 
   <div class="toolbar">
@@ -276,15 +397,22 @@
       <option value="video">Vídeo</option>
       <option value="outro">Outro</option>
     </select>
+    <select class="tb-select" id="sortFilter">
+      <option value="date_desc">Mais recentes</option>
+      <option value="date_asc">Mais antigas</option>
+      <option value="stars">Mais estrelas</option>
+      <option value="views">Mais vistas</option>
+      <option value="name">Nome A–Z</option>
+    </select>
     <button type="button" class="btn-sm" id="btnReload">Atualizar</button>
     <button type="button" class="btn-danger" id="btnBulkDel" hidden>Excluir selecionados</button>
     <span class="res-meta" id="resMeta"></span>
   </div>
 
-  <div class="admin-grid" id="adminGrid"></div>
+  <div class="admin-grid layout-grid" id="adminGrid"></div>
   <div class="empty-state" id="emptyState" hidden>
     <h2>Nenhuma mídia</h2>
-    <p>Faça upload ou sincronize o Drive pelo dashboard.</p>
+    <p>Faça upload ou sincronize o Drive pelo dashboard. Use o filtro "Adicionadas no PC" pra ver só o upload local.</p>
   </div>
   <div class="pager" id="pager" hidden>
     <button type="button" id="prevPage">Anterior</button>
@@ -318,10 +446,26 @@
   <div class="fg"><label class="flbl">Estrelas (0–5)</label><input class="finp" id="fStars" type="number" min="0" max="5" step="1"/></div>
   <div class="drawer-btns">
     <button type="button" class="btn-primary-sm" id="btnSave">Salvar</button>
-    <button type="button" class="btn-sm" id="btnClip">Tags CLIP</button>
+    <button type="button" class="btn-sm" id="btnClip" hidden>Tags CLIP</button>
     <button type="button" class="btn-danger" id="btnDelete">Excluir</button>
   </div>
 </aside>
+
+<div class="reveal-bg" id="revealBg" role="dialog" aria-modal="true" aria-label="Revelar do acervo" hidden>
+  <div class="reveal-card">
+    <div class="reveal-media" id="revealMedia"></div>
+    <div class="reveal-body">
+      <p class="reveal-kicker" id="revealKicker">Frame do dia</p>
+      <h3 class="reveal-title" id="revealTitle">—</h3>
+      <p class="reveal-meta" id="revealMeta">—</p>
+      <div class="reveal-btns">
+        <button type="button" class="btn-primary-sm" id="revealOpen">Abrir</button>
+        <button type="button" class="btn-sm" id="revealAgain">Outra</button>
+        <button type="button" class="btn-sm" id="revealClose">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -336,8 +480,20 @@
     selected: new Set(),
     current: null,
     q: '',
+    storage: '',
+    sort: 'date_desc',
+    layout: 'grid',
     loggedIn: false,
+    revealId: null,
   };
+
+  const MOOD_LINES = [
+    (s) => `<strong>${s.total}</strong> peça${s.total === 1 ? '' : 's'} no rolo — ${s.fotos} foto${s.fotos === 1 ? '' : 's'} · ${s.vids} vídeo${s.vids === 1 ? '' : 's'}`,
+    (s) => `Acervo vivo: <strong>${s.local}</strong> local${s.local === 1 ? '' : 'is'} — <strong>${s.drive}</strong> do Drive`,
+    (s) => s.stars
+      ? `Brilho no set: média <strong>${s.stars.toFixed(1)}</strong>★ nesta página`
+      : `Pronto pra revelar o próximo frame`,
+  ];
 
   function esc(s) {
     return String(s || '')
@@ -348,6 +504,7 @@
   function safeUrl(url) {
     const v = String(url || '');
     if (/^https:\/\/(drive\.google\.com|[\w.-]*googleusercontent\.com)\b/i.test(v)) return esc(v);
+    if (/^\/api\/local\/[a-f0-9]+$/i.test(v)) return esc(v);
     return '';
   }
 
@@ -431,6 +588,8 @@
     });
     if (tipo) params.set('tipo', tipo);
     if (cat) params.set('categoria', cat);
+    if (state.storage) params.set('storage', state.storage);
+    if (state.sort) params.set('sort', state.sort);
 
     try {
       let data;
@@ -438,29 +597,73 @@
         params.set('q', q);
         const r = await apiFetch(`${API}/search?${params}`);
         data = await r.json();
+        if (state.storage && data.items) {
+          data.items = data.items.filter((it) => {
+            const local = String(it.drive_id || '').startsWith('local:');
+            return state.storage === 'local' ? local : !local;
+          });
+          data.total = data.items.length;
+        }
       } else {
         const r = await apiFetch(`${API}/media?${params}`);
         data = await r.json();
       }
       if (data.status === 'error') throw new Error(data.message);
 
-      state.items = data.items || [];
+      state._listRetry = false;
+      state.items = (data.items || []).map((it) => {
+        const local = String(it.drive_id || '').startsWith('local:') || it.storage === 'local';
+        return { ...it, storage: local ? 'local' : 'drive' };
+      });
       state.total = data.total || 0;
       state.pages = data.pages || 1;
       state.page = data.page || state.page;
+      updateMood();
       renderGrid();
     } catch (e) {
       console.error(e);
+      if (!state._listRetry) {
+        state._listRetry = true;
+        setTimeout(() => loadList(), 500);
+        return;
+      }
       if (typeof Toast !== 'undefined') Toast.error('Erro ao carregar', e.message || 'Falha na API');
       state.items = [];
+      updateMood();
       renderGrid();
     }
+  }
+
+  function updateMood() {
+    const el = $('galMoodText');
+    if (!el) return;
+    const items = state.items;
+    const stats = {
+      total: state.total || items.length,
+      fotos: items.filter((i) => i.tipo !== 'video').length,
+      vids: items.filter((i) => i.tipo === 'video').length,
+      local: items.filter((i) => i.storage === 'local').length,
+      drive: items.filter((i) => i.storage !== 'local').length,
+      stars: items.length
+        — items.reduce((a, i) => a + (Number(i.estrelas) || 0), 0) / items.length
+        : 0,
+    };
+    const line = MOOD_LINES[Math.floor(Math.random() * MOOD_LINES.length)](stats);
+    el.innerHTML = line;
+  }
+
+  function starsLabel(n) {
+    const s = Math.max(0, Math.min(5, Number(n) || 0));
+    if (!s) return '';
+    return '?'.repeat(s) + '?'.repeat(5 - s);
   }
 
   function renderGrid() {
     const grid = $('adminGrid');
     const empty = $('emptyState');
     const pager = $('pager');
+
+    grid.className = `admin-grid layout-${state.layout || 'grid'}`;
 
     $('resMeta').textContent = state.total
       ? `${state.total} item(ns)`
@@ -478,22 +681,33 @@
     $('prevPage').disabled = state.page <= 1;
     $('nextPage').disabled = state.page >= state.pages;
 
-    grid.innerHTML = state.items.map((item) => {
+    const cardHtml = (item, i) => {
       const sel = state.selected.has(item.id) ? ' selected' : '';
       const thumb = safeUrl(item.thumb_url);
+      const srcBadge = item.storage === 'local'
+        ? '<span class="acard-badge local">Local</span>'
+        : '';
+      const stars = starsLabel(item.estrelas);
+      const views = Number(item.visualizacoes) || 0;
+      const delay = Math.min(i, 12) * 35;
       return `
-        <article class="acard${sel}" data-id="${item.id}">
+        <article class="acard acard-enter${sel}" data-id="${item.id}" style="animation-delay:${delay}ms">
           ${thumb
-            ? `<img class="acard-thumb" src="${thumb}" alt="${esc(item.nome)}" loading="lazy" onerror="this.style.display='none'"/>`
+            ? `<img class="acard-thumb" src="${thumb}" alt="${esc(item.nome)}" loading="lazy" decoding="async" onerror="this.style.display='none'"/>`
             : `<div class="acard-ph">${item.tipo === 'video' ? 'Vídeo' : 'Foto'}</div>`}
           <span class="acard-badge">${item.tipo === 'video' ? 'vídeo' : 'foto'}</span>
+          ${srcBadge}
           <span class="acard-check">✓</span>
+          ${stars ? `<span class="acard-stars" aria-hidden="true">${stars}</span>` : ''}
+          ${views ? `<span class="acard-views">${views} views</span>` : ''}
           <div class="acard-ov">
             <p class="acard-name">${esc(item.nome)}</p>
-            <p class="acard-meta">${esc(item.categoria || '—')} · ${esc(item.data_upload || '')}</p>
+            <p class="acard-meta">${esc(item.pasta || item.categoria || '—')} · ${esc(item.data_upload || '')}</p>
           </div>
         </article>`;
-    }).join('');
+    };
+
+    grid.innerHTML = state.items.map(cardHtml).join('');
 
     grid.querySelectorAll('.acard').forEach((card) => {
       card.addEventListener('click', (ev) => {
@@ -512,6 +726,50 @@
     $('btnBulkDel').hidden = state.selected.size === 0;
   }
 
+  const REVEAL_KICKERS = [
+    'Frame do dia', 'Achado do acervo', 'Luz favorita', 'Cena revelada', 'Pick do set',
+  ];
+
+  function openReveal(item) {
+    if (!item) return;
+    state.revealId = item.id;
+    const bg = $('revealBg');
+    const media = $('revealMedia');
+    const thumb = safeUrl(item.thumb_url);
+    media.innerHTML = thumb
+      — (item.tipo === 'video'
+        ? `<video src="${thumb}" muted loop playsinline autoplay controls></video>`
+        : `<img src="${thumb}" alt="${esc(item.nome)}"/>`)
+      : `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
+    $('revealKicker').textContent = REVEAL_KICKERS[Math.floor(Math.random() * REVEAL_KICKERS.length)];
+    $('revealTitle').textContent = item.nome || 'Sem nome';
+    $('revealMeta').textContent = [
+      item.storage === 'local' ? 'Upload local' : 'Google Drive',
+      item.categoria,
+      item.data_upload,
+      item.estrelas ? `${item.estrelas}★` : '',
+    ].filter(Boolean).join(' — ');
+    bg.hidden = false;
+    bg.classList.add('open');
+  }
+
+  function closeReveal() {
+    const bg = $('revealBg');
+    bg.classList.remove('open');
+    bg.hidden = true;
+    $('revealMedia').innerHTML = '';
+    state.revealId = null;
+  }
+
+  function revealRandom() {
+    if (!state.items.length) {
+      Toast?.info?.('Acervo vazio', 'Carregue ou filtre menos.') || Toast?.error?.('Acervo vazio', 'Nada pra revelar.');
+      return;
+    }
+    const item = state.items[Math.floor(Math.random() * state.items.length)];
+    openReveal(item);
+  }
+
   function openDrawer(id) {
     const item = state.items.find((x) => x.id === id);
     if (!item) return;
@@ -519,7 +777,7 @@
 
     const thumb = safeUrl(item.thumb_url);
     $('drawerPreview').innerHTML = thumb
-      ? (item.tipo === 'video'
+      — (item.tipo === 'video'
         ? `<video src="${thumb}" muted loop playsinline controls></video>`
         : `<img src="${thumb}" alt="${esc(item.nome)}"/>`)
       : `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
@@ -639,6 +897,37 @@
   });
   $('tipoFilter').addEventListener('change', () => { state.page = 1; loadList(); });
   $('catFilter').addEventListener('change', () => { state.page = 1; loadList(); });
+  $('sortFilter')?.addEventListener('change', () => {
+    state.sort = $('sortFilter').value || 'date_desc';
+    state.page = 1;
+    loadList();
+  });
+  document.querySelectorAll('#srcTabs .src-tab').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#srcTabs .src-tab').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.storage = btn.dataset.storage || '';
+      state.page = 1;
+      loadList();
+    });
+  });
+  document.querySelectorAll('.layout-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.layout-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.layout = btn.dataset.layout || 'grid';
+      renderGrid();
+    });
+  });
+  $('btnReveal')?.addEventListener('click', revealRandom);
+  $('revealClose')?.addEventListener('click', closeReveal);
+  $('revealBg')?.addEventListener('click', (e) => { if (e.target === $('revealBg')) closeReveal(); });
+  $('revealAgain')?.addEventListener('click', revealRandom);
+  $('revealOpen')?.addEventListener('click', () => {
+    const id = state.revealId;
+    closeReveal();
+    if (id) openDrawer(id);
+  });
   $('btnReload').addEventListener('click', () => { loadList(); refreshSystemStatus(); });
   $('prevPage').addEventListener('click', () => { if (state.page > 1) { state.page--; loadList(); } });
   $('nextPage').addEventListener('click', () => { if (state.page < state.pages) { state.page++; loadList(); } });
@@ -659,7 +948,15 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeDrawer();
+    if (e.key === 'Escape') {
+      if ($('revealBg')?.classList.contains('open')) closeReveal();
+      else closeDrawer();
+    }
+    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      revealRandom();
+    }
   });
 
   // deep-link ?id=
@@ -674,11 +971,20 @@
     if ($('userLabel')) $('userLabel').textContent = `${me.user || 'user'} · ${roleLabel}`;
 
     // Painel de status / CLIP só para dev
-    const isDev = me.role === 'dev' || (me.perms || []).includes('system');
+        const isDev = Auth.can('system') || me.role === 'dev';
     if ($('sysBoard')) $('sysBoard').hidden = !isDev;
-    if ($('btnClip')) $('btnClip').hidden = !(me.perms || []).includes('clip');
+    if ($('btnClip')) $('btnClip').hidden = !Auth.can('clip');
 
     if (isDev) {
+      try {
+        const prefs = JSON.parse(localStorage.getItem('aleffDevPrefs') || '{}') || {};
+        if (prefs.layout) {
+          state.layout = prefs.layout;
+          document.querySelectorAll('.layout-btn').forEach((b) => {
+            b.classList.toggle('active', b.dataset.layout === prefs.layout);
+          });
+        }
+      } catch { /* ignore */ }
       refreshSystemStatus();
       setInterval(refreshSystemStatus, 120000);
     }

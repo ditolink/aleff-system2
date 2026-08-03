@@ -7,15 +7,12 @@
     'Dica: nomes de pasta funcionam como busca de casal ou cliente.',
   ];
   const CAM_SEARCH = [
-    'Câmera no ombro — vasculhando o acervo…',
-    'Pulando entre pastas — quase no frame!',
-    'Lente aberta: buscando tags e datas…',
-    'Um clique, mil memórias — só um segundo.',
+    'Buscando no acervo…',
+    'Procurando tags e datas…',
   ];
   const CAM_DONE = [
-    'Clique! Resultados na tela.',
-    'Frame encontrado.',
-    'Acervo desbloqueado — achamos coisa boa.',
+    'Resultados na tela.',
+    'Busca concluída.',
   ];
 
   const CAT_CARDS = [
@@ -85,7 +82,160 @@
     const v = String(url || '');
     if (/^https:\/\/(drive\.google\.com|[\w.-]*googleusercontent\.com)\b/i.test(v)) return esc(v);
     if (/^(\/?fotos\/|\/?videos\/|data:image\/)/i.test(v)) return esc(v);
+    if (/^\/api\/local\/[a-f0-9]+$/i.test(v)) return esc(v);
+    if (/^\/api\/media\/\d+\/thumb(?:\?sz=\d+)?$/i.test(v)) return esc(v);
+    if (/^\/api\/media\/\d+\/download$/i.test(v)) return esc(v);
     return '';
+  }
+
+  function thumbUrl(item, size = 800) {
+    const raw = String(item?.thumb_url || '');
+    if (/^\/api\/local\//i.test(raw)) return safeUrl(raw);
+    const m = raw.match(/^(\/api\/media\/\d+\/thumb)(?:\?.*)?$/i);
+    if (m) return `${m[1]}?sz=${size}`;
+    if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+    return safeUrl(raw);
+  }
+
+  function mediaStreamUrl(item) {
+    if (!item) return '';
+    const thumb = String(item.thumb_url || '');
+    if (/^\/api\/local\/[a-f0-9]+$/i.test(thumb)) return thumb;
+    if (/^(\/?videos\/)/i.test(thumb)) return thumb;
+    if (item.id) return `/api/media/${item.id}/download`;
+    return safeUrl(thumb);
+  }
+
+  const lb = $('lightbox');
+  const lbFront = $('lbFront');
+  let lbOpen = false;
+
+  function mountLbMedia(item, { stream, poster, label }) {
+    lbFront.innerHTML = '';
+    if (item.tipo === 'video') {
+      if (typeof AleffPlayer !== 'undefined' && stream) {
+        const player = AleffPlayer.create({
+          src: stream,
+          poster: poster || '',
+          title: label || displayName(item),
+          autoplay: true,
+          loop: false,
+        });
+        lbFront.appendChild(player.root);
+        lbFront._aplayer = player;
+      } else if (stream) {
+        lbFront.innerHTML = `<video src="${esc(stream)}"${poster ? ` poster="${esc(poster)}"` : ''} playsinline preload="auto" autoplay style="max-width:100%;max-height:78vh;border-radius:14px"></video>`;
+      } else {
+        lbFront.innerHTML = '<p style="color:#666">Vídeo indisponível</p>';
+      }
+      return;
+    }
+    if (poster || stream) {
+      const src = poster || stream;
+      lbFront.innerHTML = `<img src="${esc(src)}" alt="${esc(label || '')}" decoding="async"/>`;
+    } else {
+      lbFront.innerHTML = '<p style="color:#555">Carregando…</p>';
+    }
+  }
+
+  /* Lightbox */
+  async function openLightbox(idx) {
+    state.lbIndex = idx;
+    const item = state.items[idx];
+    if (!item) return;
+    lbOpen = true;
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden', 'false');
+    $('lbTitle').textContent = displayName(item);
+    $('lbMeta').textContent = [item.categoria, item.autor, item.data_upload].filter(Boolean).join(' · ');
+    $('lbCtr').textContent = `${idx + 1} / ${state.items.length}`;
+    $('lbDrive').href = item.drive_link || '#';
+    $('lbDrive').style.display = item.drive_link && !String(item.drive_id || '').startsWith('local:')
+      ? ''
+      : 'none';
+
+    if (lbFront._aplayer) {
+      try { lbFront._aplayer.destroy(); } catch { /* ignore */ }
+      lbFront._aplayer = null;
+    }
+
+    const card = $('lbCard');
+    card.classList.remove('flipped');
+
+    const poster = safeUrl(item.thumb_url);
+    const stream = item.tipo === 'video' ? mediaStreamUrl(item) : '';
+    const label0 = displayName(item);
+
+    if (item.tipo === 'video') {
+      mountLbMedia(item, { stream, poster, label: label0 });
+    } else if (poster) {
+      mountLbMedia(item, { stream: poster, poster, label: label0 });
+    } else {
+      lbFront.innerHTML = '<p style="color:#555">Carregando…</p>';
+    }
+
+    // Animação de virar a carta (foto e vídeo)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => card.classList.add('flipped'));
+    });
+
+    try {
+      const r = await api(`${API}/media/${item.id}`);
+      const data = await r.json();
+      const full = data.item || data.media || data;
+      if (!lbOpen || state.lbIndex !== idx) return;
+      const nextPoster = safeUrl(full.thumb_url || item.thumb_url);
+      const label = (full.pasta || item.pasta || '').trim() || 'Sem pasta';
+      const nextStream = full.tipo === 'video'
+        ? mediaStreamUrl({ ...item, ...full })
+        : '';
+      if (full.tipo === 'video') {
+        const cur = lbFront._aplayer?.video?.src || '';
+        if (!cur || (nextStream && !cur.includes(String(full.id || item.id)))) {
+          if (lbFront._aplayer) {
+            try { lbFront._aplayer.destroy(); } catch { /* ignore */ }
+            lbFront._aplayer = null;
+          }
+          mountLbMedia({ ...item, ...full }, { stream: nextStream, poster: nextPoster, label });
+        }
+      } else if (nextPoster) {
+        mountLbMedia({ ...item, ...full }, { stream: nextPoster, poster: nextPoster, label });
+      } else if (!poster) {
+        lbFront.innerHTML = `<p style="color:#666">Sem preview</p>`;
+      }
+      $('lbTitle').textContent = label;
+      if (full.drive_link) $('lbDrive').href = full.drive_link;
+    } catch {
+      if (!poster && !stream) lbFront.innerHTML = `<p style="color:#e53e3e">Erro ao carregar mídia</p>`;
+    }
+
+    $('lbDownload').onclick = async () => {
+      try {
+        const r = await api(`${API}/media/${item.id}/download`);
+        if (!r.ok) throw new Error('Download negado');
+        const blob = await r.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const base = displayName(item).replace(/[\\/:*?"<>|]+/g, '-');
+        a.download = base === 'Sem pasta' ? 'download' : base;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        if (typeof Toast !== 'undefined') Toast.error('Download', e.message || 'Falha');
+      }
+    };
+  }
+
+  function closeLightbox() {
+    lbOpen = false;
+    lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true');
+    if (lbFront._aplayer) {
+      try { lbFront._aplayer.destroy(); } catch { /* ignore */ }
+      lbFront._aplayer = null;
+    }
+    $('lbCard')?.classList.remove('flipped');
+    lbFront.innerHTML = '';
   }
 
   function setTheme(cat) {
@@ -120,6 +270,52 @@
     // Mensagem fixa — evita “piscadas” constantes na página
     clearInterval(state.camTimer);
     state.camTimer = null;
+  }
+
+  /* ── Câmera: ciclo completo sincronizado com a busca ─── */
+  const CAM_CYCLE_MS = 480;
+  const CAM_FINISH_MS = 320;
+  let camToken = 0;
+  let camStartedAt = 0;
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function allCamWraps() {
+    return document.querySelectorAll('.cam-wrap');
+  }
+
+  function startCamSearch() {
+    camToken += 1;
+    camStartedAt = performance.now();
+    allCamWraps().forEach((el) => {
+      el.classList.remove('is-finishing');
+      el.classList.remove('is-searching');
+      void el.offsetWidth; // reinicia o ciclo do zero
+      el.classList.add('is-searching');
+    });
+  }
+
+  async function stopCamSearch() {
+    const token = camToken;
+    const elapsed = performance.now() - camStartedAt;
+    // Garante pelo menos 1 ciclo completo; se a busca demorou mais, fecha o ciclo atual
+    const cycles = Math.max(1, Math.ceil(elapsed / CAM_CYCLE_MS));
+    const remain = cycles * CAM_CYCLE_MS - elapsed;
+    if (remain > 12) await sleep(remain);
+    if (token !== camToken) return;
+
+    allCamWraps().forEach((el) => {
+      el.classList.remove('is-searching');
+      el.classList.remove('is-finishing');
+      void el.offsetWidth;
+      el.classList.add('is-finishing');
+    });
+
+    await sleep(CAM_FINISH_MS);
+    if (token !== camToken) return;
+    allCamWraps().forEach((el) => el.classList.remove('is-finishing'));
   }
 
   function setUiState(name) {
@@ -160,16 +356,18 @@
     const qTrim = searchInput.value.trim();
     state.q = qTrim;
 
-    setUiState('loading');
+    // Loading só se ainda não há grid — senão troca na hora (busca rápida)
+    if (!state.items.length) setUiState('loading');
     setcamMsg(pick(CAM_SEARCH));
     if (loadingCamTxt) loadingCamTxt.textContent = pick(CAM_SEARCH);
-    camWrap?.classList.add('is-searching');
-    document.querySelectorAll('.cam-wrap').forEach((el) => el.classList.add('is-searching'));
+    startCamSearch();
 
     try {
+      const t0 = performance.now();
       const r = await api(`${API}/search?${buildParams(state.page)}`, { signal: ctrl.signal });
       const payload = await r.json();
       if (!r.ok || payload.status === 'error') throw new Error(payload.message || 'Erro na busca');
+      console.debug('[search]', Math.round(performance.now() - t0) + 'ms', qTrim || '(browse)');
 
       const items = payload.items || [];
       state.total = payload.total || 0;
@@ -183,6 +381,8 @@
         ? `<strong>${state.total.toLocaleString('pt-BR')}</strong> resultado${state.total === 1 ? '' : 's'}`
         : '';
 
+      if (searchCtrl === ctrl) stopCamSearch();
+
       if (!state.items.length) {
         setUiState('empty');
         renderEmptySugs();
@@ -194,18 +394,14 @@
         setcamMsg(pick(CAM_DONE), true);
       }
     } catch (e) {
-      if (e && e.name === 'AbortError') return;
+      if (e && e.name === 'AbortError') {
+        return;
+      }
       console.error(e);
+      if (searchCtrl === ctrl) stopCamSearch();
       setUiState('empty');
       setcamMsg('Ops — conexão falhou. Tenta de novo?');
       if (typeof Toast !== 'undefined') Toast.error('Erro na busca', e.message || 'Sem conexão.');
-    } finally {
-      if (searchCtrl === ctrl) {
-        document.querySelectorAll('.cam-wrap').forEach((el) => {
-          if (!el.classList.contains('cam-wrap--lg')) el.classList.remove('is-searching');
-        });
-        camWrap?.classList.remove('is-searching');
-      }
     }
   }
 
@@ -223,6 +419,7 @@
   }
 
   function renderGrid() {
+    resGrid.className = 'res-grid';
     resGrid.innerHTML = state.items
       .map((item, i) => {
         const ratio = cardRatio(item);
@@ -235,12 +432,16 @@
       <article class="rcard ${ratio}" data-idx="${i}" tabindex="0">
         ${
           item.thumb_url
-            ? `<img class="rcard-thumb" src="${safeUrl(item.thumb_url)}" alt="${esc(displayName(item))}" loading="lazy" onerror="this.style.display='none'"/>`
-            : `<div class="rcard-ph">${item.tipo === 'video' ? '▶' : '◻'}</div>`
+            ? `<img class="rcard-thumb" src="${thumbUrl(item, 800)}" alt="${esc(displayName(item))}" loading="${i < 6 ? 'eager' : 'lazy'}" ${i < 4 ? 'fetchpriority="high"' : ''} decoding="async" onerror="this.onerror=null;this.classList.add('is-broken');this.style.opacity='0.15'"/>`
+            : `<div class="rcard-ph" aria-hidden="true">${item.tipo === 'video'
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3.5v11L16 14"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m21 15-5-4-9 7"/></svg>'
+              }</div>`
         }
         <span class="rcard-badge-tipo">${item.tipo === 'video' ? 'vídeo' : 'foto'}</span>
         ${item.tipo === 'video' ? '<span class="rcard-vid"></span>' : ''}
         <div class="rcard-ov">
+          <p class="rcard-title">${esc(displayName(item))}</p>
           <p class="rcard-meta">${esc(item.categoria || '')}${item.data_upload ? ' · ' + esc(item.data_upload) : ''}</p>
           ${
             tags.length
@@ -336,6 +537,26 @@
           runSearch(true);
         });
       });
+
+      // Mostra fotos recentes já na entrada (antes de digitar)
+      if (!searchInput.value.trim()) {
+        const recent = await api(`${API}/search?q=&per_page=24&page=1`, { signal: idleCtrl.signal });
+        const payload = await recent.json();
+        if (recent.ok && (payload.items || []).length) {
+          state.q = '';
+          state.page = payload.page || 1;
+          state.pages = payload.pages || 1;
+          state.total = payload.total || 0;
+          state.items = payload.items || [];
+          resCount.innerHTML = state.total
+            ? `<strong>${state.total.toLocaleString('pt-BR')}</strong> no acervo`
+            : '';
+          setUiState('results');
+          renderGrid();
+          updateLoadMore();
+          setcamMsg('Acervo recente — digite pra filtrar.');
+        }
+      }
     } catch (e) {
       if (e && e.name === 'AbortError') return;
       console.warn('Idle data', e);
@@ -421,68 +642,6 @@
     siDrop.classList.remove('open');
     updateClearBtn();
     runSearch(true);
-  }
-
-  /* ── Lightbox ─────────────────────────────────────── */
-  const lb = $('lightbox');
-  const lbFront = $('lbFront');
-  let lbOpen = false;
-
-  async function openLightbox(idx) {
-    state.lbIndex = idx;
-    const item = state.items[idx];
-    if (!item) return;
-    lbOpen = true;
-    lb.classList.add('open');
-    lb.setAttribute('aria-hidden', 'false');
-    $('lbCard').classList.remove('flipped');
-    $('lbTitle').textContent = displayName(item);
-    $('lbMeta').textContent = [item.categoria, item.autor, item.data_upload].filter(Boolean).join(' · ');
-    $('lbCtr').textContent = `${idx + 1} / ${state.items.length}`;
-    $('lbDrive').href = item.drive_link || '#';
-
-    lbFront.innerHTML = '<p style="color:#555">Carregando…</p>';
-    try {
-      const r = await api(`${API}/media/${item.id}`);
-      const data = await r.json();
-      const full = data.item || data.media || data;
-      const url = full.drive_link || full.thumb_url || item.thumb_url;
-      const label = (full.pasta || item.pasta || '').trim() || 'Sem pasta';
-      if (full.tipo === 'video' && url) {
-        lbFront.innerHTML = `<video src="${esc(url)}" controls autoplay playsinline style="max-width:100%;max-height:78vh;border-radius:14px"></video>`;
-      } else if (url) {
-        lbFront.innerHTML = `<img src="${esc(url)}" alt="${esc(label)}"/>`;
-      } else {
-        lbFront.innerHTML = `<p style="color:#666">Sem preview</p>`;
-      }
-      $('lbTitle').textContent = label;
-      setTimeout(() => $('lbCard').classList.add('flipped'), 80);
-    } catch {
-      lbFront.innerHTML = `<p style="color:#e53e3e">Erro ao carregar mídia</p>`;
-    }
-
-    $('lbDownload').onclick = async () => {
-      try {
-        const r = await api(`${API}/media/${item.id}/download`);
-        if (!r.ok) throw new Error('Download negado');
-        const blob = await r.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        const base = displayName(item).replace(/[\\/:*?"<>|]+/g, '-');
-        a.download = base === 'Sem pasta' ? 'download' : base;
-        a.click();
-        URL.revokeObjectURL(a.href);
-      } catch (e) {
-        if (typeof Toast !== 'undefined') Toast.error('Download', e.message || 'Falha');
-      }
-    };
-  }
-
-  function closeLightbox() {
-    lbOpen = false;
-    lb.classList.remove('open');
-    lb.setAttribute('aria-hidden', 'true');
-    lbFront.innerHTML = '';
   }
 
   function lbStep(dir) {

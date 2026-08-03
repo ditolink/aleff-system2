@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
@@ -6,13 +6,15 @@
   <title>Buscar — Aleff Thiago</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="css/search.css"/>
+  <link rel="stylesheet" href="css/player.css?v=20260801ay"/>
+  <link rel="stylesheet" href="css/search.css?v=20260801bb"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js" defer></script>
-  <script src="js/dev-bar.js" defer></script>
-  <script src="js/search.js" defer></script>
+  <script src="js/auth.js?v=20260801au" defer></script>
+  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <script src="js/player.js?v=20260801bc" defer></script>
+  <script src="js/search.js?v=20260801bb" defer></script>
 </head>
 <body class="theme-generico">
 
@@ -38,7 +40,7 @@
 
 <section class="search-hero">
   <div class="search-hero-inner">
-    <p class="search-eyebrow">Acervo inteligente</p>
+    <p class="search-eyebrow">Buscar no acervo</p>
     <h1 class="search-title">Encontre a foto<br><em>certa</em></h1>
 
     <div class="search-bar-row">
@@ -47,9 +49,9 @@
           <svg class="si-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <input id="searchInput" type="search" autocomplete="off" placeholder="Nome, casal, tag, data ou vibe…" aria-label="Buscar"/>
           <div class="si-actions" id="siActions">
-            <button type="button" class="si-act" data-act="foto" title="Só fotos"><span class="btn-ico">▣</span>Fotos</button>
-            <button type="button" class="si-act" data-act="video" title="Só vídeos"><span class="btn-ico">▶</span>Vídeos</button>
-            <button type="button" class="si-act" data-act="recent" title="Mais recentes"><span class="btn-ico">◷</span>Recentes</button>
+            <button type="button" class="si-act" data-act="foto" title="Só fotos">Fotos</button>
+            <button type="button" class="si-act" data-act="video" title="Só vídeos">Vídeos</button>
+            <button type="button" class="si-act" data-act="recent" title="Mais recentes">Recentes</button>
           </div>
           <button type="button" class="si-clear" id="siClear" aria-label="Limpar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -76,20 +78,38 @@
     <p class="cam-msg cam-msg--below" id="camMsg">Digite algo ou escolha uma categoria — o acervo responde na hora.</p>
 
     <div class="quick-tags" id="quickTags">
-      <button type="button" class="qtag" data-q="casamento noiva"><span class="qico">◍</span>Casamento</button>
-      <button type="button" class="qtag" data-q="show palco"><span class="qico">♫</span>Shows</button>
-      <button type="button" class="qtag" data-q="retrato estudio"><span class="qico">◉</span>Retratos</button>
-      <button type="button" class="qtag" data-q="casal romantico"><span class="qico">♡</span>Casais</button>
+      <button type="button" class="qtag" data-q="casamento noiva">
+        <span class="qico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="12" r="4.2"/><circle cx="15" cy="12" r="4.2"/></svg></span>Casamento
+      </button>
+      <button type="button" class="qtag" data-q="show palco">
+        <span class="qico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V6l12-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>Shows
+      </button>
+      <button type="button" class="qtag" data-q="retrato estudio">
+        <span class="qico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg></span>Retratos
+      </button>
+      <button type="button" class="qtag" data-q="casal romantico">
+        <span class="qico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.8C19 15.6 12 20 12 20z"/></svg></span>Casais
+      </button>
     </div>
 
     <div class="casamento-actions" id="casamentoActions" hidden>
       <span class="casamento-actions-label">Atalhos casamento</span>
       <div class="casamento-actions-row">
-        <button type="button" class="cact" data-q="noiva vestido">Noiva</button>
-        <button type="button" class="cact" data-q="igreja cerimonia">Igreja</button>
-        <button type="button" class="cact" data-q="festa pista">Festa</button>
-        <button type="button" class="cact" data-q="pre wedding romantico">Pré-wedding</button>
-        <button type="button" class="cact" data-q="beijo alianca">Alianças</button>
+        <button type="button" class="cact" data-q="noiva vestido">
+          <span class="cact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3 9 8h6L12 3z"/><path d="M9 8c-2 2-3 4.5-3 7a6 6 0 0 0 12 0c0-2.5-1-5-3-7"/><path d="M12 8v13"/></svg></span>Noiva
+        </button>
+        <button type="button" class="cact" data-q="igreja cerimonia">
+          <span class="cact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v3M10 5h4"/><path d="M4 21V10l8-5 8 5v11"/><path d="M10 21v-6h4v6"/></svg></span>Igreja
+        </button>
+        <button type="button" class="cact" data-q="festa pista">
+          <span class="cact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v10"/><circle cx="12" cy="17" r="4"/><path d="M16 5c2 .8 3.5 2.5 3.5 5"/></svg></span>Festa
+        </button>
+        <button type="button" class="cact" data-q="pre wedding romantico">
+          <span class="cact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16c2-4 5-6 8-6s6 2 8 6"/><circle cx="8" cy="8" r="2.2"/><circle cx="16" cy="8" r="2.2"/></svg></span>Pré-wedding
+        </button>
+        <button type="button" class="cact" data-q="beijo alianca">
+          <span class="cact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="12" r="4"/><circle cx="15" cy="12" r="4"/><path d="M12 9.2v5.6"/></svg></span>Alianças
+        </button>
       </div>
     </div>
   </div>
@@ -98,21 +118,21 @@
 <div class="filters-bar">
   <div class="filters-inner">
     <div class="fgroup">
-      <button type="button" class="fbtn active" data-tipo=""><span class="btn-ico">⌗</span>Tudo</button>
-      <button type="button" class="fbtn" data-tipo="image"><span class="btn-ico">▣</span>Fotos</button>
-      <button type="button" class="fbtn" data-tipo="video"><span class="btn-ico">▶</span>Vídeos</button>
+      <button type="button" class="fbtn active" data-tipo="">Tudo</button>
+      <button type="button" class="fbtn" data-tipo="image">Fotos</button>
+      <button type="button" class="fbtn" data-tipo="video">Vídeos</button>
     </div>
     <span class="fdivider"></span>
     <div class="fgroup fpills" id="catPills">
-      <button type="button" class="fpill active" data-cat=""><span class="btn-ico">⌂</span>Geral</button>
-      <button type="button" class="fpill" data-cat="casamento"><span class="btn-ico">◍</span>Casamento</button>
-      <button type="button" class="fpill" data-cat="shows"><span class="btn-ico">♫</span>Shows</button>
-      <button type="button" class="fpill" data-cat="retratos"><span class="btn-ico">◉</span>Retratos</button>
-      <button type="button" class="fpill" data-cat="casais"><span class="btn-ico">♡</span>Casais</button>
-      <button type="button" class="fpill" data-cat="familia"><span class="btn-ico">◌</span>Família</button>
-      <button type="button" class="fpill" data-cat="infantil"><span class="btn-ico">★</span>Infantil</button>
-      <button type="button" class="fpill" data-cat="motocross" data-label="pista"><span class="btn-ico">↯</span>Pista &amp; ação</button>
-      <button type="button" class="fpill" data-cat="editorial"><span class="btn-ico">▤</span>Editorial</button>
+      <button type="button" class="fpill active" data-cat="">Geral</button>
+      <button type="button" class="fpill" data-cat="casamento">Casamento</button>
+      <button type="button" class="fpill" data-cat="shows">Shows</button>
+      <button type="button" class="fpill" data-cat="retratos">Retratos</button>
+      <button type="button" class="fpill" data-cat="casais">Casais</button>
+      <button type="button" class="fpill" data-cat="familia">Família</button>
+      <button type="button" class="fpill" data-cat="infantil">Infantil</button>
+      <button type="button" class="fpill" data-cat="motocross" data-label="pista">Pista &amp; ação</button>
+      <button type="button" class="fpill" data-cat="editorial">Editorial</button>
     </div>
     <span class="frescount" id="resCount"></span>
   </div>
@@ -188,7 +208,15 @@
   </button>
   <div class="lb-stage">
     <div class="lb-card" id="lbCard">
-      <div class="lb-back"><span>Aleff Thiago</span></div>
+      <div class="lb-back">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="#f5f5f5" stroke-width="1.3" stroke-linecap="round" opacity="0.85">
+            <path d="M9 8 Q8 5 9.5 2"/><path d="M15 7 Q14 4 15.5 1"/><path d="M21 8 Q20 5 21.5 2"/>
+          </g>
+          <path d="M7.5 11 L22.5 11 L20.5 23 Q20.3 24 19 24 L11 24 Q9.7 24 9.5 23 Z" fill="#f5f5f5"/>
+        </svg>
+        <span>Aleff Thiago</span>
+      </div>
       <div class="lb-front" id="lbFront"></div>
     </div>
   </div>

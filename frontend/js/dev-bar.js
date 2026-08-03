@@ -1,24 +1,56 @@
-/* dev-bar.js — toolbar + logout para sessão da equipe */
+/* studio-bar — toolbar da equipe + sessão no portfólio */
 (() => {
   const API = '/api';
 
-  const LINKS = [
+  /* English labels — clear studio navigation */
+  const STUDIO_LINKS = [
+    { href: '/index.html', label: 'Site', home: true },
     { href: '/dashboard.html', label: 'Dashboard' },
     { href: '/upload.html', label: 'Upload' },
-    { href: '/admin.html', label: 'Galeria' },
+    { href: '/admin.html', label: 'Gallery' },
     { href: '/slots.html', label: 'Slots' },
-    { href: '/search.html', label: 'Busca' },
+    { href: '/search.html', label: 'Search' },
   ];
 
-  async function me() {
+  /* Só DEV — admin nunca vê estes links */
+  const DEV_ONLY_LINKS = [
+    { href: '/settings.html', label: 'Config' },
+    { href: '/code.html', label: 'Code' },
+  ];
+
+  const PREF_KEY = 'aleffDevPrefs';
+
+  function readDevPrefs() {
+    try {
+      return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  }
+
+    async function me() {
+    if (typeof Auth !== 'undefined' && Auth.me) {
+      try { return await Auth.me(); } catch { /* fallback */ }
+    }
     try {
       const r = await fetch(`${API}/auth/me`, {
         credentials: 'same-origin',
         cache: 'no-store',
       });
+      if (!r.ok) {
+        try {
+          const sticky = JSON.parse(localStorage.getItem('authMeSticky') || 'null');
+          if (sticky?.data?.logged_in) return { ...sticky.data, offline: true };
+        } catch { /* ignore */ }
+        return { logged_in: false, offline: true };
+      }
       return await r.json();
     } catch {
-      return { logged_in: false };
+      try {
+        const sticky = JSON.parse(localStorage.getItem('authMeSticky') || 'null');
+        if (sticky?.data?.logged_in) return { ...sticky.data, offline: true };
+      } catch { /* ignore */ }
+      return { logged_in: false, offline: true };
     }
   }
 
@@ -33,6 +65,20 @@
         });
       }
     } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem('studioStatusCache');
+      sessionStorage.removeItem('authMeCache');
+      localStorage.removeItem('authMeSticky');
+    } catch { /* ignore */ }
+  }
+
+  async function switchAccount() {
+    await doLogout();
+    location.href = '/loginsite.html';
+  }
+
+  async function signOut() {
+    await doLogout();
     location.href = '/loginsite.html';
   }
 
@@ -57,43 +103,105 @@
     window.location.assign(href);
   }
 
+  function prefetch(href) {
+    if (!href || document.querySelector(`link[data-studio-prefetch="${href}"]`)) return;
+    const l = document.createElement('link');
+    l.rel = 'prefetch';
+    l.as = 'document';
+    l.href = href;
+    l.dataset.studioPrefetch = href;
+    document.head.appendChild(l);
+  }
+
+  function warmStudioPages(extra = []) {
+    [...STUDIO_LINKS, ...extra].forEach((item) => prefetch(item.href));
+  }
+
+  function isActive(href) {
+    const path = (location.pathname || '').toLowerCase();
+    const target = href.toLowerCase();
+    if (target === '/index.html') {
+      return path === '/' || path.endsWith('/index.html') || path === '';
+    }
+    return path.endsWith(target) || path.endsWith(target.replace('.html', ''));
+  }
+
+  function link(href, label, extraClass = '') {
+    const cls = ['dev-link', extraClass, isActive(href) ? 'is-active' : '']
+      .filter(Boolean)
+      .join(' ');
+    const a = el('a', {
+      className: cls,
+      href,
+      text: label,
+      onClick: (e) => go(href, e),
+    });
+    a.addEventListener('pointerenter', () => prefetch(href), { once: true });
+    return a;
+  }
+
+  function accountBlock(user, roleLabel) {
+    const wrap = el('div', { className: 'studio-account' });
+    const meta = el('div', { className: 'studio-user' });
+    meta.appendChild(el('span', { className: 'studio-user-name', text: user || 'equipe' }));
+    meta.appendChild(el('span', { className: 'studio-user-role', text: roleLabel }));
+    wrap.appendChild(meta);
+    wrap.appendChild(el('button', {
+      className: 'studio-btn studio-btn--switch',
+      type: 'button',
+      html: '<span class="lbl-full">Switch</span><span class="lbl-short">Switch</span>',
+      title: 'Sign out and use another account',
+      onClick: (e) => {
+        e.preventDefault();
+        switchAccount();
+      },
+    }));
+    wrap.appendChild(el('button', {
+      className: 'studio-btn studio-btn--out',
+      type: 'button',
+      text: 'Logout',
+      onClick: (e) => {
+        e.preventDefault();
+        signOut();
+      },
+    }));
+    return wrap;
+  }
+
+  function buildStudioNav(includeDev = false) {
+    const nav = el('div', { className: 'dev-bar-nav' });
+    STUDIO_LINKS.forEach((item, i) => {
+      if (i === 1) nav.appendChild(el('span', { className: 'dev-bar-sep' }));
+      nav.appendChild(link(item.href, item.label, item.home ? 'dev-link--home' : ''));
+    });
+    if (includeDev) {
+      nav.appendChild(el('span', { className: 'dev-bar-sep' }));
+      DEV_ONLY_LINKS.forEach((item) => {
+        nav.appendChild(link(item.href, item.label, 'dev-link--dev'));
+      });
+    }
+    return nav;
+  }
+
   function buildAdminBar(user) {
     const bar = el('div', {
       className: 'dev-bar admin-bar',
       id: 'devBar',
       role: 'navigation',
-      'aria-label': 'Ferramentas admin',
+      'aria-label': 'Admin toolbar',
     });
 
-    bar.appendChild(el('span', { className: 'dev-bar-label', text: 'Admin' }));
-    [
-      ['/dashboard.html', 'Dashboard'],
-      ['/upload.html', 'Upload'],
-      ['/admin.html', 'Galeria'],
-      ['/slots.html', 'Slots'],
-      ['/search.html', 'Busca'],
-    ].forEach(([href, label]) => {
-      bar.appendChild(el('a', {
-        className: 'dev-pill',
-        href,
-        text: label,
-        onClick: (e) => go(href, e),
-      }));
-    });
+    const chip = el('span', { className: 'studio-chip' });
+    chip.appendChild(el('span', { className: 'studio-chip-dot', 'aria-hidden': 'true' }));
+    chip.appendChild(document.createTextNode('Admin'));
+    bar.appendChild(chip);
 
-    bar.appendChild(el('span', { className: 'dev-bar-user', text: user || 'admin' }));
-    bar.appendChild(el('button', {
-      className: 'dev-pill dev-pill--out',
-      type: 'button',
-      text: 'Sair',
-      onClick: (e) => {
-        e.preventDefault();
-        doLogout();
-      },
-    }));
+    bar.appendChild(buildStudioNav(false));
+    bar.appendChild(accountBlock(user || 'admin', 'Admin'));
 
     document.body.prepend(bar);
     document.body.classList.add('has-dev-bar');
+    warmStudioPages();
   }
 
   function buildDevBar(user) {
@@ -101,88 +209,160 @@
       className: 'dev-bar',
       id: 'devBar',
       role: 'navigation',
-      'aria-label': 'Ferramentas dev',
+      'aria-label': 'Dev toolbar',
     });
 
-    bar.appendChild(el('span', { className: 'dev-bar-label', text: 'Dev' }));
+    const chip = el('span', { className: 'studio-chip' });
+    chip.appendChild(el('span', { className: 'studio-chip-dot', 'aria-hidden': 'true' }));
+    chip.appendChild(document.createTextNode('Dev'));
+    bar.appendChild(chip);
 
-    const drive = el('a', {
-      className: 'dev-pill',
-      id: 'devDrivePill',
-      href: '/dashboard.html',
-      'data-state': '',
-      html: '<span class="dot"></span><span class="txt">Drive…</span>',
-      onClick: (e) => go('/dashboard.html', e),
-    });
-    bar.appendChild(drive);
+    bar.appendChild(buildStudioNav(true));
 
-    const clip = el('a', {
-      className: 'dev-pill',
-      id: 'devClipPill',
-      href: '/dashboard.html',
-      'data-state': '',
-      html: '<span class="dot"></span><span class="txt">OpenCLIP…</span>',
-      onClick: (e) => go('/dashboard.html', e),
-    });
-    bar.appendChild(clip);
-
-    bar.appendChild(el('span', { className: 'dev-bar-sep' }));
-
-    LINKS.forEach(({ href, label }) => {
-      bar.appendChild(el('a', {
-        className: 'dev-pill',
-        href,
-        text: label,
-        onClick: (e) => go(href, e),
+    const prefs = readDevPrefs();
+    if (prefs.statusPills !== false) {
+      const status = el('div', { className: 'dev-status', title: 'System status' });
+      status.appendChild(el('a', {
+        className: 'dev-link',
+        id: 'devDrivePill',
+        href: '/settings.html',
+        'data-state': '',
+        html: '<span class="dot"></span><span class="txt">Drive…</span>',
+        onClick: (e) => go('/settings.html', e),
       }));
-    });
+      status.appendChild(el('a', {
+        className: 'dev-link',
+        id: 'devClipPill',
+        href: '/settings.html',
+        'data-state': '',
+        html: '<span class="dot"></span><span class="txt">CLIP…</span>',
+        onClick: (e) => go('/settings.html', e),
+      }));
+      bar.appendChild(status);
+    }
 
-    bar.appendChild(el('span', { className: 'dev-bar-user', text: user || 'dev' }));
-
-    const out = el('button', {
-      className: 'dev-pill dev-pill--out',
-      type: 'button',
-      text: 'Sair',
-      onClick: (e) => {
-        e.preventDefault();
-        doLogout();
-      },
-    });
-    bar.appendChild(out);
+    bar.appendChild(accountBlock(user || 'dev', 'Dev'));
 
     document.body.prepend(bar);
     document.body.classList.add('has-dev-bar');
+    warmStudioPages(DEV_ONLY_LINKS);
   }
 
-  function injectNavLogout(user, role) {
+  function hideLoginButtons() {
+    document.body.classList.add('is-logged-in');
+    document.querySelectorAll('#navLoginBtn, a[href="loginsite.html"].nav-search-btn, a[href="loginsite.html"].back-btn')
+      .forEach((node) => {
+        if (node && /entrar/i.test(node.textContent || '')) node.hidden = true;
+      });
+  }
+
+  function injectPublicSession(user, role, isDev) {
+    hideLoginButtons();
+
     const host =
       document.querySelector('.nav-right') ||
       document.querySelector('.search-nav') ||
       document.querySelector('.site-nav');
-    if (!host || document.getElementById('navLogoutBtn')) return;
+    if (!host || document.getElementById('navSession')) return;
 
-    const wrap = el('div', { className: 'nav-session', id: 'navSession' });
-    wrap.appendChild(el('span', {
-      className: 'nav-session-user',
-      text: role === 'dev' ? `${user || 'dev'} · dev` : (user || 'equipe'),
+    const wrap = el('div', {
+      className: `nav-session${role === 'admin' && !isDev ? ' is-admin' : ''}`,
+      id: 'navSession',
+    });
+
+    const meta = el('div', { className: 'nav-session-meta' });
+    meta.appendChild(el('span', {
+      className: 'nav-session-role',
+      text: isDev ? 'Dev' : (role === 'admin' ? 'Admin' : 'Team'),
     }));
+    meta.appendChild(el('span', {
+      className: 'nav-session-user',
+      text: user || 'team',
+    }));
+    wrap.appendChild(meta);
+
+    wrap.appendChild(el('a', {
+      className: 'studio-btn',
+      href: '/dashboard.html',
+      html: '<span class="lbl-full">Dashboard</span><span class="lbl-short">Dash</span>',
+      title: 'Open dashboard',
+      onClick: (e) => go('/dashboard.html', e),
+    }));
+
     wrap.appendChild(el('button', {
-      className: 'nav-logout-btn',
-      id: 'navLogoutBtn',
+      className: 'studio-btn studio-btn--switch',
       type: 'button',
-      text: 'Sair',
+      html: '<span class="lbl-full">Switch</span><span class="lbl-short">Switch</span>',
       onClick: (e) => {
         e.preventDefault();
-        doLogout();
+        switchAccount();
+      },
+    }));
+
+    wrap.appendChild(el('button', {
+      className: 'studio-btn studio-btn--out',
+      id: 'navLogoutBtn',
+      type: 'button',
+      text: 'Logout',
+      onClick: (e) => {
+        e.preventDefault();
+        signOut();
       },
     }));
 
     if (host.classList.contains('search-nav')) {
       const spacer = host.querySelector('.nav-spacer');
-      if (spacer) spacer.replaceWith(wrap);
+      const login = host.querySelector('#navLoginBtn, a.back-btn[href="loginsite.html"]');
+      if (login) login.replaceWith(wrap);
+      else if (spacer) spacer.replaceWith(wrap);
       else host.appendChild(wrap);
     } else {
-      host.appendChild(wrap);
+      const login = host.querySelector('#navLoginBtn, a.nav-search-btn[href="loginsite.html"]');
+      if (login) login.replaceWith(wrap);
+      else host.appendChild(wrap);
+    }
+  }
+
+  const STATUS_KEY = 'studioStatusCache';
+
+  function readStatusCache() {
+    try {
+      const raw = sessionStorage.getItem(STATUS_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || !data.at || (Date.now() - data.at) > 30000) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStatusCache(partial) {
+    try {
+      let prev = {};
+      try {
+        prev = JSON.parse(sessionStorage.getItem(STATUS_KEY) || '{}') || {};
+      } catch { /* ignore */ }
+      sessionStorage.setItem(STATUS_KEY, JSON.stringify({
+        ...prev,
+        ...partial,
+        at: Date.now(),
+      }));
+    } catch { /* ignore */ }
+  }
+
+  function applyStatus(driveState, driveTxt, clipState, clipTxt) {
+    const drivePill = document.getElementById('devDrivePill');
+    const clipPill = document.getElementById('devClipPill');
+    if (drivePill && driveState) {
+      drivePill.dataset.state = driveState;
+      const t = drivePill.querySelector('.txt');
+      if (t && driveTxt) t.textContent = driveTxt;
+    }
+    if (clipPill && clipState) {
+      clipPill.dataset.state = clipState;
+      const t = clipPill.querySelector('.txt');
+      if (t && clipTxt) t.textContent = clipTxt;
     }
   }
 
@@ -191,54 +371,77 @@
     const clipPill = document.getElementById('devClipPill');
     if (!drivePill || !clipPill) return;
 
-    try {
-      const r = await fetch(`${API}/drive/status`, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-      });
-      const d = await r.json();
-      const on = r.ok && d.online === true && d.status !== 'error';
-      drivePill.dataset.state = on ? 'on' : 'off';
-      const t = drivePill.querySelector('.txt');
-      if (t) t.textContent = on ? 'Drive on' : 'Drive off';
-    } catch {
-      drivePill.dataset.state = 'off';
-      const t = drivePill.querySelector('.txt');
-      if (t) t.textContent = 'Drive off';
-    }
+    const opts = { credentials: 'same-origin', cache: 'no-store' };
 
-    try {
-      const r = await fetch(`${API}/ai/clip/status`, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-      });
-      const d = await r.json();
-      const info = d.clip || {};
-      const ready = !!(info.installed || info.loaded);
-      clipPill.dataset.state = ready ? 'on' : (info.installed === false ? 'warn' : 'off');
-      const t = clipPill.querySelector('.txt');
-      if (t) t.textContent = ready ? 'CLIP on' : 'CLIP off';
-    } catch {
-      clipPill.dataset.state = 'off';
-      const t = clipPill.querySelector('.txt');
-      if (t) t.textContent = 'CLIP off';
+    const [driveRes, clipRes] = await Promise.allSettled([
+      fetch(`${API}/drive/status`, opts).then((r) => r.json().then((d) => ({ ok: r.ok, d }))),
+      fetch(`${API}/ai/clip/status`, opts).then((r) => r.json().then((d) => ({ ok: r.ok, d }))),
+    ]);
+
+    if (driveRes.status === 'fulfilled') {
+      const { ok, d } = driveRes.value;
+      const on = ok && d.online === true && d.status !== 'error';
+      const state = on ? 'on' : 'off';
+      const txt = on ? 'Drive' : 'Drive off';
+      applyStatus(state, txt, null, null);
+      writeStatusCache({ drive: state, driveTxt: txt });
     }
+    // se falhar/timeout: mantém último estado (não pisca "off")
+
+    if (clipRes.status === 'fulfilled') {
+      const { d } = clipRes.value;
+      const info = d.clip || {};
+      const ready = !!(info.installed || info.loaded || info.ready);
+      const state = ready ? 'on' : (info.installed === false || info.enabled === false ? 'warn' : 'off');
+      const txt = ready ? 'CLIP' : 'CLIP off';
+      applyStatus(null, null, state, txt);
+      writeStatusCache({ clip: state, clipTxt: txt });
+    }
+  }
+
+  function startStatusLoop() {
+    const cached = readStatusCache();
+    if (cached) {
+      applyStatus(cached.drive, cached.driveTxt, cached.clip, cached.clipTxt);
+    }
+    refreshStatus();
+    if (window.__studioStatusTimer) clearInterval(window.__studioStatusTimer);
+    // 8s: cache backend 12s — UI estável, sem abort/erro piscando
+    window.__studioStatusTimer = setInterval(refreshStatus, 8000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshStatus();
+    });
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
     const data = await me();
     if (!data || !data.logged_in) return;
 
+    const path = (location.pathname || '').toLowerCase();
+    const publicPage = /(^|\/)(index\.html)?$/.test(path)
+      || path.endsWith('/search.html')
+      || path.endsWith('/loginsite.html')
+      || path.endsWith('/search')
+      || path.endsWith('/loginsite')
+      || path === '/'
+      || path === '';
+
     const isDev = data.role === 'dev' || (data.perms || []).includes('system');
+
+    if (publicPage) {
+      if (!path.endsWith('/loginsite.html') && !path.endsWith('/loginsite')) {
+        injectPublicSession(data.user, data.role, isDev);
+      }
+      return;
+    }
+
     if (isDev) {
       buildDevBar(data.user);
-      refreshStatus();
-      setInterval(refreshStatus, 30000);
+      startStatusLoop();
     } else if (data.role === 'admin') {
       buildAdminBar(data.user);
     } else {
-      // admin / equipe: só logout no topo das páginas públicas
-      injectNavLogout(data.user, data.role);
+      injectPublicSession(data.user, data.role, false);
     }
   });
 })();

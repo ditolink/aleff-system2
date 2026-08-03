@@ -185,15 +185,49 @@ def _name_match_score(pasta, terms, raw_query=''):
     return score
 
 
-def _tag_match_score(tags_str, terms):
-    if not tags_str or not terms:
+def _tag_match_score(tags_str, terms, raw_query=''):
+    """Pontua tags: frase exata da query > token exato > parcial."""
+    if not tags_str:
         return 0.0
-    tags = set(_strip_accents_lower(t.strip()) for t in tags_str.split(','))
+    tags = {
+        _strip_accents_lower(t.strip())
+        for t in str(tags_str).split(',')
+        if t and t.strip()
+    }
+    if not tags:
+        return 0.0
+
     score = 0.0
-    for t in terms:
-        if _strip_accents_lower(t) in tags:
-            score += 1.0
+    rq = _strip_accents_lower((raw_query or '').strip())
+    if rq and len(rq) >= 2 and rq in tags:
+        score += 4.0
+
+    for t in terms or []:
+        tn = _strip_accents_lower(t)
+        if len(tn) < 2:
+            continue
+        if tn in tags:
+            score += 2.0
+            continue
+        # parcial só pra tags compostas ("por do sol") vs termo ("sol")
+        for tag in tags:
+            if len(tn) >= 3 and (tn in tag.split() or tn == tag):
+                score += 1.0
+                break
+            if len(tn) >= 4 and (tn in tag or tag in tn):
+                score += 0.7
+                break
     return score
+
+
+def _item_has_tag(tags_str, wanted):
+    tags = {
+        _strip_accents_lower(t.strip())
+        for t in str(tags_str or '').split(',')
+        if t and t.strip()
+    }
+    wanted_n = {_strip_accents_lower(t) for t in wanted if t}
+    return bool(tags & wanted_n)
 
 
 def _category_match_score(categoria, terms):
@@ -216,17 +250,85 @@ def _hora_match(item_hora, target_hora, tolerance_minutes=30):
         return False
 
 
+def _resolve_exact_tags(remaining_text, terms):
+    """Se a consulta é (ou contém) tag(s) do catálogo, devolve-as normalizadas."""
+    try:
+        catalog = {
+            _strip_accents_lower(t): t
+            for t in (db.get_all_tags() or [])
+            if t
+        }
+    except Exception:
+        catalog = {}
+    if not catalog:
+        return []
+
+    found = []
+    rq = _strip_accents_lower((remaining_text or '').strip())
+    if rq in catalog:
+        found.append(rq)
+    for t in terms or []:
+        tn = _strip_accents_lower(t)
+        if tn in catalog and tn not in found:
+            found.append(tn)
+    return found
+
+
+
+def _expand_related_tags(exact_tags, terms):
+    """Tag pedida + sinônimos (QUERY_EXPAND) pra achar mais itens etiquetados."""
+    wanted = []
+    seen = set()
+    seeds = list(exact_tags or []) + list(terms or [])
+    for t in seeds:
+        tn = _strip_accents_lower(t)
+        if not tn:
+            continue
+        bundle = [tn] + [_strip_accents_lower(s) for s in QUERY_EXPAND.get(tn, [])]
+        if tn in ('casais', 'casal'):
+            bundle += ['casal', 'casais', 'romantico', 'amor']
+        if tn in ('shows', 'show'):
+            bundle += ['show', 'shows', 'evento', 'guitarra', 'palco']
+        if tn in ('retratos', 'retrato'):
+            bundle += ['retrato', 'retratos']
+        if tn in ('familia',):
+            bundle += ['familia', 'grupo']
+        if tn in ('infantil', 'crianca', 'bebe'):
+            bundle += ['infantil', 'crianca', 'bebe']
+        if tn in ('motocross', 'moto', 'pista'):
+            bundle += ['moto', 'motocross', 'pista']
+        for s in bundle:
+            if s and s not in seen:
+                seen.add(s)
+                wanted.append(s)
+    return wanted
+
+
+def _item_matches_tag_query(item, exact_tags, related_tags):
+    """True se tags, categoria ou pasta/nome batem com a busca de tag."""
+    if _item_has_tag(item.get('tags', ''), related_tags or exact_tags or []):
+        return True
+    cat = _strip_accents_lower(item.get('categoria', '') or '')
+    pasta = _strip_accents_lower(item.get('pasta', '') or '')
+    nome = _strip_accents_lower(item.get('nome', '') or '')
+    for t in related_tags or exact_tags or []:
+        if not t or len(t) < 2:
+            continue
+        if cat == t or t in cat:
+            return True
+        if len(t) >= 3 and (t in pasta or t in nome):
+            return True
+    return False
+
+
 def intelligent_search(query='', extra_filters=None, page=1, per_page=24):
     """
     Busca inteligente combinando:
       texto (FTS: nome/descricao/tags/categoria/autor/pasta)
       + match de nome/pasta parcial
-      + match de tags/categoria
+      + match de tags/categoria  ← prioridade alta
       + filtros/boost de data/ano/mês/hora extraídos da consulta
-      + similaridade semântica via OpenCLIP (se houver embeddings salvos)
-
-    extra_filters: filtros vindos da UI (tipo, categoria, autor, ano, mes, dia)
-    que se somam ao que for extraído da própria query.
+      + similaridade semântica via OpenCLIP (apoio, não sobrescreve tags)
     """
     extra_filters = dict(extra_filters or {})
     parsed_filters, remaining_text = parse_query(query or '')
@@ -234,79 +336,136 @@ def intelligent_search(query='', extra_filters=None, page=1, per_page=24):
     target_hora = parsed_filters.pop('_hora', None)
     remaining_expanded = parsed_filters.pop('_query_expanded', remaining_text) or remaining_text
 
-    # Filtros da UI têm prioridade se o usuário escolheu explicitamente
     hard_filters = {**parsed_filters, **{k: v for k, v in extra_filters.items() if v}}
 
     terms = _text_terms(remaining_text)
     terms_expanded = _text_terms(remaining_expanded)
+    exact_tags = _resolve_exact_tags(remaining_text, terms)
+    # Chaves do QUERY_EXPAND também viram “tag virtual” (ex.: show)
+    if not exact_tags:
+        for t in terms:
+            tn = _strip_accents_lower(t)
+            if tn in QUERY_EXPAND:
+                exact_tags.append(tn)
+    tag_mode = bool(exact_tags) and len(terms) <= 3
+    related_tags = _expand_related_tags(exact_tags, terms) if tag_mode else []
 
-    candidates = db.get_candidates(terms_expanded or terms, hard_filters)
+    if not terms and not remaining_expanded.strip():
+        total = db.count_media(hard_filters)
+        start = (page - 1) * per_page
+        window = db.get_candidates([], hard_filters, limit=start + per_page)
+        page_items = window[start:start + per_page]
+        return {
+            'items': page_items,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'pages': max(1, (total + per_page - 1) // per_page) if total else 1,
+            'parsed_filters': {**parsed_filters, **({'hora': target_hora} if target_hora else {})},
+            'mode': 'browse',
+        }
 
-    # Se não sobrou nada (nem termo nem candidato via filtro), pega os mais recentes
-    if not terms and not hard_filters:
-        candidates = db.get_candidates([], {})
+    by_id = {}
 
-    # Embedding da consulta pra busca semântica (best-effort — se OpenCLIP
-    # não estiver instalado ou não houver texto livre, isso é pulado)
+    if tag_mode:
+        for item in db.get_by_tags(related_tags or exact_tags, hard_filters, limit=2500):
+            by_id[item['id']] = item
+        for tag in related_tags or exact_tags:
+            for item in db.get_candidates([], {**hard_filters, 'categoria': tag}, limit=800):
+                by_id.setdefault(item['id'], item)
+
+    fts_terms = (terms_expanded or related_tags or terms) if tag_mode else (terms_expanded or terms)
+    for item in db.get_candidates(fts_terms, hard_filters, limit=800):
+        by_id.setdefault(item['id'], item)
+
+    candidates = list(by_id.values())
+
     query_embedding = None
-    clip_text = remaining_expanded.strip() or remaining_text.strip()
-    if clip_text:
+    clip_text = remaining_text.strip()
+    if clip_text and not tag_mode:
+        try:
+            from backend.services.clip_tagger import encode_text_query
+            query_embedding = encode_text_query(clip_text)
+        except Exception:
+            query_embedding = None
+    elif clip_text and tag_mode and len(candidates) < 40:
         try:
             from backend.services.clip_tagger import encode_text_query
             query_embedding = encode_text_query(clip_text)
         except Exception:
             query_embedding = None
 
-    # Se a parte textual vier fraca, abre mais o funil para a semântica do CLIP ranquear.
     if query_embedding is not None and len(candidates) < 80:
-        broad = db.get_candidates([], hard_filters)
-        by_id = {item['id']: item for item in candidates}
+        broad = db.get_candidates([], hard_filters, limit=800)
         for item in broad:
-            by_id[item['id']] = item
+            by_id.setdefault(item['id'], item)
         candidates = list(by_id.values())
 
-    embeddings_cache = db.get_all_embeddings() if query_embedding is not None else {}
+    embeddings_cache = {}
+    if query_embedding is not None:
+        embeddings_cache = db.get_embeddings_for_ids([c['id'] for c in candidates])
 
     scored = []
     for item in candidates:
         score = 0.0
+        has_exact_tag = bool(exact_tags) and _item_has_tag(item.get('tags', ''), exact_tags)
+        has_related_tag = bool(related_tags) and _item_has_tag(item.get('tags', ''), related_tags)
+        cat_norm = _strip_accents_lower(item.get('categoria', '') or '')
+        has_cat = bool(related_tags or exact_tags) and (
+            cat_norm in (related_tags or exact_tags)
+            or any(cat_norm == t or (len(t) >= 3 and t in cat_norm) for t in (related_tags or exact_tags))
+        )
 
-        # 1) match de nome/pasta (pessoa ou casal) — o sinal mais importante
-        score += _name_match_score(item.get('pasta', ''), terms, remaining_text) * 3.4
+        has_clip_only = False
+        if tag_mode and not _item_matches_tag_query(item, exact_tags, related_tags):
+            if query_embedding is None:
+                continue
+            emb_blob = embeddings_cache.get(item['id']) if embeddings_cache else None
+            if not emb_blob:
+                continue
+            has_clip_only = True
 
-        # 2) match de tags (com sinônimos expandidos)
-        score += _tag_match_score(item.get('tags', ''), terms_expanded) * 2.0
+        tag_score = _tag_match_score(item.get('tags', ''), terms_expanded or related_tags, remaining_text)
+        if has_exact_tag:
+            tag_score += 6.0
+        elif has_related_tag:
+            tag_score += 3.5
+        if has_cat:
+            tag_score += 3.5
+        score += tag_score * (3.5 if tag_mode else 2.4)
 
-        # 3) match de categoria
-        score += _category_match_score(item.get('categoria', ''), terms_expanded) * 1.5
+        score += _name_match_score(item.get('pasta', ''), terms_expanded or terms, remaining_text) * 3.0
+        score += _category_match_score(item.get('categoria', ''), terms_expanded or related_tags) * 1.6
 
-        # 4) match textual geral (nome do arquivo, descrição, autor)
         for field in ('nome', 'descricao', 'autor'):
             val = _strip_accents_lower(item.get(field, '') or '')
-            for t in terms:
-                if _strip_accents_lower(t) in val:
-                    score += 0.5
+            for t in (related_tags if tag_mode else terms):
+                tt = _strip_accents_lower(t)
+                if len(tt) >= 3 and tt in val:
+                    score += 0.45
 
-        # 5) boost de horário aproximado
         if target_hora and _hora_match(item.get('hora_upload', ''), target_hora):
             score += 2.0
 
-        # 6) similaridade semântica via OpenCLIP
         if query_embedding is not None:
             emb_blob = embeddings_cache.get(item['id'])
             if emb_blob:
                 img_vec = np.frombuffer(emb_blob, dtype='float32')
                 sim = _cosine_sim(query_embedding, img_vec)
-                score += max(sim, 0) * 4.0  # semântica pesa bastante quando disponível
+                if has_clip_only and sim < 0.22:
+                    continue
+                clip_w = 0.9 if tag_mode else 2.6
+                if has_clip_only:
+                    clip_w = 1.4
+                score += max(sim, 0) * clip_w
 
-        # Se não há nenhum termo de texto (busca só por data/tipo/ano), todo
-        # candidato que passou pelos filtros rígidos já é relevante
         if not terms and not query_embedding:
             score += 1.0
 
+        if score <= 0:
+            continue
         scored.append((score, item))
 
-    # Ordena por score desc, e em empate por mais recente
     scored.sort(key=lambda x: (x[0], x[1].get('created_at', '')), reverse=True)
 
     total = len(scored)
@@ -319,6 +478,9 @@ def intelligent_search(query='', extra_filters=None, page=1, per_page=24):
         'total': total,
         'page': page,
         'per_page': per_page,
-        'pages': max(1, (total + per_page - 1) // per_page),
+        'pages': max(1, (total + per_page - 1) // per_page) if total else 1,
         'parsed_filters': {**parsed_filters, **({'hora': target_hora} if target_hora else {})},
+        'mode': 'tag' if tag_mode else 'smart',
+        'matched_tags': exact_tags,
+        'related_tags': related_tags[:12] if related_tags else [],
     }
