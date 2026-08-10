@@ -1,0 +1,14 @@
+---
+description: Issues, PRs e deploys — obrigatório para qualquer agente
+alwaysApply: true
+---
+
+# Workflow Issues + PRs
+
+Siga `AGENTS.md` na raiz do repo.
+
+1. Toda Correção / Melhoria / Feature começa com **Issue no GitHub**.
+2. Trabalhe em branch `fix|melhoria|feat/<n>-slug`.
+3. Abra **PR** e mencione a Issue: `Fixes #N` ou `Refs #N`.
+4. Não merge direto em `main` sem PR (exceto hotfix documentado).
+5. Deploy só via PR aprovado / CI verde.

@@ -19,8 +19,12 @@
     { type: 'img', src: 'fotos/foto_jotaquest.webp', title: 'Jota Quest — Pirapora MG' },
     { type: 'img', src: 'fotos/foto30.jpg', title: 'Estilo & Atitude' },
     { type: 'img', src: 'fotos/foto60.webp', title: 'Retrato Iluminado' },
+    { type: 'img', src: 'fotos/foto_gravata.png', title: 'Nó Feito' },
+    { type: 'img', src: 'fotos/foto_show_unico.png', title: 'Braços Abertos' },
+    { type: 'img', src: 'fotos/foto_motocross.png', title: 'No Ar' },
     { type: 'img', src: 'fotos/foto41.webp', title: 'Brincadeira de Casal' },
     { type: 'img', src: 'fotos/foto40.webp', title: 'Para Sempre' },
+    { type: 'img', src: 'fotos/foto_casal_reflexo.png', title: "Espelho d'Água" },
     { type: 'video', src: 'videos/video72.mp4', title: 'Natureza Viva' },
     { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Sessão de Rap' },
     { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Dia Inesquecível' },
@@ -28,9 +32,10 @@
     { type: 'img', src: 'fotos/foto50.webp', title: 'Noite de Halloween' },
     { type: 'video', src: 'videos/video12.mp4', title: 'Produção Especial' },
     { type: 'video', src: 'videos/COMERCIAL01.mp4', title: 'No Estúdio' },
-    { type: 'img', src: 'fotos/fotolely01.jpg', title: 'Vento da Tarde' },
+    { type: 'img', src: 'fotos/fotolely.jpg', title: 'Vento da Tarde' },
     { type: 'img', src: 'fotos/fotojoy01.jpg', title: 'Doce Olhar' },
-    { type: 'img', src: 'fotos/fotolely02.jpg', title: 'Dentro do Quadro' },
+    { type: 'img', src: 'fotos/foto_cafe.png', title: 'Mesa da Manhã' },
+    { type: 'img', src: 'fotos/foto_sorriso.png', title: 'Luz da Rua' },
     { type: 'img', src: 'fotos/foto94.webp', title: 'Suspensa no Tempo' },
   ];
 
@@ -97,13 +102,14 @@
 
   /* ── Vídeos: lazy + hover (não baixa tudo de uma vez) ─── */
   function applyVideoFrame(v) {
-    const parent = v.closest('.gi');
+    const parent = v.closest('.gi, .foto-item');
     if (!parent) return;
     const apply = () => {
       if (!(v.videoWidth > 0 && v.videoHeight > 0)) return;
-      // feature-cinema / highlight mantêm faixa larga cinematográfica
-      if (parent.classList.contains('feature-cinema') || parent.classList.contains('highlight')) return;
       parent.style.aspectRatio = `${v.videoWidth} / ${v.videoHeight}`;
+      parent.classList.toggle('is-portrait', v.videoHeight > v.videoWidth * 1.05);
+      parent.classList.toggle('is-landscape', v.videoWidth > v.videoHeight * 1.05);
+      parent.classList.toggle('is-square', Math.abs(v.videoWidth - v.videoHeight) <= v.videoWidth * 0.05);
     };
     if (v.readyState >= 1) apply();
     else v.addEventListener('loadedmetadata', apply, { once: true });
@@ -201,12 +207,29 @@
 
     let ci = 0;
     let cp = mediaPool;
+    let activePlayer = null;
+
+    function destroyActivePlayer() {
+      if (!activePlayer) return;
+      try { activePlayer.destroy(); } catch { /* ignore */ }
+      activePlayer = null;
+    }
+
+    function pauseGridVideos() {
+      $$('.gi video, .foto-item video').forEach((v) => {
+        try {
+          v.pause();
+        } catch { /* ignore */ }
+      });
+    }
 
     function openLb(pool, idx) {
       cp = pool;
       ci = idx;
       const d = pool[idx];
       if (!d) return;
+      destroyActivePlayer();
+      pauseGridVideos();
       lbC.innerHTML = '';
 
       const card = document.createElement('div');
@@ -230,18 +253,24 @@
         if (typeof AleffPlayer !== 'undefined') {
           const player = AleffPlayer.create({
             src: d.src,
+            poster: d.poster || '',
             title: d.title || '',
             loop: true,
             autoplay: true,
+            preload: 'metadata',
           });
+          activePlayer = player;
           front.appendChild(player.root);
         } else {
           const v = document.createElement('video');
           v.src = d.src;
+          if (d.poster) v.poster = d.poster;
           v.playsInline = true;
-          v.preload = 'auto';
+          v.preload = 'metadata';
           v.autoplay = true;
+          v.muted = true;
           v.loop = true;
+          v.style.objectFit = 'contain';
           front.appendChild(v);
         }
       } else {
@@ -271,6 +300,7 @@
     }
 
     function closeLb() {
+      destroyActivePlayer();
       lb.classList.remove('open');
       document.body.style.overflow = '';
       lbC.innerHTML = '';
@@ -638,6 +668,7 @@
         const s = slots[id];
         if (!s || !s.filled || !s.src) return;
         el.classList.remove('gi-slot');
+        el.style.display = '';
         el.removeAttribute('aria-label');
         const src = s.src.startsWith('/') ? s.src.slice(1) : s.src;
         const title = String(s.title || 'Trabalho')
@@ -650,10 +681,242 @@
           el.style.aspectRatio = '';
           el.innerHTML = `<img src="${src.replace(/"/g, '')}" alt="${title}" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">${title}</p><p class="gi-cat">${cat}</p></div>`;
         }
-        el.classList.add('rv');
+        el.classList.add('rv', 'on');
+        if (!el.dataset.idx) {
+          const idx = mediaPool.length;
+          el.dataset.idx = String(idx);
+          mediaPool.push({
+            type: s.type === 'video' ? 'video' : 'img',
+            src,
+            title: s.title || 'Trabalho',
+          });
+        }
       });
       initVideoHover();
-    } catch { /* mantém placeholders */ }
+    } catch { /* mantém placeholders (só staff vê) */ }
+  }
+
+  async function initContatoReel() {
+    const frame = document.querySelector('.contato-reel');
+    const up = document.getElementById('contatoReelUp');
+    const down = document.getElementById('contatoReelDown');
+    if (!frame || !up || !down) return;
+
+    const FALLBACK = [
+      { src: 'fotos/foto_thalles.jpg', key: 'thalles' },
+      { src: 'fotos/foto_show_unico_marks.png', key: 'unico' },
+      { src: 'fotos/foto20.webp', key: 'praia' },
+      { src: 'fotos/foto_jotaquest.webp', key: 'jota' },
+      { src: 'fotos/foto_gravata.png', key: 'gravata' },
+      { src: 'fotos/foto40.webp', key: 'casal40' },
+      { src: 'fotos/foto_casal_reflexo.png', key: 'reflexo' },
+      { src: 'fotos/foto_detonautas.webp', key: 'detonautas' },
+      { src: 'fotos/foto_sorriso.png', key: 'sorriso' },
+      { src: 'fotos/foto11i.jpg', key: 'piscina' },
+      { src: 'fotos/foto_motocross.png', key: 'moto' },
+      { src: 'fotos/foto12.jpg', key: 'xadrez' },
+      { src: 'fotos/foto_cafe.png', key: 'cafe' },
+      { src: 'fotos/foto60.webp', key: 'luz' },
+      { src: 'fotos/foto94.webp', key: '94' },
+      { src: 'fotos/fotojoy01.jpg', key: 'joy' },
+      { src: 'fotos/foto_thalles.jpg', key: 'thalles' },
+      { src: 'fotos/foto55.jpg', key: 'trancas' },
+    ];
+
+    const GENERIC_PASTA = /^(sem\s*edi[cç][aã]o|originais|site(\s*\(local\))?|local|geral|misc|upload|uploads|fotos?|imagens?)$/i;
+
+    function thumbOf(it) {
+      if (it.src) return it.src;
+      const raw = String(it.thumb_url || '');
+      if (/^\/api\/local\//i.test(raw)) return raw;
+      const m = raw.match(/^(\/api\/media\/\d+\/thumb)/i);
+      if (m) return `${m[1]}?sz=480`;
+      if (it.id) return `/api/media/${it.id}/thumb?sz=480`;
+      return raw;
+    }
+
+    function personKey(it) {
+      if (it.key) return String(it.key).toLowerCase();
+      const pasta = String(it.pasta || '').trim();
+      if (pasta && !GENERIC_PASTA.test(pasta)) {
+        return pasta.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+      }
+      const tags = String(it.tags || '')
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t && t.length > 2);
+      const skip = new Set(['foto', 'fotos', 'image', 'show', 'shows', 'retrato', 'casamento', 'ensaio', 'video']);
+      const tag = tags.find((t) => !skip.has(t));
+      if (tag) return `tag:${tag}`;
+      const nome = String(it.nome || '')
+        .replace(/\.[a-z0-9]+$/i, '')
+        .replace(/[_-]+/g, ' ')
+        .trim()
+        .toLowerCase();
+      if (nome.length >= 4) return `nome:${nome.slice(0, 18)}`;
+      return `id:${it.id}`;
+    }
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    /** No máximo maxPerKey por pessoa; prioriza variedade. */
+    function pickDiverse(pool, limit, maxPerKey = 1) {
+      const byKey = new Map();
+      for (const it of shuffle(pool)) {
+        const k = personKey(it);
+        if (!byKey.has(k)) byKey.set(k, []);
+        const bucket = byKey.get(k);
+        if (bucket.length < maxPerKey) bucket.push(it);
+      }
+      const keys = shuffle([...byKey.keys()]);
+      const out = [];
+      let guard = 0;
+      while (out.length < limit && keys.length && guard < limit * 4) {
+        guard += 1;
+        for (let i = 0; i < keys.length && out.length < limit; i++) {
+          const k = keys[i];
+          const bucket = byKey.get(k);
+          if (!bucket || !bucket.length) continue;
+          const next = bucket.shift();
+          const prev = out[out.length - 1];
+          if (prev && personKey(prev) === personKey(next)) continue;
+          out.push(next);
+        }
+        // remove empty keys
+        for (let i = keys.length - 1; i >= 0; i--) {
+          if (!(byKey.get(keys[i]) || []).length) keys.splice(i, 1);
+        }
+      }
+      // Evita junção do loop infinito (último == primeiro)
+      if (out.length > 2 && personKey(out[0]) === personKey(out[out.length - 1])) {
+        for (let i = 1; i < out.length - 1; i++) {
+          if (personKey(out[i]) !== personKey(out[0])) {
+            const tmp = out[i];
+            out[i] = out[out.length - 1];
+            out[out.length - 1] = tmp;
+            break;
+          }
+        }
+      }
+      return out;
+    }
+
+    /** Intercala duas listas sem repetir pessoa adjacente. */
+    function interleaveColumns(pool) {
+      const a = [];
+      const b = [];
+      for (let i = 0; i < pool.length; i++) {
+        (i % 2 === 0 ? a : b).push(pool[i]);
+      }
+      // Se coluna B ficou com mesma pessoa em sequência, reordena
+      const fix = (col) => {
+        for (let i = 1; i < col.length; i++) {
+          if (personKey(col[i]) !== personKey(col[i - 1])) continue;
+          for (let j = i + 1; j < col.length; j++) {
+            if (personKey(col[j]) !== personKey(col[i - 1])) {
+              const t = col[i];
+              col[i] = col[j];
+              col[j] = t;
+              break;
+            }
+          }
+        }
+        return col;
+      };
+      return [fix(a), fix(b)];
+    }
+
+    function fillTrack(track, list) {
+      track.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      const make = (it) => {
+        const img = document.createElement('img');
+        img.src = thumbOf(it);
+        img.alt = '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.dataset.person = personKey(it);
+        img.addEventListener('click', () => {
+          location.href = 'search.html';
+        });
+        return img;
+      };
+      list.forEach((it) => frag.appendChild(make(it)));
+      list.forEach((it) => frag.appendChild(make(it)));
+      track.appendChild(frag);
+      track.style.animation = 'none';
+      void track.offsetWidth;
+      track.style.animation = '';
+    }
+
+    async function fetchBucket(q, n = 16) {
+      const qs = new URLSearchParams({
+        q: q || '',
+        tipo: 'image',
+        per_page: String(n),
+        page: '1',
+      });
+      const r = await fetch(`/api/search?${qs}`, { credentials: 'same-origin' });
+      if (!r.ok) return [];
+      const data = await r.json();
+      return data.items || [];
+    }
+
+    let pool = [];
+    try {
+      // Várias buscas pra sair do bloco “mesma pasta / mesmo rosto”
+      const batches = await Promise.allSettled([
+        fetchBucket('show', 14),
+        fetchBucket('retrato', 14),
+        fetchBucket('casamento', 12),
+        fetchBucket('casal', 12),
+        fetchBucket('moto', 10),
+        fetchBucket('', 24),
+      ]);
+      const seen = new Set();
+      for (const res of batches) {
+        if (res.status !== 'fulfilled') continue;
+        for (const it of res.value) {
+          if (!it || it.tipo === 'video') continue;
+          const id = Number(it.id);
+          if (!id || seen.has(id)) continue;
+          if (!it.thumb_url && !it.id) continue;
+          seen.add(id);
+          pool.push(it);
+        }
+      }
+    } catch (e) {
+      console.warn('[contato-reel]', e);
+    }
+
+    // Mistura âncoras locais (rostos distintos do portfólio) quando o banco é homogêneo
+    const uniqueKeys = new Set(pool.map(personKey));
+    if (uniqueKeys.size < 8) {
+      for (const fb of FALLBACK) {
+        if (pool.length >= 40) break;
+        pool.push(fb);
+      }
+    }
+
+    let diverse = pickDiverse(pool, 24, 1);
+    if (diverse.length < 12) {
+      diverse = pickDiverse(pool.concat(FALLBACK), 24, 2);
+    }
+    if (diverse.length < 8) {
+      diverse = pickDiverse(FALLBACK, 16, 1);
+    }
+
+    const [colA, colB] = interleaveColumns(diverse);
+    fillTrack(up, colA.length >= 6 ? colA : diverse.filter((_, i) => i % 2 === 0));
+    fillTrack(down, colB.length >= 6 ? colB : diverse.filter((_, i) => i % 2 === 1));
+    frame.classList.add('is-ready');
   }
 
   /* ── Boot ─────────────────────────────────────────────── */
@@ -671,6 +934,7 @@
     initVideoHover();
     initShortcuts();
     initContact();
+    initContatoReel();
     whenIdle(() => {
       initPortfolioSlots();
       initCounters();

@@ -1,0 +1,15 @@
+{
+  "name": "aleff-system2-tooling",
+  "private": true,
+  "scripts": {
+    "lint": "biome check frontend/js frontend/css",
+    "format": "biome format --write frontend/js frontend/css",
+    "test:e2e": "playwright test",
+    "knip": "knip"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.49.0",
+    "knip": "^5.41.0"
+  }
+}

@@ -6,12 +6,15 @@
   <title>Galeria Admin — Aleff Thiago</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/style.css?v=20260807v"/>
+  <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
+  <link rel="stylesheet" href="css/player.css?v=20260807v"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260807h"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <script src="js/player.js?v=20260807v" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
   <style>
     .admin-page{min-height:100vh;padding:100px 48px 80px;max-width:1400px;margin:0 auto}
     .admin-hdr{margin-bottom:36px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}
@@ -229,20 +232,16 @@
       animation:revealPop .5s cubic-bezier(.22,1,.36,1) both;
     }
     @keyframes revealPop{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
-    .reveal-media{aspect-ratio:4/5;background:#0a0a0a;position:relative}
-    .reveal-media img,.reveal-media video{width:100%;height:100%;object-fit:cover;display:block}
+    .reveal-media{min-height:220px;background:#0a0a0a;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .reveal-media img{width:100%;height:auto;max-height:62vh;object-fit:contain;display:block}
+    .reveal-media .aplayer{width:100%!important;max-width:100%;max-height:62vh;border-radius:0;box-shadow:none;border:none}
+    .reveal-media > video{width:100%;height:auto;max-height:62vh;object-fit:contain;display:block}
     .reveal-body{padding:20px 22px 22px}
     .reveal-kicker{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#86efac;margin-bottom:8px;font-weight:700}
     .reveal-title{font-size:22px;font-weight:900;letter-spacing:-.02em;margin-bottom:6px}
     .reveal-meta{font-size:13px;color:#777;margin-bottom:18px}
     .reveal-btns{display:flex;gap:8px;flex-wrap:wrap}
     .reveal-btns .btn-sm,.reveal-btns .btn-primary-sm{flex:1;text-align:center;justify-content:center}
-
-    @media(max-width:900px){
-      .admin-grid{grid-template-columns:repeat(2,1fr)}
-      .admin-grid.layout-mosaic{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto}
-      .admin-grid.layout-mosaic .acard:nth-child(n){grid-column:span 1;grid-row:span 1;aspect-ratio:1}
-    }
 
     .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:36px}
     .pager button{
@@ -274,10 +273,13 @@
     .drawer-close{background:none;border:none;color:#666;font-size:22px;cursor:pointer}
     .drawer-close:hover{color:#fff}
     .drawer-preview{
-      width:100%;aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:#0a0a0a;
+      width:100%;min-height:160px;border-radius:12px;overflow:hidden;background:#0a0a0a;
       margin-bottom:22px;border:1px solid rgba(255,255,255,.06);
+      display:flex;align-items:center;justify-content:center;
     }
-    .drawer-preview img,.drawer-preview video{width:100%;height:100%;object-fit:cover}
+    .drawer-preview img{width:100%;height:auto;max-height:240px;object-fit:contain;display:block}
+    .drawer-preview .aplayer{width:100%!important;max-width:100%;max-height:240px;border-radius:0;box-shadow:none;border:none}
+    .drawer-preview > video{width:100%;height:auto;max-height:240px;object-fit:contain;display:block}
     .fg{margin-bottom:14px}
     .flbl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#555;margin-bottom:6px}
     .finp{
@@ -290,9 +292,109 @@
     .drawer-btns .btn-primary-sm{flex:1}
     .drawer-btns .btn-danger{flex:1}
 
+    .src-tab .lbl-short{display:none}
+
     @media(max-width:900px){
-      .admin-page{padding:88px 20px 60px}
       .admin-grid{grid-template-columns:repeat(2,1fr)}
+      .admin-grid.layout-mosaic{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto}
+      .admin-grid.layout-mosaic .acard:nth-child(n){grid-column:span 1;grid-row:span 1;aspect-ratio:1}
+      .admin-page{padding:88px 20px 60px}
+    }
+
+    @media(max-width:720px){
+      .admin-page{
+        padding:76px 14px 48px;
+        padding-left:max(14px, env(safe-area-inset-left));
+        padding-right:max(14px, env(safe-area-inset-right));
+        padding-bottom:max(48px, env(safe-area-inset-bottom));
+      }
+      .admin-hdr{
+        flex-direction:column;
+        align-items:stretch;
+        gap:16px;
+        margin-bottom:24px;
+      }
+      .admin-title{font-size:clamp(28px,9vw,40px)}
+      .admin-actions{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+        width:100%;
+      }
+      .admin-actions .btn-sm,
+      .admin-actions .btn-primary-sm{
+        width:100%;
+        text-align:center;
+        justify-content:center;
+        min-height:42px;
+        display:inline-flex;
+        align-items:center;
+        box-sizing:border-box;
+      }
+      .admin-actions #userLabel{grid-column:1 / -1;text-align:center}
+      .admin-actions #btnLogout{order:3}
+      .admin-actions a[href="upload.html"]{order:1}
+      .admin-actions a[href="slots.html"]{order:2}
+
+      .src-tabs{gap:6px;margin-bottom:14px}
+      .src-tab{padding:8px 12px;font-size:10px;letter-spacing:.04em}
+      .src-tab .lbl-full{display:none}
+      .src-tab .lbl-short{display:inline}
+
+      .gal-mood{
+        flex-direction:column;
+        align-items:stretch;
+        gap:12px;
+        padding:12px 14px;
+        margin-bottom:14px;
+      }
+      .gal-mood-text{font-size:13px}
+      .gal-mood-actions{width:100%;justify-content:space-between}
+      .layout-toggle{flex:1}
+      .layout-btn{flex:1;padding:8px 6px;font-size:10px;text-align:center}
+
+      .toolbar{
+        flex-direction:column;
+        align-items:stretch;
+        gap:8px;
+        margin-bottom:16px;
+        padding-bottom:16px;
+      }
+      .tb-search{min-width:0;width:100%}
+      .tb-select,.btn-sm,.btn-danger{
+        width:100%;
+        min-height:42px;
+        box-sizing:border-box;
+      }
+      .res-meta{margin-left:0;width:100%;text-align:center}
+
+      .admin-grid{gap:8px}
+      .admin-grid.layout-film .acard{flex:0 0 min(78vw,260px)}
+
+      /* Touch: overlay sempre legível (sem depender de hover) */
+      .acard-ov{
+        opacity:1;
+        background:linear-gradient(to top,rgba(8,8,8,.92) 0%,rgba(8,8,8,.35) 45%,transparent 70%);
+      }
+      .acard-stars,.acard-views{opacity:.85}
+      .acard:hover{transform:none}
+      .acard.selected{transform:none}
+
+      .drawer{
+        width:100%;
+        padding:20px 16px max(24px, env(safe-area-inset-bottom));
+        padding-top:max(20px, env(safe-area-inset-top));
+      }
+      .drawer-btns{flex-direction:column}
+      .drawer-btns .btn-primary-sm,
+      .drawer-btns .btn-danger,
+      .drawer-btns .btn-sm{width:100%}
+
+      .pager{gap:8px;flex-wrap:wrap}
+      .pager button{flex:1;min-height:42px}
+      .sys-board{gap:8px;margin-bottom:18px}
+      .sys-card{padding:12px 14px}
+      .sys-card-state{font-size:16px}
     }
   </style>
 </head>
@@ -357,9 +459,9 @@
   </div>
 
   <div class="src-tabs" id="srcTabs" role="tablist" aria-label="Filtro da galeria">
-    <button type="button" class="src-tab active" data-storage="">Todas</button>
-    <button type="button" class="src-tab" data-storage="local">Adicionadas no PC (local)</button>
-    <button type="button" class="src-tab" data-storage="drive">Só Google Drive</button>
+    <button type="button" class="src-tab active" data-storage=""><span class="lbl-full">Todas</span><span class="lbl-short">Todas</span></button>
+    <button type="button" class="src-tab" data-storage="local"><span class="lbl-full">Adicionadas no PC (local)</span><span class="lbl-short">Local</span></button>
+    <button type="button" class="src-tab" data-storage="drive"><span class="lbl-full">Só Google Drive</span><span class="lbl-short">Drive</span></button>
   </div>
 
   <div class="gal-mood" id="galMood">
@@ -486,6 +588,22 @@
     loggedIn: false,
     revealId: null,
   };
+  let revealPlayer = null;
+  let drawerPlayer = null;
+
+  function destroyPlayer(refName) {
+    const p = refName === 'reveal' ? revealPlayer : drawerPlayer;
+    if (!p) return;
+    try { p.destroy(); } catch { /* ignore */ }
+    if (refName === 'reveal') revealPlayer = null;
+    else drawerPlayer = null;
+  }
+
+  function mediaStreamFor(item, thumb) {
+    if (!item) return thumb || '';
+    if (item.id) return `/api/media/${item.id}/download`;
+    return thumb || '';
+  }
 
   const MOOD_LINES = [
     (s) => `<strong>${s.total}</strong> peça${s.total === 1 ? '' : 's'} no rolo — ${s.fotos} foto${s.fotos === 1 ? '' : 's'} · ${s.vids} vídeo${s.vids === 1 ? '' : 's'}`,
@@ -504,8 +622,20 @@
   function safeUrl(url) {
     const v = String(url || '');
     if (/^https:\/\/(drive\.google\.com|[\w.-]*googleusercontent\.com)\b/i.test(v)) return esc(v);
+    if (/^(\/?fotos\/|\/?videos\/|data:image\/)/i.test(v)) return esc(v);
     if (/^\/api\/local\/[a-f0-9]+$/i.test(v)) return esc(v);
+    if (/^\/api\/media\/\d+\/thumb(?:\?sz=\d+)?$/i.test(v)) return esc(v);
+    if (/^\/api\/media\/\d+\/download$/i.test(v)) return esc(v);
     return '';
+  }
+
+  function thumbUrl(item, size = 800) {
+    const raw = String(item?.thumb_url || '');
+    if (/^\/api\/local\//i.test(raw)) return safeUrl(raw);
+    const m = raw.match(/^(\/api\/media\/\d+\/thumb)(?:\?.*)?$/i);
+    if (m) return `${m[1]}?sz=${size}`;
+    if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+    return safeUrl(raw);
   }
 
   function hasAuth() {
@@ -645,7 +775,7 @@
       local: items.filter((i) => i.storage === 'local').length,
       drive: items.filter((i) => i.storage !== 'local').length,
       stars: items.length
-        — items.reduce((a, i) => a + (Number(i.estrelas) || 0), 0) / items.length
+        ? items.reduce((a, i) => a + (Number(i.estrelas) || 0), 0) / items.length
         : 0,
     };
     const line = MOOD_LINES[Math.floor(Math.random() * MOOD_LINES.length)](stats);
@@ -655,7 +785,7 @@
   function starsLabel(n) {
     const s = Math.max(0, Math.min(5, Number(n) || 0));
     if (!s) return '';
-    return '?'.repeat(s) + '?'.repeat(5 - s);
+    return '★'.repeat(s) + '☆'.repeat(5 - s);
   }
 
   function renderGrid() {
@@ -683,17 +813,17 @@
 
     const cardHtml = (item, i) => {
       const sel = state.selected.has(item.id) ? ' selected' : '';
-      const thumb = safeUrl(item.thumb_url);
+      const thumb = thumbUrl(item, 800);
       const srcBadge = item.storage === 'local'
         ? '<span class="acard-badge local">Local</span>'
         : '';
       const stars = starsLabel(item.estrelas);
       const views = Number(item.visualizacoes) || 0;
-      const delay = Math.min(i, 12) * 35;
+      const delay = Math.min(i, 8) * 18;
       return `
         <article class="acard acard-enter${sel}" data-id="${item.id}" style="animation-delay:${delay}ms">
           ${thumb
-            ? `<img class="acard-thumb" src="${thumb}" alt="${esc(item.nome)}" loading="lazy" decoding="async" onerror="this.style.display='none'"/>`
+            ? `<img class="acard-thumb" src="${thumb}" alt="${esc(item.nome)}" loading="${i < 8 ? 'eager' : 'lazy'}" decoding="async" fetchpriority="${i < 4 ? 'high' : 'auto'}" onerror="this.style.display='none'"/>`
             : `<div class="acard-ph">${item.tipo === 'video' ? 'Vídeo' : 'Foto'}</div>`}
           <span class="acard-badge">${item.tipo === 'video' ? 'vídeo' : 'foto'}</span>
           ${srcBadge}
@@ -735,12 +865,26 @@
     state.revealId = item.id;
     const bg = $('revealBg');
     const media = $('revealMedia');
-    const thumb = safeUrl(item.thumb_url);
-    media.innerHTML = thumb
-      — (item.tipo === 'video'
-        ? `<video src="${thumb}" muted loop playsinline autoplay controls></video>`
-        : `<img src="${thumb}" alt="${esc(item.nome)}"/>`)
-      : `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
+    const thumb = thumbUrl(item, 800);
+    destroyPlayer('reveal');
+    media.innerHTML = '';
+    if (item.tipo === 'video' && (thumb || item.id) && typeof AleffPlayer !== 'undefined') {
+      revealPlayer = AleffPlayer.create({
+        src: mediaStreamFor(item, thumb),
+        poster: thumb || '',
+        title: item.nome || '',
+        autoplay: true,
+        loop: true,
+        preload: 'metadata',
+      });
+      media.appendChild(revealPlayer.root);
+    } else if (thumb) {
+      media.innerHTML = item.tipo === 'video'
+        ? `<video src="${esc(mediaStreamFor(item, thumb))}"${thumb ? ` poster="${esc(thumb)}"` : ''} muted loop playsinline autoplay style="object-fit:contain"></video>`
+        : `<img src="${esc(thumb)}" alt="${esc(item.nome || '')}"/>`;
+    } else {
+      media.innerHTML = `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
+    }
     $('revealKicker').textContent = REVEAL_KICKERS[Math.floor(Math.random() * REVEAL_KICKERS.length)];
     $('revealTitle').textContent = item.nome || 'Sem nome';
     $('revealMeta').textContent = [
@@ -757,6 +901,7 @@
     const bg = $('revealBg');
     bg.classList.remove('open');
     bg.hidden = true;
+    destroyPlayer('reveal');
     $('revealMedia').innerHTML = '';
     state.revealId = null;
   }
@@ -775,12 +920,27 @@
     if (!item) return;
     state.current = item;
 
-    const thumb = safeUrl(item.thumb_url);
-    $('drawerPreview').innerHTML = thumb
-      — (item.tipo === 'video'
-        ? `<video src="${thumb}" muted loop playsinline controls></video>`
-        : `<img src="${thumb}" alt="${esc(item.nome)}"/>`)
-      : `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
+    const thumb = thumbUrl(item, 800);
+    const preview = $('drawerPreview');
+    destroyPlayer('drawer');
+    preview.innerHTML = '';
+    if (item.tipo === 'video' && (thumb || item.id) && typeof AleffPlayer !== 'undefined') {
+      drawerPlayer = AleffPlayer.create({
+        src: mediaStreamFor(item, thumb),
+        poster: thumb || '',
+        title: item.nome || '',
+        autoplay: false,
+        loop: false,
+        preload: 'metadata',
+      });
+      preview.appendChild(drawerPlayer.root);
+    } else if (thumb) {
+      preview.innerHTML = item.tipo === 'video'
+        ? `<video src="${esc(mediaStreamFor(item, thumb))}"${thumb ? ` poster="${esc(thumb)}"` : ''} muted playsinline controls style="object-fit:contain"></video>`
+        : `<img src="${esc(thumb)}" alt="${esc(item.nome || '')}"/>`;
+    } else {
+      preview.innerHTML = `<div class="acard-ph" style="position:relative;height:100%">Sem preview</div>`;
+    }
 
     $('fNome').value = item.nome || '';
     $('fCat').value = item.categoria || '';
@@ -796,6 +956,7 @@
   }
 
   function closeDrawer() {
+    destroyPlayer('drawer');
     $('drawer').classList.remove('open');
     $('drawerBg').classList.remove('open');
     $('drawer').setAttribute('aria-hidden', 'true');
@@ -886,8 +1047,7 @@
 
   /* events */
   $('btnLogout')?.addEventListener('click', async () => {
-    await Auth.logout();
-    location.href = '/loginsite.html';
+    await Auth.logoutToLogin();
   });
 
   let qTimer;

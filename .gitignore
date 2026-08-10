@@ -35,9 +35,14 @@ uploads/
 tmp/
 temp/
 
-# ── OS / IDE ──
-.DS_Store
-Thumbs.db
+node_modules/
+coverage.xml
+.coverage
+htmlcov/
+playwright-report/
+test-results/
+package-lock.json
+
 .idea/
 .vscode/
 *.swp
