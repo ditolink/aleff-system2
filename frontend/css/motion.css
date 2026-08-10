@@ -1,0 +1,99 @@
+/* motion.css — skeleton, enter/exit, progress, reduced-motion
+   Base: design-motion-principles (portfólio: presença + polish) */
+
+:root {
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --motion-slow: 400ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --skel-base: #141414;
+  --skel-shine: rgba(255, 255, 255, 0.05);
+}
+
+/* Entrada */
+.motion-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: motion-enter var(--motion-base) var(--motion-ease) forwards;
+  animation-delay: calc(var(--motion-i, 0) * 40ms);
+}
+@keyframes motion-enter {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Saída (adicione .is-leaving no host) */
+.motion-exit.is-leaving,
+.is-leaving.motion-enter {
+  animation: motion-exit var(--motion-fast) ease forwards;
+}
+@keyframes motion-exit {
+  to { opacity: 0; transform: translateY(6px); }
+}
+
+/* Skeleton genérico */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--skel-base);
+  border-radius: 2px;
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--skel-shine), transparent);
+  animation: skel-shine 1.2s linear infinite;
+}
+@keyframes skel-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skel-line { height: 12px; margin-bottom: 8px; }
+.skel-line.w-60 { width: 60%; }
+.skel-line.w-40 { width: 40%; }
+.skel-block { aspect-ratio: 3 / 4; width: 100%; }
+
+/* Progresso linear */
+.motion-progress {
+  height: 2px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.motion-progress > span {
+  display: block;
+  height: 100%;
+  width: var(--p, 0%);
+  background: rgba(255, 255, 255, 0.55);
+  transition: width var(--motion-base) var(--motion-ease);
+}
+.motion-progress.is-indeterminate > span {
+  width: 40%;
+  animation: motion-indet 1.1s ease-in-out infinite;
+}
+@keyframes motion-indet {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+/* Fade de overlay / modal */
+.motion-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-base) var(--motion-ease);
+}
+.motion-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-enter,
+  .motion-exit.is-leaving,
+  .skel::after,
+  .motion-progress.is-indeterminate > span {
+    animation: none !important;
+  }
+  .motion-enter { opacity: 1; transform: none; }
+  .motion-overlay { transition: none; }
+}

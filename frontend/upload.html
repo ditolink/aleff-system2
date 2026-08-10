@@ -7,11 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260807e"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
   <style>
     .upload-page{min-height:100vh;padding:100px 48px 80px;max-width:900px;margin:0 auto}
     .up-eyebrow{font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#b8b8b8;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:12px}
@@ -173,7 +174,11 @@
     .drive-dot.warn{background:#f5c842;box-shadow:0 0 8px rgba(245,200,66,.4)}
 
     @media(max-width:768px){
-      .upload-page{padding:88px 20px 60px}
+      .upload-page{
+        padding:76px 14px 48px;
+        padding-left:max(14px, env(safe-area-inset-left));
+        padding-right:max(14px, env(safe-area-inset-right));
+      }
       .meta-grid{grid-template-columns:1fr}
       .meta-fg.full{grid-column:span 1}
     }

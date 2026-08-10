@@ -7,13 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css?v=20260807v"/>
+  <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260807h"/>
   <script src="js/toast.js" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260807h" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
   <style>
     .admin-page{min-height:100vh;padding:100px 48px 80px;max-width:1400px;margin:0 auto}
     .admin-hdr{margin-bottom:36px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}
@@ -1046,8 +1047,7 @@
 
   /* events */
   $('btnLogout')?.addEventListener('click', async () => {
-    await Auth.logout();
-    location.href = '/loginsite.html';
+    await Auth.logoutToLogin();
   });
 
   let qTimer;

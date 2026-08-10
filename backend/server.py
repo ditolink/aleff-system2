@@ -34,6 +34,12 @@ from backend.utils.security import (
 # static_folder=None → NÃO serve arquivos automaticamente (evita furar o login)
 app = Flask(__name__, static_folder=None)
 
+try:
+    from backend.utils.observability import init_observability
+    init_observability(app)
+except Exception as _obs_err:
+    print(f"[OBS] skip: {_obs_err}")
+
 app.config["MAX_CONTENT_LENGTH"] = int(
     os.getenv("MAX_CONTENT_LENGTH", MAX_FILE_SIZE)
 )
@@ -291,7 +297,50 @@ def index():
 
 @app.route("/health")
 def health():
-    return {"status": "ok"}
+    """Health check leve — usado por deploy/proxy. Não expõe segredos."""
+    db_ok = False
+    media_count = None
+    try:
+        from backend.models.database import get_conn
+        conn = get_conn()
+        conn.execute("SELECT 1").fetchone()
+        media_count = conn.execute("SELECT COUNT(*) FROM media").fetchone()[0]
+        conn.close()
+        db_ok = True
+    except Exception as e:
+        print(f"[health] db: {e}")
+
+    drive_ok = None
+    drive_err = None
+    try:
+        from backend.services import drive as drive_svc
+        cached = getattr(drive_svc, '_ping_cache', {}).get('result')
+        if cached is not None:
+            drive_ok, drive_err = cached
+        else:
+            drive_ok, drive_err = drive_svc.drive_ping()
+    except Exception as e:
+        drive_ok = False
+        drive_err = str(e)
+
+    status = 'ok'
+    if not db_ok:
+        status = 'degraded'
+    elif drive_ok is False:
+        status = 'degraded'
+
+    payload = {
+        'status': status,
+        'db': db_ok,
+        'media_count': media_count,
+        'drive': {'online': bool(drive_ok), 'error': drive_err if not drive_ok else None},
+    }
+    try:
+        from backend.services.ai_pipeline import get_public_ai_summary
+        payload['ai'] = get_public_ai_summary()
+    except Exception:
+        payload['ai'] = None
+    return payload
 
 
 def _safe_next(raw) -> str:
@@ -373,49 +422,91 @@ if __name__ == "__main__":
 
     try:
         from backend.services import drive as drive_svc
-        online, err = drive_svc.drive_ping()
+        # Não bloqueia o boot — ping em background (status usa cache)
+        drive_svc.drive_ping_async()
         email = drive_svc.get_service_account_email()
-        if online:
-            print("[Drive] Online — pasta acessível.")
-        else:
-            print(f"[Drive] Offline: {err}")
-            if email:
-                print(f"[Drive] Compartilhe a pasta com: {email}")
+        print("[Drive] Ping em background…")
+        if email:
+            print(f"[Drive] Service account: {email}")
     except Exception as e:
         print(f"[Drive] falha na conexão inicial: {e}")
 
+    def _env_on(name, default='0'):
+        return os.getenv(name, default).strip().lower() in ('1', 'true', 'yes', 'on')
+
+    # Por padrão NÃO força OpenCLIP/Faces no boot (come RAM/CPU e atrasa tudo).
+    # Dashboard Dev → Warmup / Backfill quando quiser.
+    # CLIP_WARMUP_ON_START=1  FACE_WARMUP_ON_START=1  *_BACKFILL_ON_START=1
     def _warmup_clip_bg():
         try:
             if not getattr(clip_tagger, "is_enabled", lambda: True)():
                 print("[CLIP] Desativado — busca rápida só com texto.")
+                return
+            if not _env_on('CLIP_WARMUP_ON_START', '0'):
+                print("[CLIP] Warmup automático off — use o dashboard Dev.")
                 return
             from backend.models.database import annotate_storage, embedding_stats
             samples = [annotate_storage(m) for m in get_all_media(limit=8)]
             thumb_urls = [m["thumb_url"] for m in samples if m.get("thumb_url")]
             clip_tagger.warmup(thumb_urls)
             print("[CLIP] Warmup em background concluído.")
-            stats = embedding_stats()
-            if stats.get("missing", 0) > 0:
-                print(
-                    f"[CLIP] Backfill: {stats['missing']} imagem(ns) sem índice — "
-                    "indexando em background…"
-                )
-                clip_tagger.backfill_embeddings(batch_size=12, pause_sec=0.15)
-                print("[CLIP] Backfill concluído:", embedding_stats())
+            if _env_on('CLIP_BACKFILL_ON_START', '0'):
+                stats = embedding_stats()
+                if stats.get("missing", 0) > 0:
+                    print(
+                        f"[CLIP] Backfill: {stats['missing']} imagem(ns) sem índice — "
+                        "indexando em background…"
+                    )
+                    clip_tagger.backfill_embeddings(batch_size=12, pause_sec=0.15)
+                    print("[CLIP] Backfill concluído:", embedding_stats())
         except Exception as e:
             print(f"[CLIP Warmup] falhou na inicialização: {e}")
 
     threading.Thread(target=_warmup_clip_bg, daemon=True, name="clip-warmup").start()
     if getattr(clip_tagger, "is_enabled", lambda: True)():
-        print("[CLIP] Warmup + backfill em background — site já pode abrir.")
+        print("[CLIP] Disponível sob demanda (dashboard) — não força no boot.")
     else:
         print("[CLIP] Off — site leve, ideal pra hospedagem barata.")
 
+    def _warmup_face_bg():
+        try:
+            from backend.services import face_tagger
+            from backend.models.database import face_stats
+
+            if not face_tagger.is_enabled():
+                print("[FACE] Desativado (FACE_ENABLED=false).")
+                return
+            if not _env_on('FACE_WARMUP_ON_START', '0'):
+                print("[FACE] Warmup automático off — use o dashboard Dev.")
+                return
+            if not face_tagger.is_installed():
+                print("[FACE] Pacotes ausentes — pip install -r requirements-face.txt")
+                return
+            face_tagger.warmup()
+            if _env_on('FACE_BACKFILL_ON_START', '0'):
+                stats = face_stats()
+                if stats.get("missing", 0) > 0:
+                    print(
+                        f"[FACE] Backfill: {stats['missing']} imagem(ns) sem índice de rosto…"
+                    )
+                    face_tagger.backfill_faces(batch_size=10, pause_sec=0.12)
+                    print("[FACE] Backfill concluído:", face_stats())
+                else:
+                    print("[FACE] Índice de rostos ok:", stats)
+            else:
+                print("[FACE] Warmup ok — backfill só sob demanda.")
+        except Exception as e:
+            print(f"[FACE Warmup] falhou: {e}")
+
+    threading.Thread(target=_warmup_face_bg, daemon=True, name="face-warmup").start()
+
     def _prefetch_thumbs_bg():
         try:
+            if not _env_on('THUMB_PREFETCH_ON_START', '1'):
+                return
             from backend.services import drive as drive_svc
-            recent = get_all_media(limit=64)
-            n = drive_svc.prefetch_thumbnails(recent, size=280, limit=64)
+            recent = get_all_media(limit=32)
+            n = drive_svc.prefetch_thumbnails(recent, size=280, limit=32)
             print(f"[Thumbs] Cache aquecido: {n} arquivo(s).")
         except Exception as e:
             print(f"[Thumbs] Prefetch falhou: {e}")

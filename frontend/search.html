@@ -7,14 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
-  <link rel="stylesheet" href="css/search.css?v=20260807v"/>
+  <link rel="stylesheet" href="css/search.css?v=20260810best"/>
+  <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
-  <script src="js/search.js?v=20260807v" defer></script>
+  <script src="js/search.js?v=20260810best" defer></script>
 </head>
 <body class="theme-generico">
 
@@ -52,7 +53,7 @@
       <div class="search-bar-wrap" id="searchBarWrap">
         <div class="search-bar" id="searchBar">
           <svg class="si-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="Nome, casal, tag, data ou vibe…" aria-label="Buscar no acervo"/>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Digite um nome (pasta), casal, tag ou data…" aria-label="Buscar no acervo"/>
           <div class="si-actions" id="siActions">
             <button type="button" class="si-act" data-act="foto" title="Só fotos">Fotos</button>
             <button type="button" class="si-act" data-act="video" title="Só vídeos">Vídeos</button>
@@ -164,12 +165,12 @@
 
   <div id="stResults" class="state active">
     <div class="res-grid" id="resGrid"></div>
-    <div class="scroll-sentinel" id="scrollSentinel" aria-hidden="true"></div>
-    <div class="load-more-wrap" id="loadMoreWrap">
-      <div class="lm-bar"><div class="lm-prog" id="lmProg"></div></div>
-      <p class="lm-status" id="lmStatus"></p>
-      <button type="button" class="lm-btn" id="lmBtn" hidden>Carregar mais <span id="lmCount"></span></button>
-    </div>
+    <nav class="pager" id="pager" aria-label="Páginas de resultados" hidden>
+      <button type="button" class="pager-nav" id="pagerPrev" aria-label="Página anterior">Anterior</button>
+      <div class="pager-pages" id="pagerPages" role="list"></div>
+      <button type="button" class="pager-nav" id="pagerNext" aria-label="Próxima página">Próxima</button>
+      <p class="pager-meta" id="pagerMeta"></p>
+    </nav>
   </div>
 
   <div id="stEmpty" class="state">

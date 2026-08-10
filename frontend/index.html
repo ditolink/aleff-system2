@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" id="top">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
@@ -7,17 +7,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="css/ui.css?v=20260801az"/>
-  <link rel="stylesheet" href="css/style.css?v=20260807v"/>
+  <link rel="stylesheet" href="css/ui.css?v=20260809flat3"/>
+  <link rel="stylesheet" href="css/style.css?v=20260809flat3"/>
+  <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
-  <link rel="stylesheet" href="css/logo.css?v=20260807c"/>
+  <link rel="stylesheet" href="css/logo.css?v=20260808masonry"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260801az"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260807c" defer></script>
-  <script src="js/contact.js?v=20260801ap" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
+  <script src="js/contact.js?v=20260809igopen" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
-  <script src="js/main.js?v=20260807v" defer></script>
+  <script src="js/main.js?v=20260810home" defer></script>
 
 </head>
 <body>
@@ -35,6 +36,7 @@
   </a>
   <ul class="nav-links">
     <li><a href="#work">Trabalhos</a></li>
+    <li><a href="#videos">Vídeos</a></li>
     <li><a href="#contato">Contato</a></li>
   </ul>
   <div class="nav-right">
@@ -70,27 +72,35 @@
 <section class="work-section" id="work">
   <div class="sec-hdr rv">
     <span class="sec-label">Trabalhos selecionados</span>
-    <span class="sec-count">30 peças</span>
+    <span class="sec-count">19 fotos</span>
   </div>
-  <div class="grid">
-    <div class="gi feature-cinema rv" data-idx="0"><video src="videos/Instagram.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Reel Instagram</p><p class="gi-cat">Destaque — Filmmaker</p></div></div>
-    <div class="gi feature rv" data-idx="1"><video src="videos/REELS1.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Ação &amp; Movimento</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi p-tall rv" data-idx="2"><img src="fotos/foto_thalles.jpg" alt="Thalles Roberto" loading="eager" decoding="async" fetchpriority="high"/><div class="gi-ov"><p class="gi-title">Thalles Roberto</p><p class="gi-cat">Show — Montes Claros MG</p></div></div>
-    <div class="gi p-tall rv" data-idx="3"><img src="fotos/foto11i.jpg" alt="Ensaio piscina" loading="eager" decoding="async"/><div class="gi-ov"><p class="gi-title">Tarde na Piscina</p><p class="gi-cat">Ensaio — Casual</p></div></div>
-    <div class="gi p-tall rv" data-idx="4"><img src="fotos/foto20.webp" alt="Ensaio praia" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Tarde de Praia</p><p class="gi-cat">Ensaio — Verão</p></div></div>
-    <div class="gi p-tall rv" data-idx="5"><img src="fotos/foto55.jpg" alt="Retrato com tranças" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Luz da Tarde</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+  <div class="grid galeria-trabalhos" id="galeriaTrabalhos">
+    <!--
+      Masonry JS (initWorkMasonry): shortest-column. Desktop 4-col — l-wide/l-hero
+      imgs span 2 (~50%). Tablet/mobile: 1-col width (packing perfeito). Gap 2px.
+    -->
+    <!-- Abertura: HVV | HVV -->
+    <div class="gi l-wide rv" data-idx="0"><img src="fotos/foto_casal_passarela.jpg" width="1440" height="960" alt="Casal no abraço na passarela de madeira" loading="eager" decoding="async" fetchpriority="high"/><div class="gi-ov"><p class="gi-title">Passarela do Sim</p><p class="gi-cat">Casamento — Ensaio</p></div></div>
+    <div class="gi p-tall rv" data-idx="1"><img src="fotos/foto_floral.png" width="682" height="1024" alt="Retrato vestido floral" loading="eager" decoding="async"/><div class="gi-ov"><p class="gi-title">Flor no Peito</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+    <div class="gi p-tall rv" data-idx="2"><img src="fotos/foto60.webp" width="1080" height="1350" alt="Retrato iluminado" loading="eager" decoding="async"/><div class="gi-ov"><p class="gi-title">Retrato Iluminado</p><p class="gi-cat">Artístico — Luz Dourada</p></div></div>
+    <div class="gi l-wide rv" data-idx="3"><img src="fotos/foto_guitarra.jpg" width="3264" height="2176" alt="Mulher com violão sorrindo ao ar livre" loading="eager" decoding="async"/><div class="gi-ov"><p class="gi-title">Acorde &amp; Sorriso</p><p class="gi-cat">Lifestyle — Outdoor</p></div></div>
+    <div class="gi p-tall rv" data-idx="4"><img src="fotos/foto11i.jpg" width="1080" height="1350" alt="Ensaio piscina" loading="eager" decoding="async"/><div class="gi-ov"><p class="gi-title">Tarde na Piscina</p><p class="gi-cat">Modelo — Lifestyle</p></div></div>
+    <div class="gi p-tall rv" data-idx="5"><img src="fotos/foto_cerca.png" width="682" height="1024" alt="Retrato com sombra da cerca" loading="eager" decoding="async"/><div class="gi-ov"><p class="gi-title">Sombra na Cerca</p><p class="gi-cat">Modelo — Editorial</p></div></div>
 
-    <div class="grid-break" role="presentation"><span>Shows &amp; cidade</span></div>
+    <div class="grid-break" role="presentation"><span>Casais &amp; casamento</span></div>
 
-    <div class="gi l-wide rv" data-idx="6"><img src="fotos/foto10.jpg" alt="Ponte das Bandeiras" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Ponte das Bandeiras</p><p class="gi-cat">Urbano — SP</p></div></div>
-    <div class="gi p-tall rv" data-idx="7"><img src="fotos/foto_detonautas.webp" alt="Detonautas" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Detonautas</p><p class="gi-cat">Show — Pirapora MG</p></div></div>
-    <div class="gi p-tall rv" data-idx="8"><img src="fotos/foto12.jpg" alt="Retrato Xadrez" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">O Lance Certo</p><p class="gi-cat">Retrato — Editorial</p></div></div>
-    <div class="gi p-tall rv" data-idx="9"><img src="fotos/foto_jotaquest.webp" alt="Jota Quest" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Jota Quest</p><p class="gi-cat">Show — Pirapora MG</p></div></div>
-    <div class="gi p-tall rv" data-idx="10"><img src="fotos/foto30.jpg" alt="Retrato Masculino" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Estilo &amp; Atitude</p><p class="gi-cat">Retrato — Masculino</p></div></div>
-    <div class="gi p-tall rv" data-idx="11"><img src="fotos/foto60.webp" alt="Retrato Iluminado" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Retrato Iluminado</p><p class="gi-cat">Ensaio — Luz Dourada</p></div></div>
-    <div class="gi p-tall rv" data-idx="12"><img src="fotos/foto_gravata.png" alt="Retrato com gravata" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Nó Feito</p><p class="gi-cat">Retrato — Editorial</p></div></div>
-    <div class="gi p-tall rv" data-idx="13"><img src="fotos/foto_show_unico.png" alt="Show ao vivo" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Braços Abertos</p><p class="gi-cat">Show — Ao vivo</p></div></div>
-    <div class="gi p-tall rv" data-idx="14"><img src="fotos/foto_motocross.png" alt="Motocross no ar" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">No Ar</p><p class="gi-cat">Pista &amp; Ação</p></div></div>
+    <!-- Casais: HVV -->
+    <div class="gi l-wide rv" data-idx="6"><img src="fotos/foto_casal_por_do_sol.jpg" width="3840" height="2560" alt="Casal em silhueta no pôr do sol" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Silhueta Dourada</p><p class="gi-cat">Casamento — Pôr do Sol</p></div></div>
+    <div class="gi p-tall rv" data-idx="7"><img src="fotos/foto40.webp" width="1080" height="1350" alt="Casamento no tronco" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Para Sempre</p><p class="gi-cat">Casamento — Beira-rio</p></div></div>
+    <div class="gi p-tall rv" data-idx="8"><img src="fotos/foto_casal_reflexo.png" width="683" height="1024" alt="Casal no reflexo do pôr do sol" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Espelho d&apos;Água</p><p class="gi-cat">Ensaio — Pré-wedding</p></div></div>
+
+    <div class="grid-break" role="presentation"><span>Retratos &amp; modelo</span></div>
+
+    <!-- Retratos: VVVV (+ slot staff-only, fora da conta do visitante) -->
+    <div class="gi p-tall rv" data-idx="9"><img src="fotos/foto30.jpg" width="1080" height="1350" alt="Retrato masculino editorial" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Estilo &amp; Atitude</p><p class="gi-cat">Modelo — Comercial</p></div></div>
+    <div class="gi p-tall rv" data-idx="10"><img src="fotos/foto55.jpg" width="1080" height="1350" alt="Retrato com tranças" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Luz da Tarde</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+    <div class="gi p-tall rv" data-idx="11"><img src="fotos/foto_gravata.png" width="682" height="1024" alt="Retrato com gravata" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Nó Feito</p><p class="gi-cat">Retrato — Editorial</p></div></div>
+    <div class="gi p-tall rv" data-idx="12"><img src="fotos/foto_sorriso.png" width="682" height="1024" alt="Retrato sorrindo" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Luz da Rua</p><p class="gi-cat">Retrato — Golden hour</p></div></div>
     <div class="gi gi-slot p-tall" data-slot-id="01" aria-label="Espaço reservado">
       <div class="slot-inner">
         <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
@@ -99,47 +109,19 @@
       </div>
     </div>
 
-    <div class="grid-break" role="presentation"><span>Casais &amp; cinema</span></div>
+    <div class="grid-break" role="presentation"><span>Artístico &amp; lifestyle</span></div>
 
-    <div class="gi l-wide rv" data-idx="15"><img src="fotos/foto41.webp" alt="Casal estrada" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Brincadeira de Casal</p><p class="gi-cat">Ensaio — Pré-wedding</p></div></div>
-    <div class="gi p-tall rv" data-idx="16"><img src="fotos/foto40.webp" alt="Casamento no tronco" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Para Sempre</p><p class="gi-cat">Casamento — Beira-rio</p></div></div>
-    <div class="gi p-tall rv" data-idx="17"><img src="fotos/foto_casal_reflexo.png" alt="Casal no reflexo do pôr do sol" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Espelho d&apos;Água</p><p class="gi-cat">Ensaio — Pré-wedding</p></div></div>
-    <div class="gi gi-slot p-tall" data-slot-id="02" aria-label="Espaço reservado">
-      <div class="slot-inner">
-        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
-        <p class="slot-lbl">Em breve</p>
-        <p class="slot-sub">Novo casal</p>
-      </div>
-    </div>
-    <div class="gi feature rv" data-idx="18"><video src="videos/video72.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Natureza Viva</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi feature-cinema rv" data-idx="19"><video src="videos/VIDEORAPS.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Sessão de Rap</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi l-cinema rv" data-idx="20"><video src="videos/VIDEORAPS.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Dia Inesquecível</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi p-tall rv" data-idx="21"><video src="videos/video73.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Frame Perfeito</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi gi-slot p-tall" data-slot-id="03" aria-label="Espaço reservado">
-      <div class="slot-inner">
-        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
-        <p class="slot-lbl">Em breve</p>
-        <p class="slot-sub">Novo vídeo</p>
-      </div>
-    </div>
-    <div class="gi l-wide rv" data-idx="22"><img src="fotos/foto50.webp" alt="Halloween infantil" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Noite de Halloween</p><p class="gi-cat">Ensaio — Infantil</p></div></div>
+    <!-- Artístico: VVVV -->
+    <div class="gi p-tall rv" data-idx="13"><img src="fotos/foto94.webp" width="1080" height="1350" alt="Retrato conceitual com moldura" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Suspensa no Tempo</p><p class="gi-cat">Artístico — Conceito</p></div></div>
+    <div class="gi p-tall rv" data-idx="14"><img src="fotos/foto_cafe.png" width="682" height="1024" alt="Retrato no café" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Mesa da Manhã</p><p class="gi-cat">Lifestyle — Casual</p></div></div>
+    <div class="gi p-tall rv" data-idx="15"><img src="fotos/foto20.webp" width="1080" height="1350" alt="Ensaio praia" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Tarde de Praia</p><p class="gi-cat">Lifestyle — Verão</p></div></div>
+    <div class="gi p-tall rv" data-idx="16"><img src="fotos/foto_superman.png" width="682" height="1024" alt="Aniversário tema herói" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Pequeno Herói</p><p class="gi-cat">Ensaio — Infantil</p></div></div>
 
-    <div class="grid-break" role="presentation"><span>Retratos &amp; conceito</span></div>
+    <div class="grid-break" role="presentation"><span>Família &amp; eventos</span></div>
 
-    <div class="gi l-wide rv" data-idx="23"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Produção Especial</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi p-tall rv" data-idx="24"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">No Estúdio</p><p class="gi-cat">Vídeo — 2024</p></div></div>
-    <div class="gi p-tall rv" data-idx="25"><img src="fotos/fotolely.jpg" alt="Retrato pôr do sol" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Vento da Tarde</p><p class="gi-cat">Retrato — Pôr do Sol</p></div></div>
-    <div class="gi p-tall rv" data-idx="26"><img src="fotos/fotojoy01.jpg" alt="Retrato floral" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Doce Olhar</p><p class="gi-cat">Retrato — Editorial</p></div></div>
-    <div class="gi p-tall rv" data-idx="27"><img src="fotos/foto_cafe.png" alt="Retrato no café" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Mesa da Manhã</p><p class="gi-cat">Retrato — Casual</p></div></div>
-    <div class="gi p-tall rv" data-idx="28"><img src="fotos/foto_sorriso.png" alt="Retrato sorrindo" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Luz da Rua</p><p class="gi-cat">Retrato — Golden hour</p></div></div>
-    <div class="gi p-tall rv" data-idx="29"><img src="fotos/foto94.webp" alt="Levitação no rio" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Suspensa no Tempo</p><p class="gi-cat">Conceitual — Levitação</p></div></div>
-    <div class="gi gi-slot l-wide" data-slot-id="04" aria-label="Espaço reservado">
-      <div class="slot-inner">
-        <svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#0a0a0a"/></svg>
-        <p class="slot-lbl">Reservado</p>
-        <p class="slot-sub">Próximo destaque widescreen</p>
-      </div>
-    </div>
+    <!-- Família: HH (fecha a grade sem buraco) -->
+    <div class="gi l-wide rv" data-idx="17"><img src="fotos/foto_batismo.jpg" width="5184" height="3456" alt="Batismo na igreja" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Água da Bênção</p><p class="gi-cat">Evento — Família</p></div></div>
+    <div class="gi l-wide rv" data-idx="18"><img src="fotos/foto_evento.jpg" width="3840" height="2560" alt="Momento de celebração" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">Risada Contagiante</p><p class="gi-cat">Evento — Cobertura</p></div></div>
   </div>
 </section>
 
@@ -148,6 +130,27 @@
   <div class="quick-paths-inner rv">
     <a href="search.html" class="quick-chip">Buscar no acervo</a>
     <a href="#contato" class="quick-chip">Falar comigo</a>
+  </div>
+</section>
+
+<!-- VÍDEOS / AUDIOVISUAL -->
+<section class="videos-section" id="videos">
+  <div class="sec-hdr rv">
+    <div class="videos-hdr-text">
+      <span class="sec-label">Audiovisual</span>
+      <p class="videos-lede">Reels, sessões e filmes curtos</p>
+    </div>
+    <span class="sec-count">2 vídeos</span>
+  </div>
+  <div class="grid videos-grid" id="galeriaVideos">
+    <div class="gi v-wide rv" data-idx="20">
+      <video src="videos/video_casamento21.mp4" poster="fotos/thumb_casamento21.jpg" muted loop playsinline preload="none"></video>
+      <div class="gi-ov"><div class="gi-play"></div><p class="gi-title">O Beijo</p><p class="gi-cat">Casamento — Vídeo</p></div>
+    </div>
+    <div class="gi v-wide rv" data-idx="21">
+      <video src="videos/VIDEORAPS.mp4" poster="fotos/thumb_videoraps.jpg" muted loop playsinline preload="none"></video>
+      <div class="gi-ov"><div class="gi-play"></div><p class="gi-title">Sessão de Rap</p><p class="gi-cat">Vídeo — Sessão</p></div>
+    </div>
   </div>
 </section>
 
@@ -177,8 +180,8 @@
   <div class="timeline" id="timeline">
     <div class="timeline-progress" id="timelineProgress"></div>
     <div class="tl-item rv"><p class="tl-year">2019</p><p class="tl-title">Começo</p><p class="tl-desc">Primeiros trabalhos com equipamento emprestado, ainda em Pirapora e região.</p></div>
-    <div class="tl-item rv d1"><p class="tl-year">2021</p><p class="tl-title">Shows e eventos</p><p class="tl-desc">Entrei de vez na cobertura ao vivo — palco, luz baixa e prazo curto.</p></div>
-    <div class="tl-item rv d2"><p class="tl-year">2022</p><p class="tl-title">Vídeo e reels</p><p class="tl-desc">Passei a entregar também audiovisual: reels, clips e material institucional.</p></div>
+    <div class="tl-item rv d1"><p class="tl-year">2021</p><p class="tl-title">Pandemia</p><p class="tl-desc">Ensaios, edição e entrega online — os shows ao vivo ficaram de lado.</p></div>
+    <div class="tl-item rv d2"><p class="tl-year">2022</p><p class="tl-title">Shows e eventos</p><p class="tl-desc">Com os eventos de volta, entrei de vez na cobertura ao vivo — e abri também reels e audiovisual.</p></div>
     <div class="tl-item rv"><p class="tl-year">2023</p><p class="tl-title">Nomes no portfólio</p><p class="tl-desc">Cobri Jota Quest e Detonautas em Pirapora e Thalles Roberto em Montes Claros.</p></div>
     <div class="tl-item rv d1"><p class="tl-year">2024</p><p class="tl-title">Mais demanda</p><p class="tl-desc">Shows, ensaios e marcas no mesmo fluxo — foto e vídeo com a mesma linguagem.</p></div>
     <div class="tl-item rv d2"><p class="tl-year">2025</p><p class="tl-title">Acervo e entrega</p><p class="tl-desc">Organizei o acervo e a entrega online pra cliente achar e baixar com facilidade.</p></div>
@@ -195,7 +198,7 @@
     <div class="foto-item r-vert rv d2"><video src="videos/video67.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 04</p></div>
     <div class="foto-item r-vert rv d3"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 05</p></div>
     <div class="foto-item r-vert rv d3"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 06</p></div>
-    <div class="foto-item r-wide rv d3"><video src="videos/Reel03.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 03</p></div>
+    <div class="foto-item r-vert rv d3"><video src="videos/REELS1.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 03 · Ação &amp; Movimento</p></div>
   </div>
 </section>
 
@@ -217,28 +220,28 @@
   </div>
   <div class="marks-rail">
     <a class="marks-card rv" href="#work">
-      <img src="fotos/foto_thalles.jpg" alt="Thalles Roberto em Montes Claros" loading="lazy" decoding="async"/>
+      <img src="fotos/foto_thalles.jpg" width="1080" height="1350" alt="Thalles Roberto em Montes Claros" loading="lazy" decoding="async"/>
       <div class="marks-meta">
         <p class="marks-place">Montes Claros · MG</p>
         <p class="marks-what">Thalles Roberto — show</p>
       </div>
     </a>
     <a class="marks-card rv d1" href="#work">
-      <img src="fotos/foto_jotaquest.webp" alt="Jota Quest em Pirapora" loading="lazy" decoding="async"/>
+      <img src="fotos/foto_jotaquest.webp" width="1080" height="1350" alt="Jota Quest em Pirapora" loading="lazy" decoding="async"/>
       <div class="marks-meta">
         <p class="marks-place">Pirapora · MG</p>
         <p class="marks-what">Jota Quest — cobertura</p>
       </div>
     </a>
     <a class="marks-card rv d2" href="#work">
-      <img src="fotos/foto_detonautas.webp" alt="Detonautas em Pirapora" loading="lazy" decoding="async"/>
+      <img src="fotos/foto_detonautas.webp" width="1080" height="1350" alt="Detonautas em Pirapora" loading="lazy" decoding="async"/>
       <div class="marks-meta">
         <p class="marks-place">Pirapora · MG</p>
         <p class="marks-what">Detonautas — palco</p>
       </div>
     </a>
     <a class="marks-card rv d3" href="#work">
-      <img src="fotos/foto_show_unico_marks.png" alt="Show ao vivo — luzes roxas" loading="lazy" decoding="async"/>
+      <img src="fotos/foto_show_unico_marks.png" width="819" height="1024" alt="Show ao vivo — luzes roxas" loading="lazy" decoding="async"/>
       <div class="marks-meta">
         <p class="marks-place">Palco · ao vivo</p>
         <p class="marks-what">Show — cobertura</p>
@@ -281,7 +284,7 @@
       </header>
 
       <div class="contato-channels rv" role="radiogroup" aria-label="Método de envio">
-        <button type="button" class="ch ch-wa is-active" data-method="whatsapp" role="radio" aria-checked="true">
+        <button type="button" class="ch ch-wa is-active" data-method="whatsapp" role="radio" aria-checked="true" tabindex="0">
           <span class="ch-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
           </span>
@@ -290,7 +293,7 @@
             <span class="ch-val">(38) 9907-8483</span>
           </span>
         </button>
-        <button type="button" class="ch ch-em" data-method="gmail" role="radio" aria-checked="false" id="emailBtn">
+        <button type="button" class="ch ch-em" data-method="gmail" role="radio" aria-checked="false" id="emailBtn" tabindex="-1">
           <span class="ch-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M6 10l18 13L42 10H6z"/><path fill="#34A853" d="M42 10v28H6V10l18 13z"/><path fill="#FBBC05" d="M6 10v28l10-14z"/><path fill="#4285F4" d="M42 10v28L32 24z"/><path fill="#C5221F" d="M6 38l10-14 8 5.6L32 24l10 14H6z"/></svg>
           </span>
@@ -299,7 +302,7 @@
             <span class="ch-val">aleffthigo@gmail.com</span>
           </span>
         </button>
-        <button type="button" class="ch ch-ig" data-method="instagram" role="radio" aria-checked="false">
+        <button type="button" class="ch ch-ig" data-method="instagram" role="radio" aria-checked="false" tabindex="-1">
           <span class="ch-icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><defs><linearGradient id="igG" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f09433"/><stop offset="50%" stop-color="#dc2743"/><stop offset="100%" stop-color="#bc1888"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" stroke="url(#igG)"/><circle cx="12" cy="12" r="4" stroke="url(#igG)"/><circle cx="17.5" cy="6.5" r="1.2" fill="url(#igG)" stroke="none"/></svg>
           </span>
@@ -323,8 +326,8 @@
         </div>
         <div class="fg">
           <label class="flbl" for="ccTipo">O que precisa</label>
-          <select id="ccTipo" name="tipo" class="finput cc-select">
-            <option value="" disabled selected>Escolhe um</option>
+          <select id="ccTipo" name="tipo" class="finput cc-select" required>
+            <option value="" selected hidden>Escolhe um</option>
             <option>Show / evento ao vivo</option>
             <option>Retrato / ensaio</option>
             <option>Ensaio de casal</option>
@@ -376,13 +379,14 @@ Obrigado!</pre>
 
 <nav class="m-dock" aria-label="Atalhos">
   <a href="#work">Trabalhos</a>
+  <a href="#videos">Vídeos</a>
   <a href="search.html" class="is-primary">Buscar</a>
   <a href="#contato">Contato</a>
 </nav>
 
 <!-- FOOTER -->
 <footer>
-  <a href="index.html" class="logo logo--muted" aria-label="Aleff Thiago">
+  <a href="#hero" class="logo logo--muted" id="footerBrand" aria-label="Aleff Thiago — voltar ao parallax">
     <span class="logo-mark" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
         <circle cx="12" cy="13" r="6.5"/>

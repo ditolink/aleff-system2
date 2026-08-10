@@ -1,0 +1,22 @@
+---
+description: Motion UI — skeleton, lazy load, enter/exit, progresso
+globs: frontend/**/*.{html,css,js}
+alwaysApply: false
+---
+
+# Motion UI (Design Motion Principles)
+
+Inspirado em [kylezantos/design-motion-principles](https://github.com/kylezantos/design-motion-principles).
+
+Contexto do projeto: **portfólio criativo** → peso em Jhey (presença) + Jakub (polish). Evitar AI-slop.
+
+## Sempre que tocar UI
+
+- Skeleton em loading (`.skel`, grids existentes).
+- Lazy load em imagens/vídeos below-fold.
+- Entrada suave (`.motion-enter` / stagger curto ≤ 8 itens).
+- Saída ao fechar lightbox, modal, toast.
+- Progresso em sync, busca, upload, paginação.
+- `prefers-reduced-motion: reduce` desliga animação ornamental.
+
+Use `frontend/css/motion.css`. Durações típicas: 180–320ms ease-out (produto); até ~400ms em hero/portfólio.
