@@ -238,8 +238,9 @@ body {
   backdrop-filter: none;
 }
 .site-nav--slim.is-scrolled {
-  background: transparent;
-  backdrop-filter: none;
+  background: rgba(10, 10, 10, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .site-nav--slim .nav-links { gap: 22px; }
 .nav-search-kbd { display: none; }
