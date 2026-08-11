@@ -5,38 +5,24 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-  /* Media pool (lightbox) */
+  /* Media pool (lightbox) — espelha #galeriaTrabalhos + #galeriaVideos */
+  /* Lightbox: medium thumbs (~800px) — nunca originais HD */
   const mediaPool = [
-    { type: 'video', src: 'videos/Instagram.mp4', title: 'Reel Instagram' },
-    { type: 'video', src: 'videos/REELS1.mp4', title: 'Ação & Movimento' },
-    { type: 'img', src: 'fotos/foto_thalles.jpg', title: 'Thalles Roberto — Montes Claros' },
-    { type: 'img', src: 'fotos/foto11i.jpg', title: 'Tarde na Piscina' },
-    { type: 'img', src: 'fotos/foto20.webp', title: 'Tarde de Praia' },
-    { type: 'img', src: 'fotos/foto55.jpg', title: 'Luz da Tarde' },
-    { type: 'img', src: 'fotos/foto10.jpg', title: 'Ponte das Bandeiras — SP' },
-    { type: 'img', src: 'fotos/foto_detonautas.webp', title: 'Detonautas — Pirapora MG' },
-    { type: 'img', src: 'fotos/foto12.jpg', title: 'O Lance Certo' },
-    { type: 'img', src: 'fotos/foto_jotaquest.webp', title: 'Jota Quest — Pirapora MG' },
-    { type: 'img', src: 'fotos/foto30.jpg', title: 'Estilo & Atitude' },
-    { type: 'img', src: 'fotos/foto60.webp', title: 'Retrato Iluminado' },
-    { type: 'img', src: 'fotos/foto_gravata.png', title: 'Nó Feito' },
-    { type: 'img', src: 'fotos/foto_show_unico.png', title: 'Braços Abertos' },
-    { type: 'img', src: 'fotos/foto_motocross.png', title: 'No Ar' },
-    { type: 'img', src: 'fotos/foto41.webp', title: 'Brincadeira de Casal' },
-    { type: 'img', src: 'fotos/foto40.webp', title: 'Para Sempre' },
-    { type: 'img', src: 'fotos/foto_casal_reflexo.png', title: "Espelho d'Água" },
-    { type: 'video', src: 'videos/video72.mp4', title: 'Natureza Viva' },
-    { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Sessão de Rap' },
-    { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Dia Inesquecível' },
-    { type: 'video', src: 'videos/video73.mp4', title: 'Frame Perfeito' },
-    { type: 'img', src: 'fotos/foto50.webp', title: 'Noite de Halloween' },
-    { type: 'video', src: 'videos/video12.mp4', title: 'Produção Especial' },
-    { type: 'video', src: 'videos/COMERCIAL01.mp4', title: 'No Estúdio' },
-    { type: 'img', src: 'fotos/fotolely.jpg', title: 'Vento da Tarde' },
-    { type: 'img', src: 'fotos/fotojoy01.jpg', title: 'Doce Olhar' },
-    { type: 'img', src: 'fotos/foto_cafe.png', title: 'Mesa da Manhã' },
-    { type: 'img', src: 'fotos/foto_sorriso.png', title: 'Luz da Rua' },
-    { type: 'img', src: 'fotos/foto94.webp', title: 'Suspensa no Tempo' },
+    { type: 'img', src: 'fotos/foto_casal_por_do_sol.jpg', title: 'Silhueta' },
+    { type: 'img', src: '/api/media/1675/thumb-medium', title: 'Quando a luz cai', mediaId: 1675 },
+    { type: 'img', src: '/api/media/1855/thumb-medium', title: 'Quando a luz cai', mediaId: 1855 },
+    { type: 'img', src: '/api/media/1709/thumb-medium', title: 'Quando a luz cai', mediaId: 1709 },
+    { type: 'img', src: '/api/media/27/thumb-medium', title: 'Entre nós', mediaId: 27 },
+    { type: 'img', src: '/api/media/75/thumb-medium', title: 'Entre nós', mediaId: 75 },
+    { type: 'img', src: '/api/media/61/thumb-medium', title: 'Entre nós', mediaId: 61 },
+    { type: 'img', src: '/api/media/1953/thumb-medium', title: 'Um lugar para ser', mediaId: 1953 },
+    { type: 'img', src: '/api/media/2034/thumb-medium', title: 'Barbara', mediaId: 2034 },
+    { type: 'img', src: '/api/media/2033/thumb-medium', title: 'Um lugar para ser', mediaId: 2033 },
+    { type: 'img', src: '/api/media/2156/thumb-medium', title: 'Um lugar para ser', mediaId: 2156 },
+    { type: 'img', src: '/api/media/1285/thumb-medium', title: 'Um lugar para ser', mediaId: 1285 },
+    { type: 'img', src: '/api/media/1942/thumb-medium', title: 'Um lugar para ser', mediaId: 1942 },
+    { type: 'video', src: 'videos/video_casamento21.mp4', title: 'O Beijo', poster: 'fotos/thumb_casamento21.jpg' },
+    { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Sessão de Rap', poster: 'fotos/thumb_videoraps.jpg' },
   ];
 
   const fotoPool = [
@@ -62,6 +48,162 @@
   }
 
   const isMobileUI = () => window.matchMedia('(max-width: 768px), (hover: none)').matches;
+
+  /* ── Scroll: F5 + logo do rodapé → parallax (hero) ─── */
+  const scrollRestore = (() => {
+    const storageKey = `aleff_scroll:${location.pathname || '/index.html'}`;
+    const navEntry = performance.getEntriesByType?.('navigation')?.[0];
+    const isReload = navEntry?.type === 'reload';
+    const hash = location.hash || '';
+    const wantHero = isReload || !hash || hash === '#top' || hash === '#hero';
+    /** Enquanto true, o masonry não “puxa” a tela de volta pra baixo. */
+    let lockTop = wantHero;
+    let pendingHash = wantHero ? '' : hash;
+
+    try {
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    } catch (_) {}
+
+    if (wantHero) {
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch (_) {}
+    }
+
+    function withInstantScroll(fn) {
+      const html = document.documentElement;
+      const prev = html.style.scrollBehavior;
+      html.style.scrollBehavior = 'auto';
+      try {
+        fn();
+      } finally {
+        html.style.scrollBehavior = prev;
+      }
+    }
+
+    function scrollToHero({ smooth = false } = {}) {
+      const hero = document.getElementById('hero') || document.getElementById('top');
+      if (smooth) {
+        if (hero) hero.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        withInstantScroll(() => {
+          window.scrollTo(0, 0);
+          if (hero) hero.scrollIntoView({ block: 'start', behavior: 'instant' });
+        });
+      }
+      window.dispatchEvent(new Event('scroll'));
+    }
+
+    function goParallax({ smooth = false } = {}) {
+      lockTop = true;
+      pendingHash = '';
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch (_) {}
+      try {
+        history.replaceState(null, '', `${location.pathname}${location.search}#hero`);
+      } catch (_) {}
+      scrollToHero({ smooth });
+      // Liberar depois do smooth / do pack inicial
+      window.setTimeout(() => {
+        lockTop = false;
+      }, smooth ? 1400 : 900);
+    }
+
+    function captureAnchor() {
+      if (lockTop || window.scrollY < 60) return null;
+      const x = Math.min(Math.max(window.innerWidth * 0.5, 8), window.innerWidth - 8);
+      const probeY = Math.min(96, window.innerHeight * 0.22);
+      let node = document.elementFromPoint(x, probeY);
+      while (node && node !== document.body && node !== document.documentElement) {
+        if (node.id) return { id: node.id, offset: node.getBoundingClientRect().top };
+        node = node.parentElement;
+      }
+      return { y: window.scrollY };
+    }
+
+    function restoreAnchor(anchor) {
+      if (!anchor || lockTop) return;
+      if (anchor.id) {
+        const el = document.getElementById(anchor.id);
+        if (el) {
+          const delta = el.getBoundingClientRect().top - anchor.offset;
+          if (Math.abs(delta) > 0.5) {
+            withInstantScroll(() => window.scrollTo(0, window.scrollY + delta));
+          }
+          return;
+        }
+      }
+      if (typeof anchor.y === 'number' && anchor.y > 0) {
+        withInstantScroll(() => window.scrollTo(0, anchor.y));
+      }
+    }
+
+    function applyPending() {
+      if (lockTop) {
+        scrollToHero({ smooth: false });
+        return;
+      }
+      if (pendingHash && pendingHash !== '#top' && pendingHash !== '#hero') {
+        const el = document.querySelector(pendingHash);
+        if (el) {
+          withInstantScroll(() => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+          window.dispatchEvent(new Event('scroll'));
+        }
+      }
+    }
+
+    function shouldAnchorPack() {
+      return !lockTop && window.scrollY >= 60;
+    }
+
+    function init() {
+      if (wantHero) scrollToHero({ smooth: false });
+
+      window.addEventListener(
+        'wheel',
+        () => { lockTop = false; },
+        { passive: true, once: true }
+      );
+      window.addEventListener(
+        'touchstart',
+        () => { lockTop = false; },
+        { passive: true, once: true }
+      );
+      window.addEventListener(
+        'keydown',
+        (e) => {
+          if (['ArrowDown', 'PageDown', 'Space', 'End', 'Home'].includes(e.code)) {
+            lockTop = false;
+          }
+        },
+        { passive: true, once: true }
+      );
+
+      const retry = () => applyPending();
+      window.addEventListener(
+        'load',
+        () => {
+          retry();
+          setTimeout(retry, 100);
+          setTimeout(retry, 400);
+          setTimeout(() => { lockTop = false; }, 1000);
+        },
+        { once: true }
+      );
+      if (document.readyState === 'complete') setTimeout(retry, 0);
+    }
+
+    return {
+      init,
+      captureAnchor,
+      restoreAnchor,
+      applyPending,
+      shouldAnchorPack,
+      goParallax,
+    };
+  })();
 
   /* ── Hero: parallax no rosto + nav some no scroll ───── */
   function initHero() {
@@ -101,6 +243,32 @@
   // Status/manutenção ficam só em admin.html
 
   /* ── Vídeos: lazy + hover (não baixa tudo de uma vez) ─── */
+  function isAutoplayTile(v) {
+    const parent = v?.closest?.('.gi, .foto-item');
+    return !!(
+      v?.hasAttribute?.('autoplay') ||
+      v?.dataset?.autoplay === '1' ||
+      parent?.classList?.contains('gi-autoplay') ||
+      parent?.dataset?.autoplay === '1'
+    );
+  }
+
+  function playMutedLoop(v) {
+    if (!v) return;
+    v.muted = true;
+    v.loop = true;
+    v.setAttribute('playsinline', '');
+    const p = v.play();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  }
+
+  function resumeAutoplayVideos() {
+    $$('.gi.gi-autoplay video, .gi[data-autoplay="1"] video, video[autoplay]').forEach((v) => {
+      if (!v.closest('.gi, .foto-item')) return;
+      playMutedLoop(v);
+    });
+  }
+
   function applyVideoFrame(v) {
     const parent = v.closest('.gi, .foto-item');
     if (!parent) return;
@@ -115,28 +283,66 @@
     else v.addEventListener('loadedmetadata', apply, { once: true });
   }
 
+  function videoSrcOf(v) {
+    return v.getAttribute('src') || v.dataset.src || '';
+  }
+
+  /** Após play, o poster some — reinicia o elemento pra mostrar o poster de novo. */
+  function restorePoster(v) {
+    const poster = v.getAttribute('poster');
+    if (!poster) {
+      try { v.currentTime = 0; } catch { /* ignore */ }
+      return;
+    }
+    const src = videoSrcOf(v);
+    if (!src) return;
+    try {
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+      v.setAttribute('src', src);
+      v.preload = 'none';
+      v.dataset.warmed = '0';
+    } catch { /* ignore */ }
+  }
+
   function initVideoHover() {
     const videos = $$('.gi video, .foto-item video');
     if (!videos.length) return;
 
     // Evita congestionamento: só metadata quando entra na tela
     videos.forEach((v) => {
+      const auto = isAutoplayTile(v);
+      if (v.dataset.videoInit === '1') {
+        if (auto) playMutedLoop(v);
+        return;
+      }
+      v.dataset.videoInit = '1';
       const lazy = v.getAttribute('data-src');
       if (lazy && !v.getAttribute('src')) {
         v.setAttribute('src', lazy);
       }
-      v.preload = 'none';
+      v.preload = auto ? 'auto' : 'none';
       v.setAttribute('playsinline', '');
       v.muted = true;
+      v.loop = true;
+      if (auto) v.setAttribute('autoplay', '');
       applyVideoFrame(v);
-      try { v.load(); } catch { /* ignore */ }
+      // Com poster custom: não chamar load() no init — mantém o thumbnail visível
+      if (auto || !v.getAttribute('poster')) {
+        try { v.load(); } catch { /* ignore */ }
+      }
     });
 
-    const warm = (v) => {
+    const warm = (v, { force = false } = {}) => {
       if (!v || v.dataset.warmed === '1') return;
+      const auto = isAutoplayTile(v);
+      // Poster custom fica no repouso até hover/play (force)
+      if (!force && !auto && v.getAttribute('poster')) return;
       v.dataset.warmed = '1';
-      v.preload = 'metadata';
+      v.preload = auto ? 'auto' : 'metadata';
       try { v.load(); } catch { /* ignore */ }
+      if (auto) playMutedLoop(v);
     };
 
     if ('IntersectionObserver' in window) {
@@ -145,24 +351,43 @@
           if (e.isIntersecting) warm(e.target);
         });
       }, { rootMargin: '200px 0px', threshold: 0.01 });
-      videos.forEach((v) => io.observe(v));
+      videos.forEach((v) => {
+        if (v.dataset.ioBound === '1') {
+          if (isAutoplayTile(v)) playMutedLoop(v);
+          return;
+        }
+        v.dataset.ioBound = '1';
+        io.observe(v);
+      });
     } else {
-      videos.forEach(warm);
+      videos.forEach((v) => warm(v));
     }
 
-    if (isMobileUI()) return;
+    if (isMobileUI()) {
+      // Toque: aquecer no primeiro pointerdown pra não trocar o poster cedo demais
+      videos.forEach((v) => {
+        if (isAutoplayTile(v) || !v.getAttribute('poster')) return;
+        const parent = v.parentElement;
+        if (!parent || parent.dataset.tapWarm === '1') return;
+        parent.dataset.tapWarm = '1';
+        parent.addEventListener('pointerdown', () => warm(v, { force: true }), { once: true });
+      });
+      return;
+    }
 
     videos.forEach((v) => {
+      if (isAutoplayTile(v)) return;
       const parent = v.parentElement;
-      if (!parent) return;
+      if (!parent || parent.dataset.hoverBound === '1') return;
+      parent.dataset.hoverBound = '1';
       parent.addEventListener('mouseenter', () => {
-        warm(v);
+        warm(v, { force: true });
         const p = v.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
       });
       parent.addEventListener('mouseleave', () => {
         v.pause();
-        try { v.currentTime = 0; } catch { /* ignore */ }
+        restorePoster(v);
       });
     });
   }
@@ -281,6 +506,18 @@
         img.fetchPriority = 'high';
         img.loading = 'eager';
         front.appendChild(img);
+        // Prefetch só vizinhos (não a galeria inteira)
+        const warm = (j) => {
+          const n = pool[j];
+          if (!n || n.type === 'video' || !n.src) return;
+          try {
+            const im = new Image();
+            im.decoding = 'async';
+            im.src = n.src;
+          } catch { /* ignore */ }
+        };
+        warm((idx + 1) % pool.length);
+        warm((idx - 1 + pool.length) % pool.length);
       }
 
       card.appendChild(back);
@@ -304,6 +541,7 @@
       lb.classList.remove('open');
       document.body.style.overflow = '';
       lbC.innerHTML = '';
+      resumeAutoplayVideos();
     }
 
     // Delegação: funciona também em slots preenchidos depois
@@ -448,7 +686,7 @@
       },
       instagram: {
         label: 'Enviar pelo Instagram',
-        opening: 'Copiando mensagem…',
+        opening: 'Abrindo Instagram…',
         cls: 'is-ig',
         dest: 'Instagram',
         icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>`,
@@ -519,6 +757,24 @@
       return ok;
     }
 
+    function syncFormForMethod() {
+      const contatoInp = $('#ccContato');
+      if (!contatoInp) return;
+      if (method === 'gmail') {
+        contatoInp.type = 'email';
+        contatoInp.placeholder = 'Seu e-mail';
+        contatoInp.setAttribute('autocomplete', 'email');
+      } else if (method === 'instagram') {
+        contatoInp.type = 'text';
+        contatoInp.placeholder = 'Seu @ ou WhatsApp';
+        contatoInp.setAttribute('autocomplete', 'username');
+      } else {
+        contatoInp.type = 'tel';
+        contatoInp.placeholder = 'WhatsApp com DDD';
+        contatoInp.setAttribute('autocomplete', 'tel');
+      }
+    }
+
     function syncPreview() {
       const texto = buildMessage();
       if (previewBody) previewBody.textContent = texto;
@@ -532,10 +788,10 @@
         const tip = $('#msgProntaTip');
         if (tip) {
           tip.textContent = method === 'instagram'
-            ? 'Instagram não pré-preenche o Direct. Ao enviar, a mensagem é copiada — é só colar.'
+            ? 'No Instagram o Direct já abre na hora.'
             : method === 'whatsapp'
               ? 'No WhatsApp a mensagem já abre preenchida.'
-              : 'No Gmail a mensagem já abre no compose.';
+              : 'No Gmail a mensagem já abre preenchida no compose.';
         }
       }
       if (ta && out) out.textContent = `${ta.value.length}/500`;
@@ -548,6 +804,7 @@
       btn.classList.remove('is-wa', 'is-em', 'is-ig');
       btn.classList.add(cfg.cls);
       btn.innerHTML = `<span class="send-icon" aria-hidden="true">${cfg.icon}</span><span class="send-label">${cfg.label}</span>`;
+      syncFormForMethod();
       syncPreview();
     }
 
@@ -558,12 +815,26 @@
         const on = el.dataset.method === method;
         el.classList.toggle('is-active', on);
         el.setAttribute('aria-checked', on ? 'true' : 'false');
+        el.tabIndex = on ? 0 : -1;
       });
       syncSendButton();
     }
 
     channels.forEach((el) => {
       el.addEventListener('click', () => selectMethod(el.dataset.method));
+      el.addEventListener('keydown', (ev) => {
+        const order = ['whatsapp', 'gmail', 'instagram'];
+        const idx = order.indexOf(method);
+        if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') {
+          ev.preventDefault();
+          selectMethod(order[(idx + 1) % order.length]);
+          channels.find((c) => c.dataset.method === method)?.focus();
+        } else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          selectMethod(order[(idx - 1 + order.length) % order.length]);
+          channels.find((c) => c.dataset.method === method)?.focus();
+        }
+      });
     });
 
     ['input', 'change'].forEach((evt) => {
@@ -616,21 +887,15 @@
             const subjectRaw = CS?.buildGmailSubject
               ? CS.buildGmailSubject(fields)
               : 'Contato via portfólio — Aleff Thiago';
-            const subject = encodeURIComponent(subjectRaw);
-            const body = encodeURIComponent(texto);
-            const mobile = CS?.isMobile ? CS.isMobile() : /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-            openExternal(
-              mobile
-                ? `mailto:aleffthigo@gmail.com?subject=${subject}&body=${body}`
-                : `https://mail.google.com/mail/?view=cm&fs=1&to=aleffthigo@gmail.com&su=${subject}&body=${body}`
-            );
+            const gmailUrl = CS?.buildGmailUrl
+              ? CS.buildGmailUrl(texto, { subject: subjectRaw })
+              : `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=aleffthigo@gmail.com&su=${encodeURIComponent(subjectRaw)}&body=${encodeURIComponent(texto)}`;
+            openExternal(gmailUrl);
           } else if (method === 'instagram') {
-            if (CS?.sendInstagram) {
-              await CS.sendInstagram(texto, { previewRoot: previewBox });
-            } else {
-              await copyMessage();
-              openExternal('https://ig.me/m/aleffthiagofilms');
-            }
+            const igUrl = CS?.buildInstagramUrl
+              ? CS.buildInstagramUrl(texto)
+              : `https://ig.me/m/aleffthiagofilms?text=${encodeURIComponent(texto)}`;
+            openExternal(igUrl);
           }
         } finally {
           setTimeout(() => {
@@ -670,16 +935,25 @@
         el.classList.remove('gi-slot');
         el.style.display = '';
         el.removeAttribute('aria-label');
-        const src = s.src.startsWith('/') ? s.src.slice(1) : s.src;
+        // Só paths relativos fotos/|videos/ — bloqueia javascript:/http XSS
+        let src = String(s.src || '').replace(/\\/g, '/').replace(/^\/+/, '');
+        if (
+          src.includes('..') ||
+          /^(https?:|data:|javascript:)/i.test(src) ||
+          !(src.startsWith('fotos/') || src.startsWith('videos/'))
+        ) {
+          return;
+        }
         const title = String(s.title || 'Trabalho')
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         const cat = String(s.cat || '')
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const safeSrc = src.replace(/"/g, '');
         if (s.type === 'video') {
-          el.innerHTML = `<video src="${src.replace(/"/g, '')}" muted loop playsinline preload="none"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">${title}</p><p class="gi-cat">${cat}</p></div>`;
+          el.innerHTML = `<video src="${safeSrc}" muted loop playsinline preload="none"></video><div class="gi-ov"><div class="gi-play"></div><p class="gi-title">${title}</p><p class="gi-cat">${cat}</p></div>`;
         } else {
           el.style.aspectRatio = '';
-          el.innerHTML = `<img src="${src.replace(/"/g, '')}" alt="${title}" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">${title}</p><p class="gi-cat">${cat}</p></div>`;
+          el.innerHTML = `<img src="${safeSrc}" alt="${title}" loading="lazy" decoding="async"/><div class="gi-ov"><p class="gi-title">${title}</p><p class="gi-cat">${cat}</p></div>`;
         }
         el.classList.add('rv', 'on');
         if (!el.dataset.idx) {
@@ -694,6 +968,72 @@
       });
       initVideoHover();
     } catch { /* mantém placeholders (só staff vê) */ }
+  }
+
+  /* ── Grade do index: NÃO sobrescreve a curadoria estática ─ */
+  async function initPortfolioHomeLayout() {
+    const root = $('#galeriaTrabalhos');
+    if (!root) return;
+    // Curadoria manual em index.html (Thalles, shows, casais…) — não trocar por API
+    if (root.querySelector('[data-idx]')) return;
+    try {
+      const r = await fetch('/api/portfolio/home?limit=22', { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const items = data.items || [];
+      const photos = items.filter((it) => it.type === 'photo' && (it.thumb_url || it.id));
+      // Só troca a grade se o acervo tiver material suficiente
+      if (photos.length < 8) return;
+
+      const esc = (s) => String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"/g, '&quot;');
+
+      const frag = document.createDocumentFragment();
+      const newPool = [];
+      let idx = 0;
+
+      items.forEach((it) => {
+        if (it.type === 'break') {
+          const br = document.createElement('div');
+          br.className = 'grid-break';
+          br.setAttribute('role', 'presentation');
+          br.innerHTML = `<span>${esc(it.label || '')}</span>`;
+          frag.appendChild(br);
+          return;
+        }
+        if (it.type !== 'photo') return;
+        const layout = it.layout === 'l-wide' ? 'l-wide' : 'p-tall';
+        const src = it.thumb_url || (it.id ? `/api/media/${it.id}/thumb?sz=720` : '');
+        if (!src) return;
+        const title = it.title || it.pasta || it.nome || 'Trabalho';
+        const cat = it.cat_label || it.categoria || it.pasta || '';
+        const el = document.createElement('div');
+        el.className = `gi ${layout} rv on`;
+        el.dataset.idx = String(idx);
+        el.innerHTML =
+          `<img src="${esc(src)}" alt="${esc(title)}" loading="${idx < 6 ? 'eager' : 'lazy'}" decoding="async"/>` +
+          `<div class="gi-ov"><p class="gi-title">${esc(title)}</p><p class="gi-cat">${esc(cat)}</p></div>`;
+        frag.appendChild(el);
+        newPool.push({ type: 'img', src, title, id: it.id });
+        idx += 1;
+      });
+
+      if (idx < 8) return;
+
+      root.innerHTML = '';
+      root.appendChild(frag);
+      mediaPool.length = 0;
+      newPool.forEach((m) => mediaPool.push(m));
+
+      if (typeof root._workMasonryPack === 'function') root._workMasonryPack();
+      else requestAnimationFrame(() => {
+        if (typeof root._workMasonryPack === 'function') root._workMasonryPack();
+      });
+    } catch (e) {
+      console.warn('[portfolio-home]', e);
+    }
   }
 
   async function initContatoReel() {
@@ -719,11 +1059,18 @@
       { src: 'fotos/foto60.webp', key: 'luz' },
       { src: 'fotos/foto94.webp', key: '94' },
       { src: 'fotos/fotojoy01.jpg', key: 'joy' },
-      { src: 'fotos/foto_thalles.jpg', key: 'thalles' },
       { src: 'fotos/foto55.jpg', key: 'trancas' },
     ];
 
     const GENERIC_PASTA = /^(sem\s*edi[cç][aã]o|originais|site(\s*\(local\))?|local|geral|misc|upload|uploads|fotos?|imagens?)$/i;
+    const NON_PHOTO_PASTA = /(logo|logos|marca|marcas|identidade|branding|mockup|design|vetor)/i;
+
+    function isPhotoItem(it) {
+      const pasta = String(it.pasta || '');
+      const nome = String(it.nome || '');
+      if (NON_PHOTO_PASTA.test(pasta) || NON_PHOTO_PASTA.test(nome)) return false;
+      return true;
+    }
 
     function thumbOf(it) {
       if (it.src) return it.src;
@@ -737,6 +1084,9 @@
 
     function personKey(it) {
       if (it.key) return String(it.key).toLowerCase();
+      if (it.face_cluster != null && it.face_cluster !== '') {
+        return `face:${it.face_cluster}`;
+      }
       const pasta = String(it.pasta || '').trim();
       if (pasta && !GENERIC_PASTA.test(pasta)) {
         return pasta.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
@@ -789,12 +1139,10 @@
           if (prev && personKey(prev) === personKey(next)) continue;
           out.push(next);
         }
-        // remove empty keys
         for (let i = keys.length - 1; i >= 0; i--) {
           if (!(byKey.get(keys[i]) || []).length) keys.splice(i, 1);
         }
       }
-      // Evita junção do loop infinito (último == primeiro)
       if (out.length > 2 && personKey(out[0]) === personKey(out[out.length - 1])) {
         for (let i = 1; i < out.length - 1; i++) {
           if (personKey(out[i]) !== personKey(out[0])) {
@@ -808,14 +1156,12 @@
       return out;
     }
 
-    /** Intercala duas listas sem repetir pessoa adjacente. */
     function interleaveColumns(pool) {
       const a = [];
       const b = [];
       for (let i = 0; i < pool.length; i++) {
         (i % 2 === 0 ? a : b).push(pool[i]);
       }
-      // Se coluna B ficou com mesma pessoa em sequência, reordena
       const fix = (col) => {
         for (let i = 1; i < col.length; i++) {
           if (personKey(col[i]) !== personKey(col[i - 1])) continue;
@@ -856,47 +1202,60 @@
       track.style.animation = '';
     }
 
-    async function fetchBucket(q, n = 16) {
-      const qs = new URLSearchParams({
-        q: q || '',
-        tipo: 'image',
-        per_page: String(n),
-        page: '1',
-      });
-      const r = await fetch(`/api/search?${qs}`, { credentials: 'same-origin' });
-      if (!r.ok) return [];
-      const data = await r.json();
-      return data.items || [];
-    }
-
     let pool = [];
+    let faceMeta = null;
+
+    // Preferência: backend já devolve 1 foto por rosto (InsightFace)
     try {
-      // Várias buscas pra sair do bloco “mesma pasta / mesmo rosto”
-      const batches = await Promise.allSettled([
-        fetchBucket('show', 14),
-        fetchBucket('retrato', 14),
-        fetchBucket('casamento', 12),
-        fetchBucket('casal', 12),
-        fetchBucket('moto', 10),
-        fetchBucket('', 24),
-      ]);
-      const seen = new Set();
-      for (const res of batches) {
-        if (res.status !== 'fulfilled') continue;
-        for (const it of res.value) {
-          if (!it || it.tipo === 'video') continue;
-          const id = Number(it.id);
-          if (!id || seen.has(id)) continue;
-          if (!it.thumb_url && !it.id) continue;
-          seen.add(id);
-          pool.push(it);
-        }
+      const r = await fetch('/api/contato/reel?limit=24', { credentials: 'same-origin' });
+      if (r.ok) {
+        const data = await r.json();
+        faceMeta = data.face || null;
+        pool = (data.items || []).filter((it) => it && (it.thumb_url || it.id) && isPhotoItem(it));
       }
     } catch (e) {
-      console.warn('[contato-reel]', e);
+      console.warn('[contato-reel] api', e);
     }
 
-    // Mistura âncoras locais (rostos distintos do portfólio) quando o banco é homogêneo
+    // Fallback antigo (busca) se o endpoint ainda não indexou rostos
+    if (pool.length < 8) {
+      async function fetchBucket(q, n = 16) {
+        const qs = new URLSearchParams({
+          q: q || '',
+          tipo: 'image',
+          per_page: String(n),
+          page: '1',
+        });
+        const r = await fetch(`/api/search?${qs}`, { credentials: 'same-origin' });
+        if (!r.ok) return [];
+        const data = await r.json();
+        return data.items || [];
+      }
+      try {
+        const batches = await Promise.allSettled([
+          fetchBucket('show', 14),
+          fetchBucket('retrato', 14),
+          fetchBucket('casamento', 12),
+          fetchBucket('casal', 12),
+          fetchBucket('', 24),
+        ]);
+        const seen = new Set(pool.map((it) => Number(it.id)).filter(Boolean));
+        for (const res of batches) {
+          if (res.status !== 'fulfilled') continue;
+          for (const it of res.value) {
+            if (!it || it.tipo === 'video') continue;
+            const id = Number(it.id);
+            if (!id || seen.has(id)) continue;
+            if (!it.thumb_url && !it.id) continue;
+            seen.add(id);
+            pool.push(it);
+          }
+        }
+      } catch (e) {
+        console.warn('[contato-reel]', e);
+      }
+    }
+
     const uniqueKeys = new Set(pool.map(personKey));
     if (uniqueKeys.size < 8) {
       for (const fb of FALLBACK) {
@@ -913,10 +1272,226 @@
       diverse = pickDiverse(FALLBACK, 16, 1);
     }
 
+    if (faceMeta && typeof faceMeta.missing === 'number' && faceMeta.missing > 0) {
+      console.info(
+        `[contato-reel] rostos indexados: ${faceMeta.with_face || 0} · clusters: ${faceMeta.clusters || 0} · faltam: ${faceMeta.missing}`
+      );
+    }
+
     const [colA, colB] = interleaveColumns(diverse);
     fillTrack(up, colA.length >= 6 ? colA : diverse.filter((_, i) => i % 2 === 0));
     fillTrack(down, colB.length >= 6 ? colB : diverse.filter((_, i) => i % 2 === 1));
     frame.classList.add('is-ready');
+  }
+
+  /* ── Footer Aleff Thiago → sobe pro parallax (hero) ───── */
+  function initFooterBrandScroll() {
+    const brand = $('#footerBrand');
+    if (!brand) return;
+    brand.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      scrollRestore.goParallax({ smooth: true });
+      brand.blur();
+    });
+  }
+
+  /* ── Trabalhos: JS masonry (shortest-column packer) ───── */
+  function initWorkMasonry() {
+    const root = $('#galeriaTrabalhos');
+    if (!root || root.dataset.masonryInit === '1') return;
+    root.dataset.masonryInit = '1';
+
+    let debounceTimer = 0;
+    let rafId = 0;
+    let packing = false;
+
+    function readCols() {
+      const raw = getComputedStyle(root).getPropertyValue('--cols').trim();
+      const n = parseInt(raw, 10);
+      if (n === 1 || n === 2 || n === 3 || n === 4) return n;
+      const w = window.innerWidth;
+      if (w <= 768) return 2;
+      if (w <= 1100) return 3;
+      return 4;
+    }
+
+    function readGap() {
+      const raw = getComputedStyle(root).getPropertyValue('--gap').trim();
+      const n = parseFloat(raw);
+      return Number.isFinite(n) ? n : 2;
+    }
+
+    function isVisible(el) {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.hidden) return false;
+      const cs = getComputedStyle(el);
+      return cs.display !== 'none' && cs.visibility !== 'hidden';
+    }
+
+    /** Wide/hero: span 2 com ≥3 cols; l-hero em 4 cols tenta span 4 (faixa). */
+    function itemSpan(el, cols) {
+      if (el.classList.contains('gi-slot')) return 1;
+      if (el.querySelector(':scope > video')) return 1;
+      if (!el.querySelector(':scope > img')) return 1;
+      if (el.classList.contains('l-hero') && cols >= 4) return cols;
+      if (el.classList.contains('l-hero') && cols >= 3) return 2;
+      if (cols < 3) return 1;
+      if (el.classList.contains('l-wide') || el.classList.contains('l-hero')) return 2;
+      return 1;
+    }
+
+    function pack() {
+      if (packing) return;
+      packing = true;
+      const anchor = scrollRestore.shouldAnchorPack() ? scrollRestore.captureAnchor() : null;
+      try {
+        const cols = readCols();
+        const gap = readGap();
+        const cs = getComputedStyle(root);
+        const padL = parseFloat(cs.paddingLeft) || 0;
+        const padR = parseFloat(cs.paddingRight) || 0;
+        const contentW = Math.max(0, root.clientWidth - padL - padR);
+        if (contentW < 40 || cols < 1) return;
+
+        const colW = (contentW - gap * (cols - 1)) / cols;
+        const children = [...root.children].filter((el) => {
+          if (el.classList.contains('grid-break')) return isVisible(el);
+          if (el.classList.contains('gi')) return isVisible(el);
+          return false;
+        });
+
+        root.classList.add('is-packed');
+
+        /* 1) widths first so heights reflect real rendered media */
+        children.forEach((el) => {
+          el.style.position = 'absolute';
+          el.style.margin = '0';
+          el.style.right = 'auto';
+          el.style.bottom = 'auto';
+          el.style.boxSizing = 'border-box';
+          if (el.classList.contains('grid-break')) {
+            el.style.width = `${contentW}px`;
+            el.style.left = `${padL}px`;
+            el.dataset.mSpan = 'full';
+            return;
+          }
+          const span = itemSpan(el, cols);
+          el.dataset.mSpan = String(span);
+          const w = span * colW + (span - 1) * gap;
+          el.style.width = `${w}px`;
+          el.style.maxWidth = 'none';
+        });
+
+        const heights = new Array(cols).fill(0);
+
+        children.forEach((el) => {
+          if (el.classList.contains('grid-break')) {
+            const y = heights.length ? Math.max(...heights) : 0;
+            el.style.top = `${y}px`;
+            el.style.left = `${padL}px`;
+            el.style.width = `${contentW}px`;
+            const h = el.offsetHeight;
+            const next = y + h + gap;
+            for (let i = 0; i < cols; i++) heights[i] = next;
+            return;
+          }
+
+          const span = Math.min(cols, parseInt(el.dataset.mSpan, 10) || 1);
+          let bestCol = 0;
+          let bestY = Infinity;
+
+          if (span <= 1) {
+            for (let c = 0; c < cols; c++) {
+              if (heights[c] < bestY) {
+                bestY = heights[c];
+                bestCol = c;
+              }
+            }
+          } else {
+            for (let c = 0; c <= cols - span; c++) {
+              let y = 0;
+              for (let s = 0; s < span; s++) y = Math.max(y, heights[c + s]);
+              if (y < bestY) {
+                bestY = y;
+                bestCol = c;
+              }
+            }
+          }
+
+          el.style.left = `${padL + bestCol * (colW + gap)}px`;
+          el.style.top = `${bestY}px`;
+          const h = el.offsetHeight;
+          const bottom = bestY + h + gap;
+          for (let s = 0; s < span; s++) heights[bestCol + s] = bottom;
+        });
+
+        const tallest = heights.length ? Math.max(...heights) : 0;
+        root.style.height = `${Math.max(0, tallest - gap)}px`;
+      } finally {
+        packing = false;
+        if (anchor) scrollRestore.restoreAnchor(anchor);
+        else if (scrollRestore.shouldAnchorPack()) scrollRestore.applyPending();
+        /* Não disparar scroll sintético a cada pack — evita trabalho em listeners */
+      }
+    }
+
+    function schedulePack() {
+      if (packing) return;
+      clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(pack);
+      }, 120);
+    }
+
+    /* Coalesce image loads — 1 pack por rajada, não 1 por foto */
+    let imgPackPending = false;
+    const onMediaSettle = () => {
+      if (imgPackPending) return;
+      imgPackPending = true;
+      requestAnimationFrame(() => {
+        imgPackPending = false;
+        schedulePack();
+      });
+    };
+    root.querySelectorAll('img').forEach((img) => {
+      if (!img.complete) img.addEventListener('load', onMediaSettle, { passive: true, once: true });
+      img.addEventListener('error', onMediaSettle, { passive: true, once: true });
+    });
+    root.querySelectorAll('video').forEach((v) => {
+      v.addEventListener('loadedmetadata', onMediaSettle, { passive: true, once: true });
+    });
+
+    window.addEventListener('resize', schedulePack, { passive: true });
+    if (document.fonts?.ready) document.fonts.ready.then(schedulePack).catch(() => {});
+
+    if (typeof ResizeObserver !== 'undefined') {
+      let lastW = 0;
+      const ro = new ResizeObserver((entries) => {
+        const w = entries[0]?.contentRect?.width ?? 0;
+        if (Math.abs(w - lastW) < 2) return;
+        lastW = w;
+        schedulePack();
+      });
+      ro.observe(root);
+    }
+
+    /* Só childList — evita reflow loop com class/hidden no body */
+    const mo = new MutationObserver((mutations) => {
+      if (packing) return;
+      for (const m of mutations) {
+        if (m.type === 'childList' && (m.addedNodes.length || m.removedNodes.length)) {
+          schedulePack();
+          break;
+        }
+      }
+    });
+    mo.observe(root, { childList: true });
+
+    root._workMasonryPack = schedulePack;
+    /* Um pack inicial — aspect-ratio do CSS já estabiliza altura */
+    requestAnimationFrame(pack);
   }
 
   /* ── Boot ─────────────────────────────────────────────── */
@@ -929,19 +1504,63 @@
   }
 
   function boot() {
+    scrollRestore.init();
     initHero();
+    initWorkMasonry();
     initLightbox();
     initVideoHover();
     initShortcuts();
     initContact();
     initContatoReel();
+    initFooterBrandScroll();
     whenIdle(() => {
-      initPortfolioSlots();
+      initPortfolioHomeLayout().finally(() => {
+        initPortfolioSlots().finally(() => {
+          const root = $('#galeriaTrabalhos');
+          if (root && typeof root._workMasonryPack === 'function') root._workMasonryPack();
+          scrollRestore.applyPending();
+          if (!isMobileUI()) initMotion();
+          // Warmup da Pesquisa SÓ depois da home estável (não compete com a galeria)
+          scheduleSearchWarmup();
+        });
+      });
       initCounters();
-      if (!isMobileUI()) initMotion();
       initTimeline();
       initTags();
     });
+  }
+
+  function scheduleSearchWarmup() {
+    const start = () => {
+      const run = () => {
+        try {
+          if (typeof SearchWarmup !== 'undefined' && SearchWarmup.boot) {
+            // afterHome: main.js já esperou masonry — sem segundo delay longo
+            SearchWarmup.boot({ afterHome: true });
+            return;
+          }
+        } catch (_) {}
+        if (document.querySelector('script[data-search-warmup]')) return;
+        const s = document.createElement('script');
+        s.src = 'js/search-warmup.js?v=20260810warm5';
+        s.dataset.searchWarmup = '1';
+        s.onload = () => {
+          try {
+            if (window.SearchWarmup && SearchWarmup.boot) {
+              SearchWarmup.boot({ afterHome: true });
+            }
+          } catch (_) {}
+        };
+        document.head.appendChild(s);
+      };
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(run, { timeout: 3000 });
+      } else {
+        setTimeout(run, 800);
+      }
+    };
+    // Folga após pack da galeria — Home primeiro
+    setTimeout(start, 1800);
   }
 
   if (document.readyState === 'loading') {

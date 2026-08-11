@@ -3,6 +3,18 @@
 .env.*
 !.env.example
 !.env*.example
+*Copia.env
+*copia.env
+*Copia.env*
+* copia.env
+* copy.env
+*.env.bak
+*.env.local
+*.env.backup
+# cópia do Windows Explorer (nome literal com espaço à esquerda)
+[ ]- Copia.env
+*Copia.env
+*-Copia.env
 service-account.json
 **/service-account*.json
 !service-account.example.json

@@ -1,0 +1,12 @@
+# Rostos (InsightFace) — open source / grátis / local
+# pip install -r requirements-face.txt
+#
+# Na 1ª execução o modelo buffalo_l é baixado (~100–200MB) para
+#   %USERPROFILE%\.insightface\models\
+#
+# Se der erro de Visual C++ no Windows, instale:
+#   https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+insightface>=0.7.3
+onnxruntime>=1.16.0
+opencv-python-headless>=4.8.0
