@@ -517,6 +517,8 @@ body{
   transform:scale(1);
   transition:transform .55s var(--ease),filter .35s, opacity .28s ease;
   will-change:transform;
+  -webkit-user-drag:none;
+  user-select:none;
 }
 .rcard-thumb.is-upgraded{
   /* medium chegou — sem flash pesado */

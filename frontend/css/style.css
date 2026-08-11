@@ -487,6 +487,8 @@ body {
   filter: grayscale(42%) brightness(0.78) contrast(1.04);
   transition: filter .55s var(--ease-out), transform .9s var(--ease-out);
   background: #141414;
+  -webkit-user-drag: none;
+  user-select: none;
   /* skel discreto até a foto pintar */
 }
 @media (max-width: 768px) {

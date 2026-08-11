@@ -497,7 +497,6 @@ def local_media_ep(uid):
     import re
     from backend.utils.security import (
         can_access_media_original,
-        log_media_original_denied,
         require_media_original_access,
     )
 

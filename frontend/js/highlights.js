@@ -39,13 +39,14 @@
     return m ? Number(m[1]) : 0;
   }
 
-  /** Qualidade do Story: low≈800 · mid≈1200 · high≈1440 (retina) */
+  /** Qualidade do Story: preview adequado à tela — nunca original HD */
   function storyThumbUrl(mediaId, tier) {
     const id = Number(mediaId);
     if (!(id > 0)) return '';
-    if (tier === 'low') return `api/media/${id}/thumb-medium`;
-    if (tier === 'mid') return `api/media/${id}/thumb?sz=1200`;
-    return `api/media/${id}/thumb?sz=1440`;
+    if (tier === 'low') return `api/media/${id}/thumb-small`;
+    if (tier === 'mid') return `api/media/${id}/thumb-medium`;
+    // high: medium + sz limitado (retina), ainda preview — não original
+    return `api/media/${id}/thumb?sz=1200`;
   }
 
   function storySrcPair(item) {
