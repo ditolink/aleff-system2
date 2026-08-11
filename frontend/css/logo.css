@@ -50,19 +50,28 @@
 .logo--muted .logo-text span { color: #3a3a3a; }
 .logo--muted .logo-mark { color: #555; }
 
-/* Slot vazio — altura própria no masonry */
+/* Slot vazio — só Admin/Dev; visitante não vê buraco (Trabalhos) */
+.work-section .galeria-trabalhos .gi.gi-slot,
 .gi.gi-slot {
+  display: none;
   background: #0d0d0d;
   border: 1px dashed rgba(255,255,255,0.12);
   cursor: default;
   box-shadow: none;
   aspect-ratio: 3 / 4;
   min-height: 160px;
+  margin: 0;
 }
+body.is-studio-staff .work-section .galeria-trabalhos .gi.gi-slot,
+body.is-studio-staff .gi.gi-slot {
+  display: block;
+}
+.work-section .galeria-trabalhos .gi.gi-slot.l-wide,
+.work-section .galeria-trabalhos .gi.gi-slot.l-wide-16,
 .gi.gi-slot.l-wide,
 .gi.gi-slot.l-wide-16 {
   aspect-ratio: 16 / 10;
-  column-span: all;
+  grid-column: span 1;
   min-height: 120px;
 }
 .gi.gi-slot::before { display: none; }

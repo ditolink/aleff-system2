@@ -1,0 +1,45 @@
+{
+  "principle": "QUALIDADE > QUANTIDADE — Home como vitrine desejável, não parede de fotos",
+  "issue": 15,
+  "opener": {
+    "path": "fotos/foto_casal_por_do_sol.jpg",
+    "why": "Impacto imediato — silhueta cinematográfica, autoria clara"
+  },
+  "chapters": [
+    {
+      "title": "Quando a luz cai",
+      "concept": "luz",
+      "photos": [
+        { "id": 704, "shape": "l-wide", "why": "golden hour riverside — presença + luz" },
+        { "id": 437, "shape": "p-tall", "why": "editorial lifestyle, olhar na câmera" },
+        { "id": 1690, "shape": "p-tall", "why": "praia golden — atmosfera própria" }
+      ]
+    },
+    {
+      "title": "Entre nós",
+      "concept": "casal",
+      "photos": [
+        { "id": 42, "shape": "l-wide", "why": "emocão real — carta/pedido, storytelling" },
+        { "id": 548, "shape": "p-tall", "why": "cerimônia íntima, olhar entre o casal" },
+        { "id": 66, "shape": "p-tall", "why": "maternidade — cliente real com nível de portfólio" },
+        { "id": 58, "shape": "l-wide", "why": "igreja autoral — respiro/detalhe, não retrato frontal" }
+      ]
+    },
+    {
+      "title": "Um lugar para ser",
+      "concept": "retrato",
+      "photos": [
+        { "id": 2030, "shape": "l-wide", "why": "ensaio ponte — impacto de aparência" },
+        { "id": 2034, "shape": "p-tall", "why": "Barbara — lock manual, editorial" },
+        { "id": 1637, "shape": "p-tall", "why": "presença/sorriso — lifestyle comercial com autoria" }
+      ]
+    }
+  ],
+  "removedChapters": ["Laços", "Em movimento", "O tempo entre nós (título longo)"],
+  "removedReason": "Clusters sem identidade forte o suficiente para primeira página; fotos medianas ou repetitivas",
+  "totals": { "chapters": 3, "photos": 11, "videos": 2 },
+  "css": {
+    "gap": "12px",
+    "chapterTitles": "silenciosos, sem filetes, sem contagem"
+  }
+}

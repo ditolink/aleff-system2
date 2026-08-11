@@ -494,7 +494,7 @@
       <option value="casais">Casais</option>
       <option value="familia">Família</option>
       <option value="infantil">Infantil</option>
-      <option value="motocross">Pista &amp; ação</option>
+      <option value="ensaios">Ensaios</option>
       <option value="editorial">Editorial</option>
       <option value="video">Vídeo</option>
       <option value="outro">Outro</option>
@@ -536,7 +536,7 @@
       <option value="">—</option>
       <option>casamento</option><option>shows</option><option>retratos</option>
       <option>casais</option><option>familia</option><option>infantil</option>
-      <option value="motocross">pista &amp; ação</option>
+      <option value="ensaios">ensaios</option>
       <option>editorial</option><option>natureza</option><option>urbano</option>
       <option>video</option><option>outro</option>
     </select>
@@ -624,8 +624,8 @@
     if (/^https:\/\/(drive\.google\.com|[\w.-]*googleusercontent\.com)\b/i.test(v)) return esc(v);
     if (/^(\/?fotos\/|\/?videos\/|data:image\/)/i.test(v)) return esc(v);
     if (/^\/api\/local\/[a-f0-9]+$/i.test(v)) return esc(v);
-    if (/^\/api\/media\/\d+\/thumb(?:\?sz=\d+)?$/i.test(v)) return esc(v);
-    if (/^\/api\/media\/\d+\/download$/i.test(v)) return esc(v);
+    if (/^\/api\/media\/\d+\/thumb(?:-small|-medium|-cover)?(?:\?.*)?$/i.test(v)) return esc(v);
+    if (/^\/api\/media\/\d+\/download(?:\?.*)?$/i.test(v)) return esc(v);
     return '';
   }
 

@@ -323,33 +323,44 @@ body.is-logged-in #navLoginBtn {
 }
 
 @media (max-width: 720px) {
-  :root { --db-h: 48px; }
+  :root { --db-h: 52px; }
 
   .dev-bar {
     height: var(--db-h);
     flex-wrap: nowrap;
-    padding: 0 10px;
-    gap: 8px;
+    padding: 0 max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    gap: 6px;
   }
+
+  .studio-chip {
+    padding: 6px 8px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  .studio-chip-dot { width: 5px; height: 5px; }
 
   .dev-bar-nav {
     flex: 1 1 auto;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    mask-image: linear-gradient(90deg, #000 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent 100%);
   }
   .dev-bar-nav::-webkit-scrollbar { display: none; }
 
-  .dev-status .txt { display: none; }
+  .dev-bar-sep { margin: 0 2px; height: 12px; }
+  .dev-status { display: none; } /* Drive/CLIP: ver em Config no mobile */
+
   .studio-account {
     border-left: none;
     padding-left: 0;
-    gap: 5px;
+    gap: 4px;
   }
   .studio-btn {
-    padding: 7px 8px;
+    padding: 8px 9px;
     font-size: 9px;
-    min-height: 34px;
+    min-height: 36px;
     touch-action: manipulation;
   }
   .studio-btn .lbl-full { display: none; }
@@ -374,9 +385,10 @@ body.is-logged-in #navLoginBtn {
   body.has-dev-bar .upload-page,
   body.has-dev-bar .admin-page,
   body.has-dev-bar .page {
-    padding-top: calc(var(--db-h) + 28px) !important;
-    padding-left: 20px !important;
-    padding-right: 20px !important;
+    padding-top: calc(var(--db-h) + 20px) !important;
+    padding-left: max(14px, env(safe-area-inset-left)) !important;
+    padding-right: max(14px, env(safe-area-inset-right)) !important;
+    padding-bottom: max(40px, env(safe-area-inset-bottom)) !important;
   }
 }
 
@@ -386,4 +398,6 @@ body.is-logged-in #navLoginBtn {
     min-height: 36px;
     touch-action: manipulation;
   }
+  /* Galeria admin: overlays sem hover */
+  .acard-ov { opacity: 1 !important; }
 }

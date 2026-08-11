@@ -73,11 +73,28 @@ HTTPS:
 
   sudo certbot --nginx -d aleffthiago.com.br -d www.aleffthiago.com.br
 
-PARTE 6 — TESTAR
+PARTE 6 — PERFORMANCE (site no ar)
+----------------------------------
+O setup-oracle.sh já configura:
+  - Nginx servindo /css /js /fotos /videos direto do disco
+  - proxy_cache de /api/media/*/thumb*
+  - opcional: /data-thumbs/{small|medium}/N.webp (alias em data/thumbs/)
+  - Waitress com 8 threads
+  - gzip
+  - Pipeline de busca: small WebP → medium na viewport → HD no lightbox
+  - Prefetch idle via /api/thumbs/prefetch-plan
+
+Importante na VM:
+  - NÃO apague /opt/aleff-system2/data (SQLite + thumbs + media_cache)
+  - FLASK_ENV=production + SEARCH_USE_CLIP=0
+  - Após deploy de CSS/JS: hard refresh ou reinicie nginx
+
+PARTE 7 — TESTAR
 ----------------
   https://aleffthiago.com.br/health
   https://aleffthiago.com.br/
   https://aleffthiago.com.br/loginsite.html
+  https://aleffthiago.com.br/search.html
   Dashboard → Sync Drive
 
 COMANDOS ÚTEIS
@@ -91,6 +108,7 @@ NÃO FAÇA
 - Upgrade pra conta paga sem precisar
 - Criar shape que não é Always Free-eligible
 - Subir .env no GitHub
+- Apagar a pasta data/ (perde índice e cache)
 
 Railway / Netlify: NÃO use pra este stack.
 ========================================

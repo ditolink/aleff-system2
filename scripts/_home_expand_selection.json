@@ -1,0 +1,35 @@
+{
+  "previous_photos": 12,
+  "final_photos": 26,
+  "added": 14,
+  "masonry_target": "4-col W=2 T=1; chapter span sums divisible by 4",
+  "additions": [
+    {"chapter": "casamentos", "path": "fotos/foto_casal_passarela.jpg", "shape": "l-wide", "aspect": "landscape", "score": 0.92, "source": "local", "why": "segundo wide de casal; completa fila W+T+T"},
+    {"chapter": "casamentos", "path": "fotos/foto_floral.png", "shape": "p-tall", "aspect": "portrait", "score": 0.88, "source": "local", "why": "retrato editorial noiva/ensaio floral"},
+    {"chapter": "casamentos", "path": "fotos/foto_gravata.png", "shape": "p-tall", "aspect": "portrait", "score": 0.84, "source": "local", "why": "retrato formal / gravata — complemento masculino"},
+    {"chapter": "casamentos", "path": "fotos/foto_evento.jpg", "shape": "l-wide", "aspect": "landscape", "score": 0.9, "source": "local", "why": "momento espontâneo de cerimônia/convidados"},
+    {"chapter": "casamentos", "path": "fotos/home_casamentos_4.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.86, "source": "db:4", "why": "casal Rodrigo&Ana — riso espontâneo"},
+    {"chapter": "casamentos", "path": "fotos/home_casamentos_100.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.85, "source": "db:100", "why": "casal diferente — abraço e riso (diversidade de evento)"},
+    {"chapter": "ensaios", "path": "fotos/foto_sorriso.png", "shape": "p-tall", "aspect": "portrait", "score": 0.87, "source": "local", "why": "completa 2ª fila de 4 talls após leftover"},
+    {"chapter": "ensaios", "path": "fotos/foto_cafe.png", "shape": "p-tall", "aspect": "portrait", "score": 0.86, "source": "local", "why": "lifestyle café — ritmo diferente dos looks fashion"},
+    {"chapter": "ensaios", "path": "fotos/home_ensaios_2152.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.9, "source": "db:2152", "why": "Barbara editorial cinematográfico (≠ look branco piscina)"},
+    {"chapter": "cidade", "path": "fotos/home_cidade_1756.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.72, "source": "db:1756", "why": "fecha lacuna W+T; setting industrial/urbano — melhor ação-urbana disponível no acervo com thumb"},
+    {"chapter": "familia", "path": "fotos/home_familia_569.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.88, "source": "db:569", "why": "fecha fila batismo+familia; infantil aniversário"},
+    {"chapter": "familia", "path": "fotos/home_familia_341.webp", "shape": "l-wide", "aspect": "landscape", "score": 0.89, "source": "db:341", "why": "wide família Sarah 8 anos"},
+    {"chapter": "familia", "path": "fotos/home_familia_57.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.87, "source": "db:57", "why": "gestante igreja — emoção familiar"},
+    {"chapter": "familia", "path": "fotos/home_familia_71.webp", "shape": "p-tall", "aspect": "portrait", "score": 0.86, "source": "db:71", "why": "gestante outdoor — casal diferente de #57"}
+  ],
+  "rejected_examples": [
+    "foto12 xadrez (fora de cidade)",
+    "foto11i (= Barbara duplicada)",
+    "foto_casal_estrada em cidade (contexto casamento)",
+    "db 2034 (= foto_barbara já na home)",
+    "densificar cidade com shows SONATA (já em Pelo caminho)"
+  ],
+  "gaps_remaining": [
+    {
+      "chapter": "cidade",
+      "note": "fila completa (W+T+T). Sem 2ª fila: acervo quase sem tags/pastas de cidade/esporte com thumb utilizável."
+    }
+  ]
+}

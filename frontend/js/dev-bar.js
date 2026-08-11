@@ -74,12 +74,33 @@
 
   async function switchAccount() {
     await doLogout();
-    location.href = '/loginsite.html';
+    if (typeof Auth !== 'undefined' && Auth.flashLoggedOut) Auth.flashLoggedOut();
+    else {
+      try {
+        sessionStorage.setItem('authFlash', JSON.stringify({
+          type: 'success',
+          title: 'Sessão apagada',
+          message: 'Você saiu da conta.',
+        }));
+      } catch { /* ignore */ }
+    }
+    location.href = '/loginsite.html?apagado=1';
   }
 
   async function signOut() {
+    if (typeof Auth !== 'undefined' && Auth.logoutToLogin) {
+      await Auth.logoutToLogin();
+      return;
+    }
     await doLogout();
-    location.href = '/loginsite.html';
+    try {
+      sessionStorage.setItem('authFlash', JSON.stringify({
+        type: 'success',
+        title: 'Sessão apagada',
+        message: 'Você saiu da conta.',
+      }));
+    } catch { /* ignore */ }
+    location.href = '/loginsite.html?apagado=1';
   }
 
   function el(tag, attrs = {}) {
@@ -427,6 +448,8 @@
       || path === '';
 
     const isDev = data.role === 'dev' || (data.perms || []).includes('system');
+    const isStaff = isDev || data.role === 'admin';
+    if (isStaff) document.body.classList.add('is-studio-staff');
 
     if (publicPage) {
       if (!path.endsWith('/loginsite.html') && !path.endsWith('/loginsite')) {

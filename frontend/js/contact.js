@@ -39,18 +39,22 @@ const ContactSend = (() => {
   }
 
   function openExternal(url, { sameTab = false } = {}) {
-    if (!url) return;
+    if (!url) return null;
     if (sameTab) {
-      window.location.href = url;
-      return;
+      window.location.assign(url);
+      return window;
     }
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (win) return win;
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    a.remove();
+    setTimeout(() => a.remove(), 500);
+    return null;
   }
 
   /** Mensagens por canal — tom certo pra cada plataforma */
@@ -276,31 +280,37 @@ const ContactSend = (() => {
     setTimeout(() => { el.hidden = true; }, 320);
   }
 
-  /**
-   * Fluxo Instagram (sem ?text= — limitação oficial Meta):
-   * 1) copia  2) flash  3) modal guia  4) só então abre Direct (após Abrir Direct)
-   */
-  async function sendInstagram(texto, { previewRoot = null } = {}) {
-    lastCopied = String(texto || '');
-    const copied = await copyToClipboard(lastCopied);
+  /** Instagram — igual Gmail/WhatsApp: abre o Direct na hora (sem copiar / sem modal). */
+  function buildInstagramUrl(texto) {
+    const body = encodeURIComponent(String(texto || ''));
+    // ig.me abre o Direct; text= é melhor esforço (a Meta costuma ignorar no app)
+    return `https://ig.me/m/${IG.username}?text=${body}`;
+  }
 
-    if (previewRoot) {
-      showCopyFlash(previewRoot, {
-        sub: copied
-          ? 'Cole no Direct do Instagram.'
-          : 'Abra o Direct e cole a mensagem do preview.',
-      });
+  function sendInstagram(texto) {
+    const url = buildInstagramUrl(texto);
+    const opened = openExternal(url, { sameTab: isMobile() });
+    return { url, opened: !!opened };
+  }
+
+  /** Gmail — igual WhatsApp: abre compose já com a mensagem preenchida (sem copiar). */
+  function buildGmailUrl(
+    texto,
+    { subject = 'Contato via portfólio — Aleff Thiago', to = 'aleffthigo@gmail.com' } = {}
+  ) {
+    const subjectEnc = encodeURIComponent(subject);
+    const bodyEnc = encodeURIComponent(String(texto || ''));
+    const toEnc = encodeURIComponent(to);
+    if (isMobile()) {
+      return `mailto:${to}?subject=${subjectEnc}&body=${bodyEnc}`;
     }
+    return `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${toEnc}&su=${subjectEnc}&body=${bodyEnc}`;
+  }
 
-    openIgGuide({
-      copied,
-      openUrl: IG.dmUrl,
-      onRecopy: () => {
-        if (previewRoot) showCopyFlash(previewRoot);
-      },
-    });
-
-    return { copied, url: IG.dmUrl, opened: false };
+  function sendGmail(texto, opts = {}) {
+    const url = buildGmailUrl(texto, opts);
+    const opened = openExternal(url, { sameTab: isMobile() });
+    return { url, opened: !!opened };
   }
 
   return {
@@ -315,6 +325,9 @@ const ContactSend = (() => {
     showCopyFlash,
     openIgGuide,
     closeIgGuide,
+    buildInstagramUrl,
     sendInstagram,
+    buildGmailUrl,
+    sendGmail,
   };
 })();

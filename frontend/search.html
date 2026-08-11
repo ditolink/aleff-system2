@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
-  <link rel="stylesheet" href="css/search.css?v=20260810best"/>
+  <link rel="stylesheet" href="css/search.css?v=20260810cover2"/>
   <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
@@ -15,7 +15,8 @@
   <script src="js/auth.js?v=20260808a" defer></script>
   <script src="js/dev-bar.js?v=20260808a" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
-  <script src="js/search.js?v=20260810best" defer></script>
+  <script src="js/search-warmup.js?v=20260810warm5" defer></script>
+  <script src="js/search.js?v=20260810warm5" defer></script>
 </head>
 <body class="theme-generico">
 
@@ -112,7 +113,7 @@
       <button type="button" class="fpill" data-cat="casais">Casais</button>
       <button type="button" class="fpill" data-cat="familia">Família</button>
       <button type="button" class="fpill" data-cat="infantil">Infantil</button>
-      <button type="button" class="fpill" data-cat="motocross">Pista</button>
+      <button type="button" class="fpill" data-cat="ensaios">Ensaios</button>
       <button type="button" class="fpill" data-cat="editorial">Editorial</button>
     </div>
   </div>
@@ -154,21 +155,67 @@
       <p class="loading-cam-txt" id="loadingCamTxt">Buscando no acervo…</p>
     </div>
     <div class="sk-grid" aria-hidden="true">
-      <div class="sk-card tall"><div class="sk-sh"></div></div>
-      <div class="sk-card"><div class="sk-sh"></div></div>
-      <div class="sk-card"><div class="sk-sh"></div></div>
-      <div class="sk-card wide"><div class="sk-sh"></div></div>
-      <div class="sk-card"><div class="sk-sh"></div></div>
-      <div class="sk-card tall"><div class="sk-sh"></div></div>
+      <div class="sk-col">
+        <div class="sk-card tall"><div class="sk-sh"></div></div>
+        <div class="sk-card"><div class="sk-sh"></div></div>
+      </div>
+      <div class="sk-col">
+        <div class="sk-card"><div class="sk-sh"></div></div>
+        <div class="sk-card wide"><div class="sk-sh"></div></div>
+      </div>
+      <div class="sk-col">
+        <div class="sk-card"><div class="sk-sh"></div></div>
+        <div class="sk-card tall"><div class="sk-sh"></div></div>
+      </div>
+      <div class="sk-col">
+        <div class="sk-card"><div class="sk-sh"></div></div>
+        <div class="sk-card"><div class="sk-sh"></div></div>
+      </div>
     </div>
   </div>
 
   <div id="stResults" class="state active">
     <div class="res-grid" id="resGrid"></div>
+    <!-- Paint síncrono do warmup (antes dos scripts defer) — troca instantânea -->
+    <script>
+    (function () {
+      try {
+        var KEY = 'aleff_search_warmup_v1';
+        var raw = sessionStorage.getItem(KEY);
+        if (!raw) return;
+        var pack = JSON.parse(raw);
+        if (!pack || !pack.preparedAt || !(pack.browse && pack.browse.items && pack.browse.items.length)) return;
+        if (Date.now() - pack.preparedAt > 90000) return;
+        var t0 = performance.now();
+        var grid = document.getElementById('resGrid');
+        var stL = document.getElementById('stLoading');
+        var stR = document.getElementById('stResults');
+        if (!grid) return;
+        if (pack.gridHtml) {
+          grid.innerHTML = pack.gridHtml;
+        }
+        if (stL) stL.classList.remove('active');
+        if (stR) stR.classList.add('active');
+        var arch = document.getElementById('archiveStat');
+        var n = pack.browse.archiveTotal || pack.browse.total;
+        if (arch && n) {
+          arch.innerHTML = '<strong>' + Number(n).toLocaleString('pt-BR') + '</strong> fotografias no acervo';
+        }
+        var cam = document.getElementById('camMsg');
+        if (cam) cam.textContent = 'Acervo pronto — digite pra filtrar.';
+        window.__searchWarmBoot = {
+          painted: !!pack.gridHtml,
+          pack: pack,
+          paintMs: Math.round(performance.now() - t0),
+          t0: t0
+        };
+      } catch (e) {}
+    })();
+    </script>
     <nav class="pager" id="pager" aria-label="Páginas de resultados" hidden>
-      <button type="button" class="pager-nav" id="pagerPrev" aria-label="Página anterior">Anterior</button>
+      <button type="button" class="pager-nav fbtn" id="pagerPrev" aria-label="Página anterior">Anterior</button>
       <div class="pager-pages" id="pagerPages" role="list"></div>
-      <button type="button" class="pager-nav" id="pagerNext" aria-label="Próxima página">Próxima</button>
+      <button type="button" class="pager-nav fbtn" id="pagerNext" aria-label="Próxima página">Próxima</button>
       <p class="pager-meta" id="pagerMeta"></p>
     </nav>
   </div>
