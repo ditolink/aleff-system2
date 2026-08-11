@@ -171,7 +171,10 @@ def _thumbs_dir() -> Path:
 
 def thumb_cache_path(drive_id: str, size: int = 400) -> Path:
     import hashlib
-    key = hashlib.sha1(f'{drive_id}|{int(size)}'.encode('utf-8')).hexdigest()[:20]
+    key = hashlib.sha1(
+        f'{drive_id}|{int(size)}'.encode('utf-8'),
+        usedforsecurity=False,
+    ).hexdigest()[:20]
     return _thumbs_dir() / f'{key}.jpg'
 
 
@@ -406,18 +409,27 @@ def upload_local(file_bytes, filename, mime_type, metadata=None):
     import re
     import uuid
 
+    from backend.utils.validators import safe_upload_basename
+
     uid = uuid.uuid4().hex
-    safe = re.sub(r'[^\w.\-]+', '_', filename or 'arquivo')[:120] or 'arquivo'
+    base = safe_upload_basename(filename or 'arquivo') or 'arquivo'
+    safe = re.sub(r'[^\w.\-]+', '_', base)[:120] or 'arquivo'
+    safe = safe.replace('..', '_')
     path = _uploads_dir() / f'{uid}_{safe}'
+    uploads = _uploads_dir().resolve()
+    resolved = path.resolve()
+    if uploads not in resolved.parents and resolved.parent != uploads:
+        raise RuntimeError('Caminho de upload inválido.')
     path.write_bytes(file_bytes)
     local_id = f'local:{uid}'
     return {
         'drive_id': local_id,
-        'nome': Path(filename or safe).stem,
+        'nome': Path(base or safe).stem,
         'tamanho': len(file_bytes),
         'mime_type': mime_type,
-        'thumb_url': f'/api/local/{uid}',
-        'drive_link': f'/api/local/{uid}',
+        # Não expor /api/local no metadata (enumeration + original)
+        'thumb_url': '',
+        'drive_link': '',
         'storage': 'local',
     }
 
@@ -491,7 +503,7 @@ def _media_cache_dir() -> Path:
 
 def media_cache_path(drive_id: str) -> Path:
     import hashlib
-    key = hashlib.sha1(str(drive_id).encode('utf-8')).hexdigest()[:24]
+    key = hashlib.sha1(str(drive_id).encode('utf-8'), usedforsecurity=False).hexdigest()[:24]
     return _media_cache_dir() / key
 
 

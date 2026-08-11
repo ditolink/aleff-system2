@@ -225,7 +225,9 @@ def upload_ep():
 
     file = request.files['file']
 
-    filename = file.filename or 'sem_nome'
+    from backend.utils.validators import safe_upload_basename
+
+    filename = safe_upload_basename(file.filename or 'sem_nome') or 'sem_nome'
 
     file_bytes = file.read()
 
@@ -531,6 +533,7 @@ def local_media_ep(uid):
         resp.headers['Cache-Control'] = 'private, max-age=3600'
         resp.headers['Content-Disposition'] = 'inline'
         resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
     elif can_access_media_original():
         resp.headers['Cache-Control'] = 'private, no-store'
     else:
@@ -540,11 +543,16 @@ def local_media_ep(uid):
 
 @api.route('/media/<int:media_id>/download', methods=['GET', 'HEAD'])
 def download_ep(media_id):
-    """Original HD.
+    """Original HD / stream de vídeo.
 
-    - Attachment / download: somente admin|dev (ou PUBLIC_MEDIA_ORIGINALS).
+    - Attachment: somente admin|dev (ou PUBLIC_MEDIA_ORIGINALS).
     - Foto sem auth: nunca original (401 attachment / 302 thumb-medium view).
-    - Vídeo ?dl=0: stream inline para player público (bytes necessários à reprodução).
+    - Vídeo ?dl=0: stream inline do arquivo completo — necessário ao <video>/Range.
+
+    RISCO RESIDUAL (aceito até haver pipeline de preview):
+    Visitante recebe bytes do arquivo original de vídeo. URL assinada sozinha
+    NÃO remove o original; transcodificação (ffmpeg → 720p/preview) exigiria
+    storage + job no sync + mudança de URL no player. Não implementado aqui.
     """
     from backend.utils.security import (
         can_access_media_original,
@@ -606,6 +614,7 @@ def download_ep(media_id):
             resp.headers['Cache-Control'] = 'private, max-age=3600'
             resp.headers['Content-Disposition'] = 'inline'
             resp.headers['X-Content-Type-Options'] = 'nosniff'
+            resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
         return resp
 
     except Exception as e:
@@ -784,30 +793,48 @@ def media_thumb_cover_ep(media_id):
 @api.route('/thumbs/prefetch-plan', methods=['GET'])
 def thumbs_prefetch_plan_ep():
     """
-    IDs prioritários pra pré-cache (home + categorias).
-    Retorna URLs medium estáveis — frontend aquece o browser cache de uma vez.
+    URLs de thumb medium pra pré-cache no browser (home + categorias).
+
+    Público: NÃO devolve lista crua de `ids` (reduz enumeração em massa).
+    As URLs ainda contêm o id (necessário ao proxy atual) — risco residual documentado.
     """
+    from backend.utils.security import is_logged_in
     from backend.services import thumb_pipeline as tp
 
-    limit = safe_int(request.args.get('limit', 240), default=240, min_v=8, max_v=400)
+    # Anônimo: teto menor (menos superfície). Staff: até 400.
+    default_lim = 120 if not is_logged_in() else 240
+    max_lim = 120 if not is_logged_in() else 400
+    limit = safe_int(
+        request.args.get('limit', default_lim),
+        default=default_lim,
+        min_v=8,
+        max_v=max_lim,
+    )
     ids = tp.get_prefetch_plan_cached(limit=limit)
-    # ready_medium: conta rápida via listdir do tier (1× FS) em vez de N×stat
     ready_set = set()
     try:
-        ready_set = {int(p.stem) for p in tp.tier_dir('medium').glob('*.webp') if p.stat().st_size > 80}
+        ready_set = {
+            int(p.stem)
+            for p in tp.tier_dir('medium').glob('*.webp')
+            if p.stat().st_size > 80
+        }
     except Exception:
         pass
     ready_medium = sum(1 for i in ids if i in ready_set)
     urls = [f'/api/media/{i}/thumb-medium' for i in ids]
     payload = {
-        'ids': ids,
         'urls': urls,
-        'total': len(ids),
+        'total': len(urls),
         'ready_medium': ready_medium,
-        'pending_medium': max(0, len(ids) - ready_medium),
+        'pending_medium': max(0, len(urls) - ready_medium),
     }
+    # IDs explícitos só para equipe (warm/debug) — visitante usa urls
+    if is_logged_in():
+        payload['ids'] = ids
     resp = make_response(jsonify({'status': 'ok', 'message': 'ok', **payload}), 200)
-    resp.headers['Cache-Control'] = 'public, max-age=30, stale-while-revalidate=60'
+    resp.headers['Cache-Control'] = 'private, max-age=30' if is_logged_in() else (
+        'public, max-age=30, stale-while-revalidate=60'
+    )
     return resp
 
 

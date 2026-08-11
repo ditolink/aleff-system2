@@ -44,6 +44,8 @@ def test_is_safe_image_url_blocks_ssrf():
     assert sec.is_safe_image_url('https://169.254.169.254/latest/meta-data/') is False
     assert sec.is_safe_image_url('https://evil.example.com/x.jpg') is False
     assert sec.is_safe_image_url('/api/media/12/thumb-medium') is True
+    assert sec.is_safe_image_url('/api/media/12/thumb-cover') is True
+    assert sec.is_safe_image_url('/api/local/deadbeefdeadbeef') is False
     assert sec.is_safe_image_url(
         'https://drive.google.com/thumbnail?id=abc&sz=w280'
     ) is True

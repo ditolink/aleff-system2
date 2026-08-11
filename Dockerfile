@@ -28,7 +28,11 @@ COPY backend ./backend
 COPY frontend ./frontend
 COPY .env.example ./.env.example
 
-RUN mkdir -p /app/data /app/frontend/fotos/slots /app/.cache/huggingface /app/.cache/torch
+RUN mkdir -p /app/data /app/frontend/fotos/slots /app/.cache/huggingface /app/.cache/torch \
+    && useradd --create-home --uid 10001 --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app/data /app/frontend/fotos/slots /app/.cache
+
+USER appuser
 
 EXPOSE 3001
 

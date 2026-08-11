@@ -541,8 +541,8 @@ def lockdown_before_request():
     if (method, path) in _ALWAYS_PUBLIC:
         return None
 
-    # GET público: thumbs + metadados leves. Originais (/download, /local imagem) NÃO.
-    if method == 'GET':
+    # GET/HEAD público: thumbs + metadados leves. Originais — handler decide.
+    if method in ('GET', 'HEAD'):
         if re.fullmatch(r'/api/media/\d+', path):
             return None
         if re.fullmatch(r'/api/media/\d+/thumb', path):
@@ -553,7 +553,6 @@ def lockdown_before_request():
             return None
         if re.fullmatch(r'/api/media/\d+/thumb-cover', path):
             return None
-        # /download e /local: handler decide (thumb redirect / vídeo público / 401)
         if re.fullmatch(r'/api/media/\d+/download', path):
             return None
         if re.fullmatch(r'/api/local/[a-f0-9]+', path):
@@ -693,10 +692,8 @@ def is_safe_image_url(url: str) -> bool:
     url = url.strip()
     if len(url) > 2000:
         return False
-    # Paths internos do próprio app (proxy / local)
-    if re.fullmatch(r'/api/local/[a-f0-9]+', url):
-        return True
-    if re.fullmatch(r'/api/media/\d+/thumb(?:-small|-medium)?(?:\?.*)?', url):
+    # Somente thumbs internos — NÃO /api/local (UID = original de vídeo/imagem)
+    if re.fullmatch(r'/api/media/\d+/thumb(?:-small|-medium|-cover)?(?:\?.*)?', url):
         return True
     try:
         parsed = urlparse(url)

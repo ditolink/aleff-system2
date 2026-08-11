@@ -7,17 +7,43 @@ ALLOWED_VIDEOS = {'video/mp4','video/quicktime','video/x-msvideo','video/webm','
 ALLOWED_MIMES  = ALLOWED_IMAGES | ALLOWED_VIDEOS
 ALLOWED_EXT    = {'.jpg','.jpeg','.png','.webp','.gif','.heic','.heif','.bmp','.mp4','.mov','.avi','.webm','.mpeg','.mpg','.3gp'}
 
+
+def safe_upload_basename(filename: str) -> str:
+    """Só o nome do arquivo, sem path. Rejeita vazio."""
+    name = os.path.basename((filename or '').replace('\\', '/').strip())
+    name = name.lstrip('.')
+    return name[:180]
+
+
 def validate_file(filename, mime_type, size):
-    if not filename: return False, "Nome inválido."
-    ext = os.path.splitext(filename.lower())[1]
-    if ext not in ALLOWED_EXT: return False, f"Extensão '{ext}' não permitida."
-    if mime_type not in ALLOWED_MIMES: return False, f"Tipo '{mime_type}' não permitido."
-    if size > MAX_FILE_SIZE: return False, f"Arquivo muito grande ({size/(1024*1024):.1f} MB). Máx: 500 MB."
-    if size == 0: return False, "Arquivo vazio."
+    if not filename:
+        return False, "Nome inválido."
+    raw = str(filename)
+    if any(c in raw for c in ('\x00', '\n', '\r')):
+        return False, "Nome inválido."
+    # Path traversal / absolute paths no filename
+    norm = raw.replace('\\', '/')
+    if '/' in norm or norm.startswith('~'):
+        if os.path.basename(norm) != norm.rstrip('/'):
+            return False, "Nome de arquivo inválido."
+    name = safe_upload_basename(raw)
+    if not name or name in ('.', '..'):
+        return False, "Nome inválido."
+    ext = os.path.splitext(name.lower())[1]
+    if ext not in ALLOWED_EXT:
+        return False, f"Extensão '{ext}' não permitida."
+    if mime_type not in ALLOWED_MIMES:
+        return False, f"Tipo '{mime_type}' não permitido."
+    if size > MAX_FILE_SIZE:
+        return False, f"Arquivo muito grande ({size/(1024*1024):.1f} MB). Máx: 500 MB."
+    if size == 0:
+        return False, "Arquivo vazio."
     return True, ""
 
+
 def sanitize_string(value, max_len=500):
-    if not isinstance(value, str): value = str(value)
+    if not isinstance(value, str):
+        value = str(value)
     value = html.escape(value.strip(), quote=True)
     value = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f]', '', value)
     return value[:max_len]
@@ -50,19 +76,26 @@ def sniff_mime_from_bytes(file_bytes, filename=''):
         '.3gp': 'video/3gpp',
     }.get(ext, 'application/octet-stream')
 
+
 def sanitize_tags(tags_raw):
-    if not tags_raw: return ''
+    if not tags_raw:
+        return ''
     parts = [t.strip().lower() for t in re.split(r'[,;\s]+', tags_raw)]
     parts = [re.sub(r'[^\w\-áàâãéèêíïóôõöúüçñ]', '', t, flags=re.UNICODE) for t in parts]
     return ','.join(p for p in parts if p)[:2000]
 
+
 def get_mime_category(mime_type):
-    if mime_type in ALLOWED_IMAGES: return 'image'
-    if mime_type in ALLOWED_VIDEOS: return 'video'
+    if mime_type in ALLOWED_IMAGES:
+        return 'image'
+    if mime_type in ALLOWED_VIDEOS:
+        return 'video'
     return 'unknown'
 
+
 def format_size(size_bytes):
-    for unit in ['B','KB','MB','GB']:
-        if size_bytes < 1024: return f"{size_bytes:.1f} {unit}"
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024
     return f"{size_bytes:.1f} TB"

@@ -203,7 +203,7 @@ def _thumb_for(mid: int) -> Path | None:
 
 
 def _content_hash(mid: int, emb_updated: str | None, thumb: Path | None) -> str:
-    h = hashlib.sha1()
+    h = hashlib.sha1(usedforsecurity=False)
     h.update(str(mid).encode())
     h.update((emb_updated or "").encode())
     if thumb and thumb.exists():

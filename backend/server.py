@@ -395,9 +395,11 @@ def health():
 
 
 def _safe_next(raw) -> str:
-    nxt = raw or "/dashboard.html"
-    if not str(nxt).startswith("/") or str(nxt).startswith("//"):
-        return "/dashboard.html"
+    """Post-login redirect: allowlist only (bloqueia open redirect)."""
+    import re
+    from urllib.parse import unquote
+
+    default = "/dashboard.html"
     bare = {
         "/dashboard": "/dashboard.html",
         "/upload": "/upload.html",
@@ -406,8 +408,42 @@ def _safe_next(raw) -> str:
         "/slots": "/slots.html",
         "/code": "/code.html",
         "/settings": "/settings.html",
+        "/index": "/index.html",
+        "/": "/index.html",
     }
-    return bare.get(str(nxt), str(nxt))
+    allowed = frozenset({
+        "/dashboard.html",
+        "/upload.html",
+        "/admin.html",
+        "/search.html",
+        "/slots.html",
+        "/code.html",
+        "/settings.html",
+        "/index.html",
+        "/loginsite.html",
+    }) | frozenset(bare.keys())
+
+    nxt = unquote(str(raw or "").strip())
+    if not nxt:
+        return default
+    if (
+        not nxt.startswith("/")
+        or nxt.startswith("//")
+        or "\\" in nxt
+        or "://" in nxt
+        or "@" in nxt
+        or any(c in nxt for c in ("\n", "\r", "\t", "\x00"))
+        or "//" in nxt
+    ):
+        return default
+    path_only = nxt.split("?", 1)[0].split("#", 1)[0]
+    if path_only in bare:
+        return bare[path_only]
+    if path_only in allowed:
+        return path_only
+    if re.fullmatch(r"/[a-z0-9][a-z0-9_-]{0,64}\.html", path_only, flags=re.I):
+        return path_only.lower()
+    return default
 
 
 @app.route("/loginsite")
@@ -607,9 +643,10 @@ if __name__ == "__main__":
     print(f"Portfólio:     http://{host}:{port}/")
     print(f"Busca:         http://{host}:{port}/search.html")
 
-    # Waitress: vários workers — vídeos grandes não travam a página
+    # Waitress em produção. Em development: Flask threaded SEM debugger (RCE).
     if debug:
-        app.run(host=host, port=port, debug=True, use_reloader=False, threaded=True)
+        print("[HTTP] Flask threaded (sem Werkzeug debugger)")
+        app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
     else:
         try:
             from waitress import serve

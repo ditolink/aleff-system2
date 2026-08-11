@@ -154,6 +154,16 @@ server {
         return 404;
     }
 
+    # Segredos / VCS / backups — nunca públicos
+    location ~* /(\.env|\.git|\.venv|venv|service-account|credentials\.json|.*\.sqlite|.*\.db|.*\.pem|.*\.key) {
+        deny all;
+        return 404;
+    }
+    location ~* \.(env|bak|sql|sqlite|db|pem|key|p12|pfx)$ {
+        deny all;
+        return 404;
+    }
+
     # Thumbs WebP pré-geradas (quando existirem) — sem Flask
     location ~ ^/data-thumbs/(small|medium)/([0-9]+)\.webp$ {
         alias $APP_DIR/data/thumbs/\$1/\$2.webp;
