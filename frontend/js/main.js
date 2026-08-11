@@ -205,13 +205,21 @@
     };
   })();
 
-  /* ── Hero: parallax no rosto + nav some no scroll ───── */
+  /* ── Hero: parallax no rosto; nav fica sempre usável ───── */
   function initHero() {
     const heroBg = $('#heroBg');
     const heroContent = $('#heroContent');
     const nav = $('#siteNav');
     if (!heroBg || !heroContent) return;
     const lightParallax = isMobileUI();
+
+    // Nav normal: sem sumir / sem pointer-events:none no scroll
+    if (nav) {
+      nav.style.opacity = '';
+      nav.style.transform = '';
+      nav.style.pointerEvents = '';
+      nav.classList.remove('is-fading');
+    }
 
     const onScroll = rafThrottle(() => {
       const sy = window.scrollY;
@@ -225,13 +233,7 @@
         heroContent.style.opacity = String(Math.max(0, 1 - Math.pow(fade, 1.5)));
       }
       if (nav) {
-        // Some junto com o parallax (Trabalhos / Contato / Buscar)
-        const navFade = Math.min(1, sy / 280);
-        const opacity = Math.max(0, 1 - Math.pow(navFade, 1.35));        nav.style.opacity = String(opacity);
-        nav.style.transform = `translateY(${sy * 0.04}px)`;
-        nav.style.pointerEvents = opacity < 0.12 ? 'none' : 'auto';
         nav.classList.toggle('is-scrolled', sy > 40);
-        nav.classList.toggle('is-fading', sy > 24);
       }
     });
 
