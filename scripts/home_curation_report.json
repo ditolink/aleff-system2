@@ -1,0 +1,50 @@
+{
+  "total_analyzed": 2141,
+  "technically_good": 1178,
+  "visually_strong": 568,
+  "portfolio_master": 245,
+  "candidates_final": 90,
+  "selected_home": 13,
+  "method": "OpenCLIP prompt banks + percentile ranks + OpenCV thumbs + media_faces; human visual QA reorder",
+  "command": "python -m backend.services.photo_curator --rebuild --apply",
+  "cache_table": "media_curation_scores",
+  "opener": {
+    "path": "fotos/foto_casal_por_do_sol.jpg",
+    "why": "impacto cinematográfico imediato — silhueta"
+  },
+  "chapters": [
+    {
+      "title": "Quando a luz cai",
+      "photos": [
+        {"id": 1675, "shape": "l-wide", "why": "golden hour na água — wide de impacto"},
+        {"id": 1855, "shape": "p-tall", "why": "sombra de grade + luz — WOW portfolio master"},
+        {"id": 1709, "shape": "p-tall", "why": "contraluz + flor em bokeh — WOW"}
+      ]
+    },
+    {
+      "title": "Entre nós",
+      "photos": [
+        {"id": 27, "shape": "l-wide", "why": "casal golden hour — conexão"},
+        {"id": 75, "shape": "p-tall", "why": "reflexo no rio ao pôr do sol — CARALHO foto"},
+        {"id": 61, "shape": "p-tall", "why": "maternidade — cliente real no nível"}
+      ]
+    },
+    {
+      "title": "Um lugar para ser",
+      "photos": [
+        {"id": 1953, "shape": "l-wide", "why": "retrato masculino editorial — diversidade"},
+        {"id": 2034, "shape": "p-tall", "why": "Barbara manualCurated lock"},
+        {"id": 2033, "shape": "p-tall", "why": "mãos + profundidade — impacto"},
+        {"id": 2156, "shape": "p-tall", "why": "editorial cinematográfico"},
+        {"id": 1285, "shape": "p-tall", "why": "presença floral — ensaio forte"},
+        {"id": 1942, "shape": "p-tall", "why": "rim light sunset — alegria"}
+      ]
+    }
+  ],
+  "top_wow_examples": [
+    {"id": 1855, "wow": 0.95, "master": 0.94, "motivo": "sombra criativa + golden hour"},
+    {"id": 1709, "wow": 0.96, "master": 0.93, "motivo": "contraluz + foreground bokeh"},
+    {"id": 75, "wow": 0.86, "master": 0.86, "motivo": "reflexo simétrico + momento"},
+    {"id": 2033, "wow": 0.93, "master": 0.92, "motivo": "gesto + isolamento"}
+  ]
+}

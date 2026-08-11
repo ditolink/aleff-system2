@@ -1,0 +1,322 @@
+{
+  "candidates": 631,
+  "chapters": 5,
+  "photoCount": 30,
+  "opener": "fotos/foto_casal_por_do_sol.jpg",
+  "barbaraLocked": true,
+  "barbaraPath": "fotos/foto_barbara.png",
+  "chaptersDetail": [
+    {
+      "editorialTitle": "Um lugar para ser",
+      "conceptId": "retrato",
+      "scores": {
+        "coherenceScore": 0.612,
+        "qualityScore": 0.5112,
+        "diversityScore": 0.62,
+        "visualIdentityScore": 0.612,
+        "quantityScore": 0.625,
+        "layoutScore": 1.0,
+        "blockScore": 0.6087
+      },
+      "hasBarbara": true,
+      "photos": [
+        {
+          "path": "fotos/home_ed_38.webp",
+          "media_id": 38,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Rodrigo e Ana",
+          "categoria": "casais"
+        },
+        {
+          "path": "fotos/foto_barbara.png",
+          "media_id": 2034,
+          "shape": "p-tall",
+          "manualCurated": true,
+          "pasta": "Barbara",
+          "categoria": "editorial"
+        },
+        {
+          "path": "fotos/home_ed_61.webp",
+          "media_id": 61,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Ana & Jhenmerson",
+          "categoria": "casais"
+        },
+        {
+          "path": "fotos/home_ed_42.webp",
+          "media_id": 42,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Rodrigo e Ana",
+          "categoria": "casais"
+        },
+        {
+          "path": "fotos/home_ed_66.webp",
+          "media_id": 66,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Ana & Jhenmerson",
+          "categoria": "casais"
+        },
+        {
+          "path": "fotos/home_ed_1467.webp",
+          "media_id": 1467,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Érika e Diego",
+          "categoria": ""
+        }
+      ]
+    },
+    {
+      "editorialTitle": "Quando a luz cai",
+      "conceptId": "luz",
+      "scores": {
+        "coherenceScore": 0.6221,
+        "qualityScore": 0.2703,
+        "diversityScore": 0.7833,
+        "visualIdentityScore": 0.6221,
+        "quantityScore": 0.75,
+        "layoutScore": 1.0,
+        "blockScore": 0.59
+      },
+      "hasBarbara": false,
+      "photos": [
+        {
+          "path": "fotos/home_ed_704.webp",
+          "media_id": 704,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Kenia f",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_437.webp",
+          "media_id": 437,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "2022",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1690.webp",
+          "media_id": 1690,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Luciana Conrado 26/03",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1371.webp",
+          "media_id": 1371,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Thamyres Lima",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1942.webp",
+          "media_id": 1942,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Ane 2021",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1688.webp",
+          "media_id": 1688,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Luciana Conrado 26/03",
+          "categoria": ""
+        }
+      ]
+    },
+    {
+      "editorialTitle": "O tempo entre nós",
+      "conceptId": "casal",
+      "scores": {
+        "coherenceScore": 0.6623,
+        "qualityScore": 0.3345,
+        "diversityScore": 0.62,
+        "visualIdentityScore": 0.6623,
+        "quantityScore": 0.625,
+        "layoutScore": 1.0,
+        "blockScore": 0.5871
+      },
+      "hasBarbara": false,
+      "photos": [
+        {
+          "path": "fotos/home_ed_58.webp",
+          "media_id": 58,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Ana & Jhenmerson",
+          "categoria": "casamento"
+        },
+        {
+          "path": "fotos/home_ed_548.webp",
+          "media_id": 548,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Ana & Elvis",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1149.webp",
+          "media_id": 1149,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Karoline & José",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1147.webp",
+          "media_id": 1147,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Karoline & José",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_530.webp",
+          "media_id": 530,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Ana & Elvis",
+          "categoria": ""
+        }
+      ]
+    },
+    {
+      "editorialTitle": "Laços",
+      "conceptId": "familia",
+      "scores": {
+        "coherenceScore": 0.5666,
+        "qualityScore": 0.3494,
+        "diversityScore": 0.6083,
+        "visualIdentityScore": 0.5666,
+        "quantityScore": 1.0,
+        "layoutScore": 1.0,
+        "blockScore": 0.5836
+      },
+      "hasBarbara": false,
+      "photos": [
+        {
+          "path": "fotos/home_ed_2.webp",
+          "media_id": 2,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Rodrigo e Ana",
+          "categoria": "familia"
+        },
+        {
+          "path": "fotos/home_ed_1218.webp",
+          "media_id": 1218,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "João Hélio",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1582.webp",
+          "media_id": 1582,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Isis",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1592.webp",
+          "media_id": 1592,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Felipe Nere",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1217.webp",
+          "media_id": 1217,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "João Hélio",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1578.webp",
+          "media_id": 1578,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Isis",
+          "categoria": ""
+        }
+      ]
+    },
+    {
+      "editorialTitle": "Em movimento",
+      "conceptId": "cidade",
+      "scores": {
+        "coherenceScore": 0.405,
+        "qualityScore": 0.2822,
+        "diversityScore": 0.725,
+        "visualIdentityScore": 0.405,
+        "quantityScore": 1.0,
+        "layoutScore": 1.0,
+        "blockScore": 0.5115
+      },
+      "hasBarbara": false,
+      "photos": [
+        {
+          "path": "fotos/home_ed_1521.webp",
+          "media_id": 1521,
+          "shape": "l-wide",
+          "manualCurated": false,
+          "pasta": "Fred",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1515.webp",
+          "media_id": 1515,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Fred",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_2037.webp",
+          "media_id": 2037,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Bastidores",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1016.webp",
+          "media_id": 1016,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Sonata",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1249.webp",
+          "media_id": 1249,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "João montech",
+          "categoria": ""
+        },
+        {
+          "path": "fotos/home_ed_1974.webp",
+          "media_id": 1974,
+          "shape": "p-tall",
+          "manualCurated": false,
+          "pasta": "Joãozinho Gameplays",
+          "categoria": ""
+        }
+      ]
+    }
+  ]
+}

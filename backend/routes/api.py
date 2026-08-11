@@ -1,7 +1,7 @@
 import os, io, mimetypes
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, send_file, redirect
+from flask import Blueprint, request, jsonify, send_file, redirect, make_response
 
 from backend.models.database import (
     insert_media,
@@ -183,6 +183,8 @@ def list_media_ep():
         storage=storage or None,
         sort=sort,
     )
+    from backend.models.database import annotate_storage
+    result['items'] = [annotate_storage(it, thumb_size=800) for it in (result.get('items') or [])]
 
     return ok(result)
 
@@ -201,10 +203,13 @@ def get_media_ep(media_id):
 
     increment_views(media_id)
 
-    from backend.models.database import annotate_storage
-    return ok({
-        'item': annotate_storage(item)
-    })
+    from backend.models.database import annotate_storage, to_search_card
+    from backend.utils.security import current_can
+
+    # Público: card slim (sem drive_id/link). Staff: row anotada completa.
+    if current_can('gallery'):
+        return ok({'item': annotate_storage(item, light=False)})
+    return ok({'item': to_search_card(item, thumb_size=800)})
 
 
 
@@ -353,33 +358,16 @@ def upload_ep():
             now.day
     })
 
-    # Gera o embedding CLIP em background (best-effort — nunca bloqueia
-    # nem quebra o upload se o OpenCLIP não estiver instalado ou falhar).
-    # É isso que alimenta a busca semântica em /api/search.
+    # CLIP + Faces em background via pipeline unificado
     if get_mime_category(mime_type) == 'image' and drive_result.get('thumb_url'):
-        import threading
+        from backend.services.ai_pipeline import enqueue_media_ai
 
         clip_src = drive_result['thumb_url']
         if drive_result.get('storage') == 'local':
             local_path = drive_svc.resolve_local_path(drive_result['drive_id'])
             if local_path:
                 clip_src = str(local_path)
-
-        def _gen_embedding(mid, thumb_url):
-            try:
-                from backend.services.clip_tagger import encode_image_embedding
-                emb = encode_image_embedding(thumb_url, media_id=mid)
-                if emb:
-                    from backend.models.database import save_media_embedding
-                    save_media_embedding(mid, emb)
-            except Exception as e:
-                print(f"[CLIP] Embedding do upload {mid} falhou: {e}")
-
-        threading.Thread(
-            target=_gen_embedding,
-            args=(media_id, clip_src),
-            daemon=True
-        ).start()
+        enqueue_media_ai(media_id, clip_src)
 
     return ok(
         {
@@ -429,7 +417,8 @@ def update_media_ep(media_id):
         cleaned['autor'] = sanitize_string(data['autor'])
 
     if 'pasta' in data:
-        cleaned['pasta'] = sanitize_string(data['pasta'])
+        from backend.models.database import normalize_pasta_name
+        cleaned['pasta'] = normalize_pasta_name(sanitize_string(data['pasta']))
 
     if 'estrelas' in data:
         try:
@@ -501,14 +490,23 @@ def delete_media_ep(media_id):
 
 @api.route('/local/<uid>', methods=['GET'])
 def local_media_ep(uid):
-    """Serve arquivo local com Range (seek no player de vídeo)."""
+    """Serve arquivo local com Range (seek no player de vídeo).
+    Imagens originais exigem gallery; vídeo pode ser público (player do site).
+    """
     import re
+    from backend.utils.security import current_can, public_originals_allowed
+
     if not re.fullmatch(r'[a-f0-9]{16,64}', uid or ''):
         return err('Arquivo inválido.', 400)
     path = drive_svc.resolve_local_path(f'local:{uid}')
     if not path or not path.is_file():
         return err('Arquivo não encontrado.', 404)
     mime = mimetypes.guess_type(path.name)[0] or sniff_mime_from_bytes(path.read_bytes()[:32], path.name)
+    is_video = (mime or '').startswith('video/') or path.suffix.lower() in (
+        '.mp4', '.webm', '.mov', '.m4v', '.mkv',
+    )
+    if not is_video and not (public_originals_allowed() or current_can('gallery')):
+        return err('Arquivo original exige login.', 401)
     # send_file no path real → conditional/etag/Range (não carrega tudo na RAM)
     return send_file(
         path,
@@ -523,6 +521,10 @@ def local_media_ep(uid):
 
 @api.route('/media/<int:media_id>/download', methods=['GET'])
 def download_ep(media_id):
+    """Original HD. Público só com PUBLIC_MEDIA_ORIGINALS (+ confirm em prod).
+    Sem auth: vídeos podem streamar; fotos redirecionam p/ thumb-medium (lightbox).
+    """
+    from backend.utils.security import current_can, public_originals_allowed
 
     item = get_media(media_id)
 
@@ -532,23 +534,23 @@ def download_ep(media_id):
             404
         )
 
+    is_video = (item.get('tipo') or '') == 'video'
+    can_original = public_originals_allowed() or current_can('gallery')
+    as_attach = request.args.get('dl', '1') not in ('0', 'false', 'view')
+
+    # Foto sem auth: não vaza HD — thumb medium (ou 401 se attachment)
+    if not can_original and not is_video:
+        if as_attach:
+            return err('Download do original exige login.', 401)
+        return redirect(f'/api/media/{media_id}/thumb-medium', code=302)
 
     try:
+        # Stream do disco (cache) — não carrega o arquivo inteiro na RAM do Waitress
+        path, mime = drive_svc.open_media_file(item['drive_id'])
 
-        file_bytes, mime = drive_svc.download_file(
-            item['drive_id']
-        )
+        increment_downloads(media_id)
 
-
-        increment_downloads(
-            media_id
-        )
-
-        # 'nome' é salvo sem extensão (upload.html remove antes de enviar);
-        # reconstrói a extensão a partir do mime type para o arquivo baixado
-        # abrir corretamente no sistema operacional.
         download_name = item['nome']
-
         if '.' not in os.path.basename(download_name):
             ext = (
                 mimetypes.guess_extension(mime)
@@ -557,13 +559,18 @@ def download_ep(media_id):
             )
             download_name += ext
 
-        return send_file(
-            io.BytesIO(file_bytes),
+        resp = send_file(
+            path,
             mimetype=mime,
-            as_attachment=True,
-            download_name=download_name
+            as_attachment=as_attach,
+            download_name=download_name,
+            conditional=True,
+            etag=True,
+            last_modified=True,
+            max_age=86400,
         )
-
+        resp.headers['Cache-Control'] = 'private, max-age=3600'
+        return resp
 
     except Exception as e:
 
@@ -582,24 +589,220 @@ def media_thumb_ep(media_id):
         return err('Mídia não encontrada.', 404)
     try:
         size = safe_int(request.args.get('sz', 280), default=280, min_v=120, max_v=1200)
-        # ETag fraco pra browser/CDN
+        cache_path = drive_svc.thumb_cache_path(item['drive_id'], size)
         raw, mime = drive_svc.fetch_thumbnail_bytes(item['drive_id'], size=size, use_cache=True)
-        resp = send_file(
-            io.BytesIO(raw),
-            mimetype=mime or 'image/jpeg',
-            as_attachment=False,
-            download_name=f'thumb-{media_id}.jpg',
-            max_age=604800,
-        )
-        resp.headers['Cache-Control'] = 'public, max-age=604800, immutable'
-        resp.headers['X-Thumb-Cache'] = 'hit' if drive_svc.thumb_cache_path(item['drive_id'], size).is_file() else 'miss'
+        # Preferir enviar do arquivo em disco (send_file + etag/condicional)
+        if cache_path.is_file() and cache_path.stat().st_size > 200:
+            resp = send_file(
+                cache_path,
+                mimetype=mime or 'image/jpeg',
+                as_attachment=False,
+                download_name=f'thumb-{media_id}.jpg',
+                conditional=True,
+                etag=True,
+                last_modified=True,
+                max_age=86400,
+            )
+        else:
+            resp = send_file(
+                io.BytesIO(raw),
+                mimetype=mime or 'image/jpeg',
+                as_attachment=False,
+                download_name=f'thumb-{media_id}.jpg',
+                max_age=86400,
+            )
+        resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+        resp.headers['X-Thumb-Cache'] = 'hit' if cache_path.is_file() else 'miss'
         return resp
     except Exception as e:
         print(f'[Thumb] media={media_id}: {e}')
+        from backend.utils.security import is_safe_thumb_url
         legacy = (item.get('thumb_url') or '').strip()
-        if legacy.startswith('https://'):
+        if is_safe_thumb_url(legacy):
             return redirect(legacy, code=302)
         return err('Thumbnail indisponível.', 404)
+
+
+def _serve_tier_thumb(media_id: int, tier: str):
+    """Serve WebP small/medium com cache longo + geração sob demanda."""
+    from backend.services import thumb_pipeline as tp
+    from flask import Response
+
+    item = get_media(media_id)
+    if not item:
+        return err('Mídia não encontrada.', 404)
+    if (item.get('tipo') or '') == 'video':
+        # Vídeo: reusa proxy clássico
+        return media_thumb_ep(media_id)
+
+    prefer = 320 if tier == 'small' else 800
+
+    # Hit WebP
+    if tp.is_ready(media_id, tier):
+        path = tp.thumb_path(media_id, tier)
+        resp = send_file(
+            path,
+            mimetype='image/webp',
+            as_attachment=False,
+            download_name=f'thumb-{media_id}-{tier}.webp',
+            conditional=True,
+            etag=True,
+            last_modified=True,
+            max_age=31536000,
+        )
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        resp.headers['X-Thumb-Tier'] = tier
+        resp.headers['X-Thumb-Cache'] = 'hit'
+        return resp
+
+    # Gera WebP a partir de fonte local (JPEG legado / public)
+    try:
+        path = tp.ensure_thumb(item, tier=tier)
+        resp = send_file(
+            path,
+            mimetype='image/webp',
+            as_attachment=False,
+            download_name=f'thumb-{media_id}-{tier}.webp',
+            conditional=True,
+            etag=True,
+            last_modified=True,
+            max_age=31536000,
+        )
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        resp.headers['X-Thumb-Tier'] = tier
+        resp.headers['X-Thumb-Cache'] = 'miss'
+        return resp
+    except Exception as e:
+        print(f'[Thumb-{tier}] media={media_id}: {e}')
+
+    # Fallback imediato: JPEG legado em disco (renderiza agora) + gera WebP em bg
+    did = (item.get('drive_id') or '').strip()
+    if did:
+        try:
+            raw = drive_svc.find_cached_thumb_bytes(did, prefer_w=prefer)
+            if raw:
+                def _bg_webp():
+                    try:
+                        tp.ensure_thumb(item, tier=tier)
+                    except Exception:
+                        pass
+                import threading
+                threading.Thread(target=_bg_webp, daemon=True, name=f'thumb-bg-{media_id}').start()
+                resp = Response(raw, mimetype='image/jpeg')
+                resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+                resp.headers['X-Thumb-Tier'] = tier
+                resp.headers['X-Thumb-Cache'] = 'legacy-jpeg'
+                return resp
+        except Exception:
+            pass
+
+    # Último recurso: proxy clássico / Drive redirect
+    try:
+        return media_thumb_ep(media_id)
+    except Exception:
+        if did and not did.startswith('local:'):
+            return redirect(drive_svc._thumb_url(did, size=prefer), code=302)
+        return err('Thumbnail indisponível.', 404)
+
+
+@api.route('/media/<int:media_id>/thumb-small', methods=['GET'])
+def media_thumb_small_ep(media_id):
+    """Pré-render leve (WebP ~320px) — grid / prefetch."""
+    return _serve_tier_thumb(media_id, 'small')
+
+
+@api.route('/media/<int:media_id>/thumb-medium', methods=['GET'])
+def media_thumb_medium_ep(media_id):
+    """Upgrade de qualidade na viewport (WebP ~800px)."""
+    return _serve_tier_thumb(media_id, 'medium')
+
+
+@api.route('/media/<int:media_id>/thumb-cover', methods=['GET'])
+def media_thumb_cover_ep(media_id):
+    """WebP panorâmico com rosto no centro — capas da grade Explorar."""
+    from backend.services import thumb_pipeline as tp
+
+    item = get_media(media_id)
+    if not item:
+        return err('Mídia não encontrada.', 404)
+    if (item.get('tipo') or '') == 'video':
+        return _serve_tier_thumb(media_id, 'medium')
+
+    try:
+        path = tp.ensure_cover_thumb(item)
+        resp = send_file(
+            path,
+            mimetype='image/webp',
+            as_attachment=False,
+            download_name=f'thumb-{media_id}-cover.webp',
+            conditional=True,
+            etag=True,
+            last_modified=True,
+            max_age=31536000,
+        )
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        resp.headers['X-Thumb-Tier'] = 'cover'
+        resp.headers['X-Thumb-Cache'] = 'hit'
+        return resp
+    except Exception as e:
+        print(f'[Thumb-cover] media={media_id}: {e}')
+        return _serve_tier_thumb(media_id, 'medium')
+
+
+@api.route('/thumbs/prefetch-plan', methods=['GET'])
+def thumbs_prefetch_plan_ep():
+    """
+    IDs prioritários pra pré-cache (home + categorias).
+    Retorna URLs medium estáveis — frontend aquece o browser cache de uma vez.
+    """
+    from backend.services import thumb_pipeline as tp
+
+    limit = safe_int(request.args.get('limit', 240), default=240, min_v=8, max_v=400)
+    ids = tp.get_prefetch_plan_cached(limit=limit)
+    # ready_medium: conta rápida via listdir do tier (1× FS) em vez de N×stat
+    ready_set = set()
+    try:
+        ready_set = {int(p.stem) for p in tp.tier_dir('medium').glob('*.webp') if p.stat().st_size > 80}
+    except Exception:
+        pass
+    ready_medium = sum(1 for i in ids if i in ready_set)
+    urls = [f'/api/media/{i}/thumb-medium' for i in ids]
+    payload = {
+        'ids': ids,
+        'urls': urls,
+        'total': len(ids),
+        'ready_medium': ready_medium,
+        'pending_medium': max(0, len(ids) - ready_medium),
+    }
+    resp = make_response(jsonify({'status': 'ok', 'message': 'ok', **payload}), 200)
+    resp.headers['Cache-Control'] = 'public, max-age=30, stale-while-revalidate=60'
+    return resp
+
+
+@api.route('/thumbs/warm', methods=['GET', 'POST'])
+@require_perm('gallery')
+def thumbs_warm_ep():
+    """
+    Pré-geração em disco (home+categorias). Exige login — evita DoS anônimo.
+    Boot do server já aquece sozinho; visitantes usam ensure_thumb sob demanda.
+    """
+    from backend.services import thumb_pipeline as tp
+
+    limit = safe_int(request.args.get('limit', 240), default=240, min_v=8, max_v=400)
+    workers = safe_int(request.args.get('workers', 4), default=4, min_v=1, max_v=8)
+    started = tp.start_background_warm(limit=limit, workers=workers)
+    return ok({
+        'started': started,
+        'limit': limit,
+        'workers': workers,
+    })
+
+
+@api.route('/thumbs/stats', methods=['GET'])
+@require_perm('system')
+def thumbs_stats_ep():
+    from backend.services import thumb_pipeline as tp
+    return ok({'stats': tp.get_stats()})
 
 
 # ==================================================
@@ -635,17 +838,45 @@ def search_ep():
 
 
     from backend.services.search_engine import intelligent_search
-    from backend.models.database import annotate_storage
+    import time as _time
 
+    t0 = _time.perf_counter()
     result = intelligent_search(
         query=query,
         extra_filters=filters,
         page=safe_int(request.args.get('page', 1), default=1, min_v=1, max_v=10_000),
         per_page=safe_int(request.args.get('per_page', 24), default=24, min_v=1, max_v=100),
+        sort=(request.args.get('sort') or 'home').strip().lower(),
     )
-    result['items'] = [annotate_storage(it, thumb_size=280) for it in (result.get('items') or [])]
+    # Cards já vêm slim de intelligent_search (to_search_card)
+    timing = result.get('timing') or {}
+    http_ms = (_time.perf_counter() - t0) * 1000
+    print(
+        f"[SEARCH] q={query!r} mode={result.get('mode')} "
+        f"total={result.get('total')} "
+        f"db_ms={timing.get('db_ms')} ser_ms={timing.get('serialize_ms')} "
+        f"eng_ms={timing.get('total_ms')} http_ms={http_ms:.1f}"
+        f"{' cache' if timing.get('cache') else ''}"
+    )
 
-    return ok(result)
+    payload = {
+        'status': 'ok',
+        'message': 'ok',
+        **result,
+    }
+    resp = make_response(jsonify(payload), 200)
+    mode = result.get('mode') or ''
+    # Browse/home público: cache compartilhado (CDN/nginx/browser) — site no ar
+    if mode in ('browse', 'home', 'tag', 'name') and not filters:
+        if os.getenv('FLASK_ENV') == 'production':
+            resp.headers['Cache-Control'] = (
+                'public, max-age=60, s-maxage=120, stale-while-revalidate=300'
+            )
+        else:
+            resp.headers['Cache-Control'] = 'private, max-age=20, stale-while-revalidate=60'
+    else:
+        resp.headers['Cache-Control'] = 'private, no-cache'
+    return resp
 
 
 
@@ -655,34 +886,59 @@ def autocomplete_ep():
     q = request.args.get(
         'q',
         ''
-    ).lower().strip()
-
+    ).strip()
 
     if len(q) < 2:
         return ok({
             'suggestions': []
         })
 
+    import html
+    import unicodedata
+    from backend.models.database import get_all_pastas, normalize_pasta_name
 
-    from backend.models.database import get_all_pastas
+    def norm(s):
+        s = html.unescape(str(s or '')).strip().lower()
+        s = unicodedata.normalize('NFD', s)
+        return ''.join(ch for ch in s if unicodedata.category(ch) != 'Mn')
 
-    pastas = [
-        p for p in get_all_pastas()
-        if q in p.lower()
-    ][:5]
+    qn = norm(q)
+    scored_pastas = []
+    for p in get_all_pastas():
+        label = normalize_pasta_name(p)
+        pn = norm(label)
+        if not pn or len(pn) < 2:
+            continue
+        if qn == pn:
+            scored_pastas.append((0, label))
+        elif pn.startswith(qn) or any(w.startswith(qn) for w in pn.split()):
+            scored_pastas.append((1, label))
+        elif qn in pn:
+            scored_pastas.append((2, label))
+    scored_pastas.sort(key=lambda x: (x[0], x[1].lower()))
+    # únicos
+    seen = set()
+    pastas = []
+    for _, label in scored_pastas:
+        key = label.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        pastas.append(label)
+        if len(pastas) >= 6:
+            break
 
     tags = [
         t for t in get_all_tags()
-        if q in t.lower()
-    ][:8 - len(pastas)]
-
+        if qn in norm(t)
+    ][: max(0, 10 - len(pastas))]
 
     return ok({
         'suggestions': [
             {
                 'text': p,
-                'type': 'pasta',
-                'icon': 'pasta'
+                'type': 'nome',
+                'icon': 'nome'
             }
             for p in pastas
         ] + [
@@ -722,32 +978,60 @@ def dashboard_ep():
 
 @api.route('/search/stats', methods=['GET'])
 def search_stats_ep():
-    """Contagens para a grade Explorar (tags + categoria, não só coluna vazia)."""
-    from backend.models.database import get_conn
+    """Contagens + capas (melhores fotos) para a grade Explorar."""
+    import time as _time
+    from backend.models.database import pick_category_covers, pick_best_for_keys
+
+    # Capas/contagens mudam pouco — TTL maior evita 8× pick_best por pageview
+    cache_ttl = int(os.getenv('SEARCH_STATS_CACHE_SEC', '180') or 180)
+    cache = getattr(search_stats_ep, '_cache', None)
+    if cache and (_time.time() - cache['ts']) < max(45, cache_ttl):
+        return ok(cache['data'])
 
     explore = {
-        'shows': ('show', 'shows', 'palco', 'banda', 'concerto', 'artista'),
+        'shows': ('show', 'shows', 'palco', 'banda', 'concerto', 'sonata'),
         'casamento': ('casamento', 'noiva', 'noivo', 'cerimonia', 'igreja', 'alianca', 'vestido'),
         'retratos': ('retrato', 'retratos', 'close', 'estudio', 'olhar'),
         'casais': ('casal', 'casais', 'romantico', 'amor', 'beijo', 'abraco'),
         'familia': ('familia', 'familiar', 'geracoes'),
         'infantil': ('infantil', 'crianca', 'bebe', 'aniversario'),
-        'motocross': ('moto', 'motocross', 'pista', 'adrenalina'),
-        'editorial': ('editorial', 'moda', 'fashion'),
+        'ensaios': ('ensaio', 'ensaios', 'externo', 'sessao', 'lifestyle'),
+        'editorial': ('editorial', 'moda', 'fashion', 'conceito', 'artistico'),
     }
-    conn = get_conn()
-    rows = conn.execute("SELECT LOWER(COALESCE(tags,'')) AS t, LOWER(COALESCE(categoria,'')) AS c FROM media").fetchall()
-    conn.close()
+    covers = {}
+    try:
+        covers = pick_category_covers(explore, thumb_size=560)
+    except Exception as e:
+        print(f'[search/stats] covers: {e}')
+
     out = []
     for cat, keys in explore.items():
-        total = 0
-        for t, c in rows:
-            blob = f" {t.replace(',', ' ')} {c} "
-            if any(f" {k} " in blob or k == c for k in keys):
-                total += 1
+        try:
+            total = len(pick_best_for_keys(list(keys), limit=600, tipo='image', max_per_pasta=24))
+        except Exception:
+            total = int((covers.get(cat) or {}).get('total_pool') or 0)
         out.append({'categoria': cat, 'total': total})
     out.sort(key=lambda x: x['total'], reverse=True)
-    return ok({'por_categoria': out})
+    payload = {'por_categoria': out, 'covers': covers}
+    search_stats_ep._cache = {'ts': _time.time(), 'data': payload}
+    return ok(payload)
+
+
+@api.route('/portfolio/home', methods=['GET'])
+def portfolio_home_ep():
+    """Grade curada pro index: shapes equilibrados + melhores fotos diversificadas."""
+    from backend.models.database import pick_portfolio_layout, count_media
+
+    limit = safe_int(request.args.get('limit', 22), default=22, min_v=6, max_v=40)
+    try:
+        layout = pick_portfolio_layout(limit=limit)
+    except Exception as e:
+        print(f'[portfolio/home] {e}')
+        return ok({'items': [], 'photos': 0, 'total_pool': 0, 'error': str(e)})
+    return ok({
+        **layout,
+        'archive_total': count_media({'tipo': 'image'}),
+    })
 
 
 @api.route('/tags', methods=['GET'])
@@ -756,7 +1040,6 @@ def tags_ep():
     return ok({
         'tags': get_all_tags()
     })
-
 
 
 # ==================================================
@@ -791,215 +1074,184 @@ def drive_status_ep():
 # DRIVE SYNC
 # ==================================================
 
+_sync_lock = __import__('threading').Lock()
+_sync_running = False
+_sync_last = None  # último resultado resumido
+
+
+@api.route('/drive/sync/status', methods=['GET'])
+@require_perm('sync')
+def drive_sync_status_ep():
+    """Indica se um sync está em andamento e o resultado do último."""
+    global _sync_last
+    return ok({
+        'running': _sync_running,
+        'last': _sync_last,
+    })
+
+
 @api.route('/drive/sync', methods=['POST'])
 @require_perm('sync')
 def drive_sync_ep():
+    global _sync_running, _sync_last
 
-    from backend.models.database import get_conn
-    from backend.services.drive import parse_image_metadata
+    if not _sync_lock.acquire(blocking=False):
+        return err('Sincronização já em andamento. Aguarde terminar.', 409)
+
+    import time as _time
+    from backend.models.database import (
+        load_drive_sync_index,
+        batch_update_drive_meta,
+        insert_media,
+        set_media_ai_status,
+        invalidate_read_caches,
+    )
+    from backend.services.drive import parse_image_metadata, fetch_file_image_metadata
+    from backend.services.ai_pipeline import enqueue_media_ai_batch
+
+    fetch_exif = os.getenv('SYNC_FETCH_EXIF', '1').strip().lower() in ('1', 'true', 'yes', 'on')
+    t0 = _time.perf_counter()
+    _sync_running = True
 
     try:
-
-        conn = get_conn()
-
         added = 0
+        skipped = 0
         updated_pasta = 0
-        pending_embeddings = []  # [(media_id, thumb_url), ...] pra processar depois
+        exif_fetched = 0
+        pending_ai = []
+        meta_updates = []
 
+        drive_index = load_drive_sync_index()
+        page_result = drive_svc.list_drive_files(None)
+        drive_files = page_result.get('files') or []
 
-        while True:
+        for f in drive_files:
+            drive_id = f['id']
+            modified = (f.get('modifiedTime') or '').strip()
+            exists = drive_index.get(drive_id)
 
-            page_result = drive_svc.list_drive_files(None)
+            if exists:
+                prev_mod = (exists.get('drive_modified') or '').strip()
+                folder_name = sanitize_string(f.get('folder_name', ''), max_len=300)
+                pasta_empty = not (exists.get('pasta') or '').strip()
 
-
-            for f in page_result['files']:
-
-                exists = conn.execute(
-                    "SELECT id, pasta FROM media WHERE drive_id=?",
-                    (f['id'],)
-                ).fetchone()
-
-
-                if exists:
-                    # Repara pasta vazia em itens já sincronizados
-                    folder_name = sanitize_string(f.get('folder_name', ''), max_len=300)
-                    if folder_name and not (exists['pasta'] or '').strip():
-                        from backend.models.database import update_pasta_by_drive_id
-                        if update_pasta_by_drive_id(f['id'], folder_name):
-                            updated_pasta += 1
+                if prev_mod and modified and prev_mod == modified and not pasta_empty:
+                    skipped += 1
                     continue
 
+                upd = {'drive_id': drive_id}
+                if folder_name:
+                    upd['pasta'] = folder_name
+                upd['drive_modified'] = modified or prev_mod
+                nome = sanitize_string(f.get('name', ''), max_len=300)
+                if nome:
+                    upd['nome'] = nome
+                if f.get('size') is not None:
+                    upd['tamanho'] = int(f.get('size', 0) or 0)
+                meta_updates.append(upd)
 
-                mime = f.get(
-                    'mimeType',
-                    ''
-                )
+                if folder_name and pasta_empty:
+                    updated_pasta += 1
+                if modified and prev_mod and modified != prev_mod:
+                    mid = exists['id']
+                    mime = f.get('mimeType', '')
+                    if get_mime_category(mime) == 'image':
+                        thumb_url = drive_svc._thumb_url(drive_id)
+                        set_media_ai_status(mid, clip_status='pending', face_status='pending')
+                        pending_ai.append((mid, thumb_url))
+                continue
 
+            mime = f.get('mimeType', '')
+            tipo = get_mime_category(mime)
+            if tipo == 'unknown':
+                continue
 
-                tipo = get_mime_category(
-                    mime
-                )
+            now = datetime.now()
+            ts = f.get('createdTime', now.isoformat())[:10]
+            try:
+                date = datetime.fromisoformat(ts)
+            except Exception:
+                date = now
 
+            thumb_url = drive_svc._thumb_url(f['id'])
+            media_data = {
+                'drive_id': f['id'],
+                'nome': sanitize_string(f.get('name', 'sem_nome'), max_len=300),
+                'pasta': sanitize_string(f.get('folder_name', ''), max_len=300),
+                'tamanho': int(f.get('size', 0) or 0),
+                'mime_type': mime,
+                'tipo': tipo,
+                'thumb_url': thumb_url,
+                'drive_link': drive_svc._view_url(f['id']),
+                'drive_modified': modified,
+                'data_upload': date.strftime('%Y-%m-%d'),
+                'hora_upload': date.strftime('%H:%M:%S'),
+                'ano': date.year,
+                'mes': date.month,
+                'dia': date.day,
+                'clip_status': 'pending' if tipo == 'image' else 'completed',
+                'face_status': 'pending' if tipo == 'image' else 'completed',
+            }
 
-                if tipo == 'unknown':
-                    continue
+            meta_extra = parse_image_metadata(f)
+            if fetch_exif and tipo == 'image' and not meta_extra.get('data_upload'):
+                meta_extra = fetch_file_image_metadata(drive_id) or meta_extra
+                if meta_extra:
+                    exif_fetched += 1
+            for k, v in meta_extra.items():
+                if isinstance(v, str):
+                    meta_extra[k] = sanitize_string(v, max_len=500)
+            media_data.update(meta_extra)
 
+            media_id = insert_media(media_data, invalidate_cache=False)
+            drive_index[drive_id] = {
+                'drive_id': drive_id,
+                'id': media_id,
+                'pasta': media_data.get('pasta', ''),
+                'drive_modified': modified,
+                'nome': media_data.get('nome', ''),
+                'tamanho': media_data.get('tamanho', 0),
+            }
+            if tipo == 'image':
+                pending_ai.append((media_id, thumb_url))
+            added += 1
 
+        updated = batch_update_drive_meta(meta_updates, invalidate_cache=False)
+        if added or updated or updated_pasta:
+            invalidate_read_caches()
 
-                now = datetime.now()
+        elapsed_ms = round((_time.perf_counter() - t0) * 1000, 1)
 
-
-                ts = f.get(
-                    'createdTime',
-                    now.isoformat()
-                )[:10]
-
-
-                try:
-
-                    date = datetime.fromisoformat(
-                        ts
-                    )
-
-                except:
-
-                    date = now
-
-
-                thumb_url = drive_svc._thumb_url(f['id'])
-
-                media_data = {
-
-                    'drive_id':
-                        f['id'],
-
-                    'nome':
-                        sanitize_string(
-                            f.get('name', 'sem_nome'),
-                            max_len=300
-                        ),
-
-                    'pasta':
-                        sanitize_string(
-                            f.get('folder_name', ''),
-                            max_len=300
-                        ),
-
-                    'tamanho':
-                        int(
-                            f.get(
-                                'size',
-                                0
-                            )
-                        ),
-
-                    'mime_type':
-                        mime,
-
-                    'tipo':
-                        tipo,
-
-                    'thumb_url':
-                        thumb_url,
-
-                    'drive_link':
-                        drive_svc._view_url(
-                            f['id']
-                        ),
-
-                    'data_upload':
-                        date.strftime(
-                            '%Y-%m-%d'
-                        ),
-
-                    'hora_upload':
-                        date.strftime(
-                            '%H:%M:%S'
-                        ),
-
-                    'ano':
-                        date.year,
-
-                    'mes':
-                        date.month,
-
-                    'dia':
-                        date.day
-                }
-
-                # Sobrescreve data/hora/câmera/localização com EXIF real,
-                # quando o Drive fornecer (mais preciso que createdTime).
-                meta_extra = parse_image_metadata(f)
-                for k, v in meta_extra.items():
-                    if isinstance(v, str):
-                        meta_extra[k] = sanitize_string(v, max_len=500)
-                media_data.update(meta_extra)
-
-                media_id = insert_media(media_data)
-
-                if tipo == 'image':
-                    pending_embeddings.append((media_id, thumb_url))
-
-                added += 1
-
-
-
-            token = page_result.get(
-                'next_token'
-            )
-
-
-            if not token:
-                break
-
-
-
-        conn.close()
-
-        # Gera embeddings CLIP das imagens novas em background — best-effort,
-        # não atrasa a resposta do sync nem quebra se o OpenCLIP não estiver
-        # instalado. Alimenta a busca semântica nas próximas buscas.
-        if pending_embeddings:
-            import threading
-
-            def _gen_embeddings_batch(items):
-                try:
-                    from backend.services.clip_tagger import encode_image_embedding
-                    from backend.models.database import save_media_embedding
-                except Exception as e:
-                    print(f"[CLIP] Embeddings do sync não geradas (OpenCLIP indisponível): {e}")
-                    return
-                for mid, url in items:
-                    try:
-                        emb = encode_image_embedding(url, media_id=mid)
-                        if emb:
-                            save_media_embedding(mid, emb)
-                    except Exception as e:
-                        print(f"[CLIP] Embedding do item {mid} falhou: {e}")
-
-            threading.Thread(
-                target=_gen_embeddings_batch,
-                args=(pending_embeddings,),
-                daemon=True
-            ).start()
-
+        if pending_ai:
+            enqueue_media_ai_batch(pending_ai, thread_prefix='sync')
 
         msg = f'{added} arquivo(s) sincronizado(s).'
+        if updated:
+            msg += f' {updated} metadado(s) atualizado(s).'
+        if skipped:
+            msg += f' {skipped} inalterado(s) ignorado(s).'
         if updated_pasta:
             msg += f' {updated_pasta} pasta(s) atualizada(s).'
-        return ok(
-            {
-                'added': added,
-                'updated_pasta': updated_pasta,
-            },
-            msg
-        )
 
+        result = {
+            'added': added,
+            'updated': updated,
+            'skipped': skipped,
+            'updated_pasta': updated_pasta,
+            'exif_fetched': exif_fetched,
+            'queued_ai': len(pending_ai),
+            'drive_total': len(drive_files),
+            'elapsed_ms': elapsed_ms,
+        }
+        _sync_last = {**result, 'ok': True, 'at': datetime.now().isoformat(timespec='seconds')}
+        print(
+            f"[Drive sync] +{added} ~{updated} skip={skipped} "
+            f"exif={exif_fetched} ai_q={len(pending_ai)} {elapsed_ms}ms"
+        )
+        return ok(result, msg)
 
     except HttpError as e:
-
         status = getattr(e, 'status_code', None) or (e.resp.status if hasattr(e, 'resp') else None)
-
         if status == 403:
             msg = 'Sem permissão de acesso ao Drive. Verifique se a pasta foi compartilhada com a service account.'
         elif status == 404:
@@ -1008,27 +1260,43 @@ def drive_sync_ep():
             msg = 'Credenciais inválidas ou expiradas. Gere uma nova chave da service account.'
         else:
             msg = f'Erro do Google Drive (HTTP {status}).'
-
+        _sync_last = {'ok': False, 'error': msg, 'at': datetime.now().isoformat(timespec='seconds')}
         return err(msg, 502)
 
     except RuntimeError as e:
-
         print(f'[Drive sync] {e}')
+        _sync_last = {'ok': False, 'error': str(e), 'at': datetime.now().isoformat(timespec='seconds')}
         return err('Drive não configurado corretamente.', 503)
 
     except Exception as e:
-
         print(f'[Drive sync] {e}')
-        return err(
-            'Erro na sincronização.',
-            500
-        )
+        _sync_last = {'ok': False, 'error': str(e), 'at': datetime.now().isoformat(timespec='seconds')}
+        return err('Erro na sincronização.', 500)
+
+    finally:
+        _sync_running = False
+        _sync_lock.release()
 
 
 
 # ==================================================
-# OPENCLIP
+# IA — OpenCLIP + InsightFace
 # ==================================================
+
+@api.route('/ai/status', methods=['GET'])
+def ai_status_ep():
+    """Status consolidado CLIP + Faces (público leve; detalhes só dev)."""
+    from backend.services.ai_pipeline import get_public_ai_summary
+
+    if current_can('clip') or current_can('system'):
+        from backend.services.clip_tagger import get_model_info
+        from backend.services.face_tagger import get_status
+        return ok({
+            'clip': get_model_info(),
+            'face': get_status(),
+        })
+    return ok(get_public_ai_summary())
+
 
 @api.route('/ai/clip/status', methods=['GET'])
 def clip_status_ep():
@@ -1041,10 +1309,134 @@ def clip_status_ep():
     return ok({
         'clip': {
             'enabled': bool(info.get('enabled')),
-            'ready': bool(info.get('installed') or info.get('loaded')),
+            'ready': bool(info.get('loaded')),
             'loaded': bool(info.get('loaded')),
             'installed': bool(info.get('installed')),
+            'loading': bool(info.get('loading')),
         }
+    })
+
+
+# ==================================================
+# FACES (InsightFace) — diversidade no reel Contato
+# ==================================================
+
+@api.route('/ai/face/status', methods=['GET'])
+def face_status_ep():
+    from backend.services.face_tagger import get_status
+
+    info = get_status()
+    if current_can('clip') or current_can('system'):
+        return ok({'face': info})
+    return ok({
+        'face': {
+            'enabled': bool(info.get('enabled')),
+            'ready': bool(info.get('ready')),
+            'installed': bool(info.get('installed')),
+            'index': {
+                'clusters': (info.get('index') or {}).get('clusters', 0),
+                'with_face': (info.get('index') or {}).get('with_face', 0),
+                'missing': (info.get('index') or {}).get('missing', 0),
+            },
+        }
+    })
+
+
+@api.route('/ai/face/backfill', methods=['POST'])
+@require_perm('clip')
+def face_backfill_ep():
+    import threading
+    from backend.services.face_tagger import backfill_faces, is_enabled, is_installed
+    from backend.models.database import face_stats
+
+    if not is_enabled():
+        return err('Faces desativado (FACE_ENABLED=false).', 400)
+    if not is_installed():
+        return err('InsightFace não instalado. Rode: pip install -r requirements-face.txt', 400)
+
+    data = request.get_json(silent=True) or {}
+    batch = safe_int(data.get('batch_size', 16), default=16, min_v=1, max_v=60)
+    max_batches = safe_int(data.get('max_batches', 0), default=0, min_v=0, max_v=500)
+
+    def _run():
+        backfill_faces(batch_size=batch, max_batches=max_batches)
+
+    threading.Thread(target=_run, daemon=True, name='face-backfill').start()
+    return ok(
+        {'index': face_stats(), 'started': True},
+        'Backfill de rostos iniciado em background.',
+    )
+
+
+@api.route('/ai/face/warmup', methods=['POST'])
+@require_perm('clip')
+def face_warmup_ep():
+    import threading
+    from backend.services.face_tagger import warmup, is_enabled, is_installed
+
+    if not is_enabled():
+        return err('Faces desativado (FACE_ENABLED=false).', 400)
+    if not is_installed():
+        return err('InsightFace não instalado. Rode: pip install -r requirements-face.txt', 400)
+
+    threading.Thread(target=warmup, daemon=True, name='face-warmup-api').start()
+    return ok(msg='Carregamento InsightFace iniciado em background.')
+
+
+@api.route('/ai/warmup', methods=['POST'])
+@require_perm('clip')
+def ai_warmup_all_ep():
+    """Aquece CLIP + Faces num único request (Dev)."""
+    import threading
+    from backend.services.clip_tagger import warmup as clip_warmup, is_enabled as clip_on
+    from backend.services.face_tagger import warmup as face_warmup, is_enabled as face_on, is_installed
+
+    started = []
+
+    if clip_on():
+        threading.Thread(target=clip_warmup, args=(None,), daemon=True, name='clip-warmup-api').start()
+        started.append('clip')
+    if face_on() and is_installed():
+        threading.Thread(target=face_warmup, daemon=True, name='face-warmup-api').start()
+        started.append('face')
+
+    if not started:
+        return err('CLIP e Faces desativados ou indisponíveis.', 400)
+    return ok({'started': started}, f"Warmup iniciado: {', '.join(started)}.")
+
+
+@api.route('/contato/reel', methods=['GET'])
+def contato_reel_ep():
+    """Fotos para o marquee de Contato — 1 por cluster de rosto quando indexado."""
+    from backend.models.database import pick_contato_reel_items, face_stats
+    from backend.services.face_tagger import is_enabled, is_installed, is_ready
+
+    limit = safe_int(request.args.get('limit', 24), default=24, min_v=6, max_v=48)
+    raw = pick_contato_reel_items(limit=limit)
+    items = []
+    for it in raw:
+        ann = annotate_storage(dict(it), thumb_size=480)
+        items.append({
+            'id': ann.get('id'),
+            'thumb_url': ann.get('thumb_url'),
+            'pasta': ann.get('pasta') or '',
+            'nome': ann.get('nome') or '',
+            'tags': ann.get('tags') or '',
+            'face_cluster': it.get('face_cluster'),
+            'key': it.get('key') or (f"id:{ann.get('id')}" if ann.get('id') else ''),
+            'tipo': 'image',
+        })
+    stats = face_stats()
+    return ok({
+        'items': items,
+        'face': {
+            'enabled': is_enabled(),
+            'installed': is_installed(),
+            'ready': is_ready(),
+            'clusters': stats.get('clusters', 0),
+            'with_face': stats.get('with_face', 0),
+            'missing': stats.get('missing', 0),
+        },
     })
 
 
@@ -1279,11 +1671,18 @@ def _env_flag(name: str, default: str = 'false') -> bool:
 @require_perm('system')
 def dev_system_ep():
     """Resumo seguro do servidor — sem senhas, tokens ou caminhos secretos."""
+    from backend.services.ai_pipeline import get_public_ai_summary
     from backend.services.clip_tagger import get_model_info
-    from backend.models.database import embedding_stats, count_media
+    from backend.models.database import embedding_stats, count_media, face_stats
 
     online, error_msg = drive_svc.drive_ping()
     clip = get_model_info()
+    face = {}
+    try:
+        from backend.services.face_tagger import get_status
+        face = get_status()
+    except Exception:
+        face = {'enabled': False, 'ready': False}
     try:
         media_total = count_media()
     except Exception:
@@ -1292,8 +1691,12 @@ def dev_system_ep():
     return ok({
         'role': current_role(),
         'user': current_user(),
+        'ai': get_public_ai_summary(),
         'flags': {
             'clip_enabled': _env_flag('CLIP_ENABLED', 'true'),
+            'face_enabled': _env_flag('FACE_ENABLED', 'true'),
+            'search_use_clip': _env_flag('SEARCH_USE_CLIP', '0'),
+            'sync_fetch_exif': _env_flag('SYNC_FETCH_EXIF', '1'),
             'code_viewer_enabled': _env_flag('CODE_VIEWER_ENABLED', 'false'),
             'api_lockdown': _env_flag('API_LOCKDOWN', 'true'),
             'public_drive_files': _env_flag('PUBLIC_DRIVE_FILES', 'false'),
@@ -1306,9 +1709,17 @@ def dev_system_ep():
             'service_account': drive_svc.get_service_account_email(),
             'folder_id': getattr(drive_svc, 'FOLDER_ID', None) or '',
         },
+        'sync': {
+            'running': _sync_running,
+            'last': _sync_last,
+        },
         'clip': clip,
+        'face': face,
         'media_total': media_total,
-        'index': clip.get('index') or embedding_stats(),
+        'index': {
+            'clip': clip.get('index') or embedding_stats(),
+            'face': face_stats(),
+        },
     })
 
 

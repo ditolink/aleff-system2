@@ -7,10 +7,10 @@
   <title>Slots — Portfólio</title>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260807e"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
   <style>
     :root{--bg:#070707;--line:rgba(255,255,255,.08);--mute:#6a6a6a;--text:#f2f2f2;--green:#25d366}
     *{box-sizing:border-box;margin:0;padding:0}
@@ -179,11 +179,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.className = 'slot' + (s.filled ? ' filled' : '');
       card.dataset.id = id;
 
-      const empty = `<div class="slot-empty"><svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#070707"/></svg><span>${s.placeholder || 'Em breve'}</span></div>`;
+      const esc = (t) => String(t ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const safeRel = (raw) => {
+        let p = String(raw || '').replace(/\\/g, '/').replace(/^\/+/, '');
+        if (p.includes('..') || /^(https?:|data:|javascript:)/i.test(p)) return '';
+        if (!(p.startsWith('fotos/') || p.startsWith('videos/'))) return '';
+        return p.replace(/"/g, '');
+      };
+      const empty = `<div class="slot-empty"><svg viewBox="0 0 72 56" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M30 3v7"/><path d="M20 6l4 5.5"/><path d="M40 6l-4 5.5"/></g><path d="M22 14h16l4 7H18l4-7z"/><rect x="8" y="20" width="44" height="26" rx="4"/><circle cx="28" cy="33" r="11"/><circle cx="28" cy="33" r="7.2" fill="#070707"/></svg><span>${esc(s.placeholder || 'Em breve')}</span></div>`;
       let media = empty;
-      if (s.filled && s.src) {
-        if (s.type === 'video') media = `<div class="slot-media"><video src="/${s.src}" muted loop playsinline autoplay></video></div>`;
-        else media = `<div class="slot-media"><img src="/${s.src}" alt=""/></div>`;
+      const rel = s.filled ? safeRel(s.src) : '';
+      if (rel) {
+        if (s.type === 'video') media = `<div class="slot-media"><video src="/${rel}" muted loop playsinline autoplay></video></div>`;
+        else media = `<div class="slot-media"><img src="/${rel}" alt=""/></div>`;
       }
 
       card.innerHTML = `
@@ -195,8 +204,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div class="slot-meta">
           <p class="slot-id">Slot ${id}</p>
-          <p class="slot-title">${s.filled ? (s.title || 'Sem título') : (s.label || 'Reservado')}</p>
-          <p class="slot-cat">${s.filled ? (s.cat || '') : 'Aguardando mídia'}</p>
+          <p class="slot-title">${s.filled ? esc(s.title || 'Sem título') : esc(s.label || 'Reservado')}</p>
+          <p class="slot-cat">${s.filled ? esc(s.cat || '') : 'Aguardando mídia'}</p>
         </div>`;
 
       card.querySelector('[data-act="fill"]')?.addEventListener('click', () => {
@@ -322,8 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { passive: true });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await Auth.logout();
-    location.href = '/loginsite.html';
+    await Auth.logoutToLogin();
   });
 
   load();

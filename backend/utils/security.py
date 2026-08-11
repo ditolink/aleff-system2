@@ -68,8 +68,13 @@ def _load_users() -> dict:
 
     dev_user = (os.getenv('DEV_USER') or '').strip().lower()
     dev_pass = (os.getenv('DEV_PASSWORD') or '').strip()
-    if dev_user and dev_pass:
-        users[dev_user] = {'password': dev_pass, 'role': 'dev'}
+    dev_hash = (os.getenv('DEV_PASSWORD_HASH') or '').strip()
+    if dev_user and (dev_pass or dev_hash):
+        users[dev_user] = {
+            'password': dev_pass,
+            'password_hash': dev_hash,
+            'role': 'dev',
+        }
 
     raw = (os.getenv('AUTH_USERS') or '').strip()
     if raw:
@@ -226,6 +231,21 @@ def api_flood_limited() -> tuple[bool, int]:
         return rate_limited('search', int(os.getenv('RATE_SEARCH_PER_MIN', '60')), 60)
     if path.startswith('/api/auth/'):
         return rate_limited('auth', int(os.getenv('RATE_AUTH_PER_MIN', '40')), 60)
+    # Warm: barato de chamar, mas não floodar
+    if path.startswith('/api/thumbs/warm'):
+        return rate_limited('thumbs_warm', int(os.getenv('RATE_THUMBS_WARM_PER_MIN', '6')), 60)
+    # Prefetch plan: leve
+    if path.startswith('/api/thumbs/prefetch-plan'):
+        return rate_limited('thumbs_plan', int(os.getenv('RATE_THUMBS_PLAN_PER_MIN', '30')), 60)
+    # Burst de thumbs no grid / pré-cache (HTTP/1.1 ~6 conexões × muitas imgs)
+    if method == 'GET' and (
+        re.search(r'/api/media/\d+/thumb(?:-small|-medium|-cover)?$', path)
+        or path.startswith('/api/local/')
+    ):
+        return rate_limited('thumbs', int(os.getenv('RATE_THUMBS_PER_MIN', '600')), 60)
+    # Originais/HD: limite mais baixo (enumeração + custo Drive/disco)
+    if method == 'GET' and re.search(r'/api/media/\d+/download$', path):
+        return rate_limited('download', int(os.getenv('RATE_DOWNLOAD_PER_MIN', '40')), 60)
     return rate_limited('api', int(os.getenv('RATE_API_PER_MIN', '120')), 60)
 
 
@@ -460,7 +480,13 @@ _ALWAYS_PUBLIC = {
     ('GET', '/api/search/stats'),
     ('GET', '/api/drive/status'),
     ('GET', '/api/ai/clip/status'),
+    ('GET', '/api/ai/face/status'),
+    ('GET', '/api/ai/status'),
+    ('GET', '/api/contato/reel'),
     ('GET', '/api/portfolio/slots'),
+    ('GET', '/api/portfolio/home'),
+    ('GET', '/api/thumbs/prefetch-plan'),
+    # /thumbs/warm NÃO é público — DoS CPU/IO (só logado / boot)
     ('POST', '/api/auth/login'),
     ('POST', '/api/auth/logout'),
     ('GET', '/api/auth/me'),
@@ -477,7 +503,8 @@ _ALWAYS_PUBLIC_PREFIXES = (
 def lockdown_before_request():
     """
     API_LOCKDOWN=true (padrão):
-      Públicos: busca, autocomplete, tags, status Drive/CLIP, auth, GET mídia por id, download
+      Públicos: busca, thumbs, GET mídia slim, auth, slots/home
+      Originais HD (/download anexo, /local imagem): login ou PUBLIC_MEDIA_ORIGINALS
       Resto: login obrigatório
       + rate limit + CSRF em mutações autenticadas
     """
@@ -501,7 +528,12 @@ def lockdown_before_request():
 
     mode = (os.getenv('API_LOCKDOWN', 'true') or 'true').lower().strip()
     if mode in ('0', 'false', 'no', 'off'):
-        return None
+        env = (os.getenv('FLASK_ENV') or os.getenv('ENV') or '').lower().strip()
+        # Produção: lockdown nunca desliga por engano no .env
+        if env in ('production', 'prod'):
+            print('[SECURITY] API_LOCKDOWN=false ignorado em produção')
+        else:
+            return None
 
     method = request.method.upper()
     path = (request.path or '').rstrip('/') or request.path
@@ -509,19 +541,43 @@ def lockdown_before_request():
     if (method, path) in _ALWAYS_PUBLIC:
         return None
 
-    # GET /api/media/<id> e download/thumb públicos (só visualização na busca)
+    # GET público: thumbs + metadados leves. Originais (/download, /local imagem) NÃO.
     if method == 'GET':
         if re.fullmatch(r'/api/media/\d+', path):
             return None
-        if re.fullmatch(r'/api/media/\d+/download', path):
-            return None
         if re.fullmatch(r'/api/media/\d+/thumb', path):
+            return None
+        if re.fullmatch(r'/api/media/\d+/thumb-small', path):
+            return None
+        if re.fullmatch(r'/api/media/\d+/thumb-medium', path):
+            return None
+        if re.fullmatch(r'/api/media/\d+/thumb-cover', path):
+            return None
+        # /download e /local: handler decide (thumb redirect / vídeo público / 401)
+        if re.fullmatch(r'/api/media/\d+/download', path):
             return None
         if re.fullmatch(r'/api/local/[a-f0-9]+', path):
             return None
 
     # Lista /api/media (sem id) e dashboard exigem login
     return _auth_error_response()
+
+
+def public_originals_allowed() -> bool:
+    """Opt-in explícito — nunca default em produção."""
+    raw = (os.getenv('PUBLIC_MEDIA_ORIGINALS') or 'false').lower().strip()
+    if raw not in ('1', 'true', 'yes', 'on'):
+        return False
+    env = (os.getenv('FLASK_ENV') or os.getenv('ENV') or '').lower().strip()
+    if env in ('production', 'prod'):
+        # Em produção exige também flag de confirmação
+        confirm = (os.getenv('PUBLIC_MEDIA_ORIGINALS_CONFIRM') or '').lower().strip()
+        return confirm in ('1', 'true', 'yes', 'i-understand')
+    return True
+
+
+# Alias legado (imports internos)
+_public_originals_allowed = public_originals_allowed
 
 
 def path_needs_login(path: str) -> bool:
@@ -598,7 +654,7 @@ def is_safe_image_url(url: str) -> bool:
     # Paths internos do próprio app (proxy / local)
     if re.fullmatch(r'/api/local/[a-f0-9]+', url):
         return True
-    if re.fullmatch(r'/api/media/\d+/thumb(?:\?.*)?', url):
+    if re.fullmatch(r'/api/media/\d+/thumb(?:-small|-medium)?(?:\?.*)?', url):
         return True
     try:
         parsed = urlparse(url)

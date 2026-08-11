@@ -1,0 +1,14 @@
+---
+description: Observabilidade, lint e testes
+globs: "{backend/**,tests/**,.github/**,package.json,pyproject.toml,playwright.config.*}"
+alwaysApply: false
+---
+
+# Qualidade & Observabilidade
+
+- Erros: Sentry (se `SENTRY_DSN`).
+- Traces: OpenTelemetry Flask (`OTEL_EXPORTER_OTLP_ENDPOINT`).
+- Python: `ruff check` / `ruff format`.
+- JS tooling: Biome quando `package.json` de lint existir.
+- Testes: `pytest` + coverage; E2E com Playwright.
+- CI: `.github/workflows/ci.yml` — não ignore falhas sem motivo.

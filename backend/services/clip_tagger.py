@@ -16,6 +16,17 @@ _model_cache = _preprocess_cache = _tokenizer_cache = None
 _torch_cache = None
 _torch_unavailable = False
 _loading = False
+_load_lock = None  # lazy — evita import threading no topo se não precisar
+_load_ready = None
+
+
+def _get_load_primitives():
+    global _load_lock, _load_ready
+    if _load_lock is None:
+        import threading
+        _load_lock = threading.Lock()
+        _load_ready = threading.Event()
+    return _load_lock, _load_ready
 
 # Vocabulário amplo PT ↔ EN (200+). TAG_PT[i] corresponde a TAG_EN[i].
 TAG_PT = [
@@ -160,9 +171,24 @@ def _load_model():
         raise RuntimeError('OpenCLIP desativado (CLIP_ENABLED=false)')
     if _model_cache:
         return _model_cache, _preprocess_cache, _tokenizer_cache
-    if _loading:
-        raise RuntimeError('OpenCLIP ainda carregando')
-    _loading = True
+
+    lock, ready = _get_load_primitives()
+    i_am_loader = False
+    with lock:
+        if _model_cache:
+            return _model_cache, _preprocess_cache, _tokenizer_cache
+        if not _loading:
+            _loading = True
+            i_am_loader = True
+
+    if not i_am_loader:
+        wait_s = float(os.getenv('CLIP_LOAD_WAIT_S', '300') or 300)
+        if not ready.wait(timeout=wait_s):
+            raise RuntimeError('OpenCLIP ainda carregando (timeout)')
+        if not _model_cache:
+            raise RuntimeError('OpenCLIP falhou ao carregar')
+        return _model_cache, _preprocess_cache, _tokenizer_cache
+
     try:
         torch = _get_torch()
         import open_clip
@@ -171,12 +197,19 @@ def _load_model():
         tokenizer = open_clip.get_tokenizer(DEFAULT_MODEL)
         model.eval()
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        model  = model.to(device)
-        _model_cache = model; _preprocess_cache = preprocess; _tokenizer_cache = tokenizer
+        model = model.to(device)
+        _model_cache = model
+        _preprocess_cache = preprocess
+        _tokenizer_cache = tokenizer
         print(f"[CLIP] Modelo pronto! Dispositivo: {device.upper()}")
+        ready.set()
         return model, preprocess, tokenizer
+    except Exception:
+        ready.clear()
+        raise
     finally:
-        _loading = False
+        with lock:
+            _loading = False
 
 def _fetch_image(url):
     try:
@@ -198,13 +231,20 @@ def _fetch_image(url):
                 return Image.open(p).convert("RGB")
             return None
 
-        if s.startswith('/api/media/') and s.rstrip('/').endswith('/thumb'):
+        if s.startswith('/api/media/') and (
+            '/thumb' in s.rstrip('/').split('?')[0]
+        ):
             # Resolve via banco + Drive SA (mesmo pipeline do proxy)
             try:
                 mid = int(s.split('/')[3])
                 return _fetch_image_for_media_id(mid)
             except Exception:
                 return None
+
+        from backend.utils.security import is_safe_image_url
+        if not is_safe_image_url(s):
+            print(f"[CLIP] URL bloqueada (SSRF): {s[:120]}")
+            return None
 
         r = _requests_session.get(
             url,
@@ -473,29 +513,37 @@ def generate_tags(image_url, top_k=12, threshold=0.15):
 _info_cache = {'at': 0.0, 'result': None}
 _INFO_TTL_SEC = 12.0
 
+def _check_installed():
+    """Checagem leve — NÃO importa torch/open_clip (isso trava o site por minutos)."""
+    import importlib.util
+    return (
+        importlib.util.find_spec('torch') is not None
+        and importlib.util.find_spec('open_clip') is not None
+    )
+
+
 def get_model_info():
+    """
+    Status rápido. Nunca carrega o modelo aqui.
+    Warmup/backfill/sync é que carregam sob demanda.
+    """
     import time
     now = time.monotonic()
     if _info_cache['result'] is not None and (now - _info_cache['at']) < _INFO_TTL_SEC:
         return _info_cache['result']
 
     installed = _check_installed()
-    torch_ok = False
-    try:
-        _get_torch()
-        torch_ok = True
-    except ImportError:
-        torch_ok = False
     info = {
         'model':     DEFAULT_MODEL,
         'pretrained':DEFAULT_PRETRAIN,
         'enabled':   CLIP_ENABLED,
         'loaded':    _model_cache is not None,
         'loading':   _loading,
-        'device':    _torch_device_label() if torch_ok else 'unavailable',
+        # device só se já importou torch (evita import no status)
+        'device':    (_torch_device_label() if _torch_cache is not None else ('pending' if installed else 'unavailable')),
         'vocab_size':len(TAG_PT),
-        'installed': installed and torch_ok,
-        'torch_available': torch_ok,
+        'installed': installed,
+        'torch_available': _torch_cache is not None or installed,
         'backfill_running': _backfill_running,
     }
     try:
@@ -506,10 +554,3 @@ def get_model_info():
     _info_cache['result'] = info
     _info_cache['at'] = time.monotonic()
     return info
-
-def _check_installed():
-    try:
-        import open_clip
-        return True
-    except ImportError:
-        return False

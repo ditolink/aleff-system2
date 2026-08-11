@@ -7,11 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/logo.css"/>
-  <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
+  <link rel="stylesheet" href="css/dev-bar.css?v=20260807e"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
-  <script src="js/dev-bar.js?v=20260801av" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
+  <script src="js/dev-bar.js?v=20260808a" defer></script>
   <style>
     .dash-page{min-height:100vh;padding:100px 48px 80px;max-width:1400px;margin:0 auto}
     .dash-hdr{margin-bottom:52px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px}
@@ -67,6 +68,8 @@
       text-decoration:none;cursor:pointer;transition:border-color .2s,background .2s;
     }
     .dev-actions a:hover,.dev-actions button:hover{border-color:rgba(37,211,102,.45);background:rgba(37,211,102,.08)}
+    .dev-actions button:disabled{opacity:.6;cursor:default}
+    .dev-actions button.spinning svg{animation:spin .8s linear infinite}
     .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
     .slot-card{
       aspect-ratio:3/4;border-radius:14px;border:1px dashed rgba(255,255,255,.14);
@@ -126,6 +129,12 @@
     .drive-dot{width:7px;height:7px;border-radius:50%;background:#444;transition:background .4s,box-shadow .4s}
     .drive-dot.on{background:#25d366;box-shadow:0 0 8px rgba(37,211,102,.6)}
     .drive-dot.off{background:#e53e3e;box-shadow:0 0 8px rgba(229,62,62,.4)}
+    .drive-dot.warn{background:#f0b429;box-shadow:0 0 8px rgba(240,180,41,.45)}
+    .drive-badge[hidden]{display:none!important}
+    .ai-meta{display:grid;gap:6px;margin:10px 0 4px}
+    .ai-meta .row{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+    .ai-meta .k{color:#666;letter-spacing:.06em;text-transform:uppercase}
+    .ai-meta .v{color:#ccc;font-weight:600;text-align:right}
 
     /* Sync btn */
     .sync-btn{
@@ -140,14 +149,39 @@
     .sync-btn.spinning svg{animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
 
+    .capture-preview{
+      display:none;position:fixed;inset:0;z-index:12000;
+      background:rgba(0,0,0,.72);backdrop-filter:blur(6px);
+      align-items:center;justify-content:center;padding:24px;
+    }
+    .capture-preview.show{display:flex}
+    .capture-preview-card{
+      width:min(920px,100%);max-height:min(90vh,860px);
+      background:linear-gradient(160deg,#141414,#0c0c0c);
+      border:1px solid rgba(255,255,255,.1);border-radius:18px;
+      padding:18px;display:flex;flex-direction:column;gap:14px;
+      box-shadow:0 24px 60px rgba(0,0,0,.5);
+    }
+    .capture-preview-card img{
+      width:100%;max-height:min(62vh,560px);object-fit:contain;
+      border-radius:12px;background:#080808;border:1px solid rgba(255,255,255,.06);
+    }
+    .capture-preview-meta{font-size:12px;color:#888;letter-spacing:.06em}
+    .capture-preview-actions{display:flex;flex-wrap:wrap;gap:10px}
+
     @media(max-width:900px){
       .dash-page{padding:88px 20px 60px}
       .kpi-grid{grid-template-columns:1fr 1fr}
       .mini-grid{grid-template-columns:repeat(2,1fr)}
       .cat-bar-row{grid-template-columns:90px 1fr 36px}
+      .dash-split{grid-template-columns:1fr !important;gap:28px !important}
+      .slot-grid{grid-template-columns:1fr 1fr}
     }
     @media(max-width:480px){
       .kpi-grid{grid-template-columns:1fr}
+      .dash-page{padding:76px 14px 48px}
+      .dash-title{font-size:clamp(28px,9vw,40px)}
+      .slot-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -176,6 +210,14 @@
       <div class="drive-dot" id="driveDot"></div>
       <span id="driveLabel">Drive</span>
     </div>
+    <div class="drive-badge" id="clipBadge" hidden title="OpenCLIP">
+      <div class="drive-dot" id="clipDot"></div>
+      <span id="clipLabel">CLIP</span>
+    </div>
+    <div class="drive-badge" id="faceBadge" hidden title="Faces / InsightFace">
+      <div class="drive-dot" id="faceDot"></div>
+      <span id="faceLabel">Faces</span>
+    </div>
     <button class="sync-btn" id="syncBtn" hidden>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
@@ -194,6 +236,13 @@
       <p class="dash-eyebrow">Painel administrativo</p>
       <h1 class="dash-title">Dashboard<br><em>do acervo</em></h1>
     </div>
+    <button type="button" class="sync-btn" id="btnCaptureSiteHdr" title="Capturar PNG da home">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Tirar foto do site
+    </button>
   </div>
 
   <div class="dev-panel" id="driveConnectPanel" hidden>
@@ -208,11 +257,51 @@
     </div>
   </div>
 
+  <div class="dev-panel" id="devAiPanel" hidden>
+    <h3>IA do acervo · Dev</h3>
+    <p id="aiPanelMsg">OpenCLIP (busca semântica) e Faces (reel Contato). Só a conta Dev controla.</p>
+    <div class="ai-meta" id="clipMeta"></div>
+    <div class="ai-meta" id="faceMeta" style="margin-top:12px"></div>
+    <div class="dev-actions">
+      <button type="button" id="btnClipWarm">Warmup CLIP</button>
+      <button type="button" id="btnClipBackfill">Backfill CLIP</button>
+      <button type="button" id="btnFaceBackfill">Backfill Faces</button>
+      <button type="button" id="btnAiRefresh">Atualizar status</button>
+      <a href="settings.html">Abrir Config</a>
+    </div>
+  </div>
+
+  <div class="dev-panel show" id="siteCapturePanel">
+    <h3>Foto do site</h3>
+    <p>Captura um PNG da home pública (viewport desktop 1440×900) pra compartilhar ou arquivar.</p>
+    <div class="dev-actions">
+      <button type="button" id="btnCaptureSite">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Capturar home
+      </button>
+      <a href="index.html" target="_blank" rel="noopener">Abrir home</a>
+    </div>
+  </div>
+
   <div class="dev-panel" id="devSlotsPanel">
     <h3>Slots do portfólio</h3>
     <p>Preencha os espaços vazios da home — arraste foto ou vídeo na aba dedicada.</p>
     <div class="slot-grid">
       <a class="slot-card" href="slots.html"><span>Gerenciar slots</span></a>
+    </div>
+  </div>
+
+  <div class="capture-preview" id="capturePreview" hidden aria-modal="true" role="dialog" aria-label="Prévia da captura">
+    <div class="capture-preview-card">
+      <img id="capturePreviewImg" alt="Prévia da home capturada"/>
+      <p class="capture-preview-meta" id="capturePreviewMeta"></p>
+      <div class="capture-preview-actions dev-actions" style="margin-top:0">
+        <button type="button" id="btnCaptureDownload">Baixar PNG</button>
+        <button type="button" id="btnCaptureClose">Fechar</button>
+      </div>
     </div>
   </div>
 
@@ -246,7 +335,7 @@
   </div>
 
   <!-- Mais vistos + mais baixados -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:52px">
+  <div class="dash-split" style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:52px">
     <div class="sec">
       <div class="sec-hd"><p class="sec-hd-title">Mais vistos</p></div>
       <div class="mini-grid" id="gridViews" style="grid-template-columns:repeat(3,1fr)"></div>
@@ -378,6 +467,137 @@ async function checkDriveStatus(notify = false) {
   }
 }
 
+function aiRow(k, v) {
+  return `<div class="row"><span class="k">${k}</span><span class="v">${v ?? '—'}</span></div>`;
+}
+
+async function checkAiStatus(notify = false) {
+  const clipBadge = document.getElementById('clipBadge');
+  const faceBadge = document.getElementById('faceBadge');
+  const clipDot = document.getElementById('clipDot');
+  const clipLabel = document.getElementById('clipLabel');
+  const faceDot = document.getElementById('faceDot');
+  const faceLabel = document.getElementById('faceLabel');
+  const panel = document.getElementById('devAiPanel');
+  const msg = document.getElementById('aiPanelMsg');
+  const clipMeta = document.getElementById('clipMeta');
+  const faceMeta = document.getElementById('faceMeta');
+
+  const isDev = !!(window.__isDev || (typeof Auth !== 'undefined' && (Auth.can('clip') || Auth.can('system'))));
+  if (!isDev) {
+    if (clipBadge) clipBadge.hidden = true;
+    if (faceBadge) faceBadge.hidden = true;
+    if (panel) {
+      panel.hidden = true;
+      panel.classList.remove('show');
+    }
+    return;
+  }
+
+  if (clipBadge) clipBadge.hidden = false;
+  if (faceBadge) faceBadge.hidden = false;
+  if (panel) {
+    panel.hidden = false;
+    panel.classList.add('show');
+  }
+
+  try {
+    const [clipRes, faceRes] = await Promise.all([
+      fetch(`${API}/ai/clip/status`, { credentials: 'same-origin', cache: 'no-store' }),
+      fetch(`${API}/ai/face/status`, { credentials: 'same-origin', cache: 'no-store' }),
+    ]);
+    const clipJson = await clipRes.json().catch(() => ({}));
+    const faceJson = await faceRes.json().catch(() => ({}));
+    const clip = clipJson.clip || {};
+    const face = faceJson.face || {};
+    const idx = clip.index || {};
+    const fidx = face.index || {};
+
+    const clipOn = clip.enabled !== false && !!(clip.installed || clip.loaded || clip.ready);
+    const clipLoaded = !!clip.loaded;
+    if (clipDot) {
+      clipDot.className = 'drive-dot ' + (clipOn ? (clipLoaded ? 'on' : 'warn') : 'off');
+    }
+    if (clipLabel) {
+      clipLabel.textContent = clip.enabled === false
+        ? 'CLIP off'
+        : (clipLoaded ? 'CLIP pronto' : (clip.installed ? 'CLIP idle' : 'CLIP —'));
+    }
+    if (clipMeta) {
+      clipMeta.innerHTML = [
+        aiRow('Modelo', `${clip.model || '—'} / ${clip.pretrained || '—'}`),
+        aiRow('Device', clip.device || '—'),
+        aiRow('Índice', `${idx.embeddings ?? 0} / ${idx.images ?? 0} (faltam ${idx.missing ?? 0})`),
+        aiRow('Backfill', clip.backfill_running ? 'rodando' : 'idle'),
+      ].join('');
+    }
+
+    const faceOn = face.enabled !== false && !!(face.installed || face.ready);
+    if (faceDot) {
+      faceDot.className = 'drive-dot ' + (faceOn ? (face.ready ? 'on' : 'warn') : 'off');
+    }
+    if (faceLabel) {
+      faceLabel.textContent = face.enabled === false
+        ? 'Faces off'
+        : (face.ready ? 'Faces ok' : (face.installed ? 'Faces idle' : 'Faces —'));
+    }
+    if (faceMeta) {
+      faceMeta.innerHTML = [
+        aiRow('InsightFace', face.installed ? 'instalado' : 'não instalado'),
+        aiRow('Clusters', fidx.clusters ?? 0),
+        aiRow('Com rosto', fidx.with_face ?? 0),
+        aiRow('Faltam', fidx.missing ?? 0),
+      ].join('');
+    }
+
+    if (msg) {
+      msg.textContent = clipOn
+        ? 'OpenCLIP alimenta a busca semântica; Faces diversifica o reel de Contato.'
+        : 'CLIP desligado ou indisponível. Confira CLIP_ENABLED e o warmup.';
+    }
+
+    if (notify) {
+      Toast.success('IA', `CLIP ${clipLoaded ? 'pronto' : 'idle'} · Faces ${face.ready ? 'ok' : 'idle'}`);
+    }
+  } catch (e) {
+    console.error('AI status error:', e);
+    if (clipDot) clipDot.className = 'drive-dot off';
+    if (faceDot) faceDot.className = 'drive-dot off';
+    if (clipLabel) clipLabel.textContent = 'CLIP erro';
+    if (faceLabel) faceLabel.textContent = 'Faces erro';
+    if (msg) msg.textContent = 'Não foi possível ler o status da IA.';
+    if (notify) Toast.error('IA', e.message || 'Falha ao verificar.');
+  }
+}
+
+async function runAiAction(btn, url, body, okMsg) {
+  if (!btn) return;
+  btn.disabled = true;
+  const dismiss = typeof Toast !== 'undefined'
+    ? Toast.info('IA', 'Rodando em background…', 0)
+    : null;
+  try {
+    const r = await Auth.fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (dismiss) dismiss();
+    if (!r.ok || d.status === 'error') {
+      Toast.error('IA', d.message || 'Falha');
+    } else {
+      Toast.success('IA', d.message || okMsg || 'Ok');
+    }
+    await checkAiStatus(false);
+  } catch (e) {
+    if (dismiss) dismiss();
+    Toast.error('IA', e.message || 'Sem conexão');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 /* -- Carrega tudo ------------------------------------------- */
 async function loadDashboard(notifyDrive = false) {
   if (typeof Auth !== 'undefined') {
@@ -398,6 +618,7 @@ async function loadDashboard(notifyDrive = false) {
   }
   await Promise.all([
     checkDriveStatus(notifyDrive),
+    checkAiStatus(false),
     (async () => {
       let attempt = 0;
       while (attempt < 2) {
@@ -485,6 +706,212 @@ function escAttr(s) {
   return '';
 }
 
+/* -- Captura da home (html2canvas) -------------------------- */
+const CAPTURE_W = 1440;
+const CAPTURE_H = 900;
+let _captureObjectUrl = null;
+let _captureFileName = '';
+
+function siteCaptureStamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+
+function loadHtml2Canvas() {
+  if (typeof window.html2canvas === 'function') return Promise.resolve(window.html2canvas);
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-html2canvas]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.html2canvas), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Falha ao carregar html2canvas.')), { once: true });
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    s.async = true;
+    s.dataset.html2canvas = '1';
+    s.onload = () => {
+      if (typeof window.html2canvas !== 'function') {
+        reject(new Error('html2canvas não disponível após o load.'));
+        return;
+      }
+      resolve(window.html2canvas);
+    };
+    s.onerror = () => reject(new Error('Não foi possível baixar html2canvas (CDN).'));
+    document.head.appendChild(s);
+  });
+}
+
+async function waitForHomeReady(iframe, settleMs = 900) {
+  const doc = iframe.contentDocument;
+  if (!doc || !doc.documentElement) {
+    throw new Error('Não foi possível acessar a home (verifique se está na mesma origem).');
+  }
+  try {
+    if (doc.fonts?.ready) await doc.fonts.ready;
+  } catch { /* ignore */ }
+
+  const pending = [...doc.images].filter(img => !img.complete);
+  if (pending.length) {
+    await Promise.race([
+      Promise.all(pending.map(img => new Promise(r => {
+        img.addEventListener('load', r, { once: true });
+        img.addEventListener('error', r, { once: true });
+      }))),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  }
+  await new Promise(r => setTimeout(r, settleMs));
+}
+
+function setCaptureBusy(busy) {
+  ['btnCaptureSite', 'btnCaptureSiteHdr'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.disabled = busy;
+    btn.classList.toggle('spinning', busy);
+    if (busy) btn.setAttribute('aria-busy', 'true');
+    else btn.removeAttribute('aria-busy');
+  });
+}
+
+function closeCapturePreview() {
+  const modal = document.getElementById('capturePreview');
+  if (modal) {
+    modal.classList.remove('show');
+    modal.hidden = true;
+  }
+  if (_captureObjectUrl) {
+    URL.revokeObjectURL(_captureObjectUrl);
+    _captureObjectUrl = null;
+  }
+  const img = document.getElementById('capturePreviewImg');
+  if (img) img.removeAttribute('src');
+}
+
+function openCapturePreview(blob, fileName) {
+  closeCapturePreview();
+  _captureFileName = fileName;
+  _captureObjectUrl = URL.createObjectURL(blob);
+  const img = document.getElementById('capturePreviewImg');
+  const meta = document.getElementById('capturePreviewMeta');
+  const modal = document.getElementById('capturePreview');
+  if (img) img.src = _captureObjectUrl;
+  if (meta) meta.textContent = `${fileName} · ${Math.round(blob.size / 1024)} KB · ${CAPTURE_W}×${CAPTURE_H}`;
+  if (modal) {
+    modal.hidden = false;
+    modal.classList.add('show');
+  }
+}
+
+function downloadCaptureBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+async function captureSiteHome() {
+  setCaptureBusy(true);
+  const dismiss = Toast.info('Capturando home...', 'Carregando a página e gerando o PNG.', 0);
+  let iframe = null;
+
+  try {
+    const html2canvas = await loadHtml2Canvas();
+
+    iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.tabIndex = -1;
+    iframe.style.cssText = [
+      'position:fixed',
+      'left:-10000px',
+      'top:0',
+      `width:${CAPTURE_W}px`,
+      `height:${CAPTURE_H}px`,
+      'border:0',
+      'opacity:0',
+      'pointer-events:none',
+      'visibility:hidden',
+    ].join(';');
+    // cache-bust so we always get a fresh paint of the public home
+    iframe.src = `/index.html?capture=${Date.now()}`;
+
+    const loaded = new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Timeout ao carregar a home.')), 20000);
+      iframe.addEventListener('load', () => { clearTimeout(t); resolve(); }, { once: true });
+      iframe.addEventListener('error', () => {
+        clearTimeout(t);
+        reject(new Error('Falha ao carregar index.html no iframe.'));
+      }, { once: true });
+    });
+    document.body.appendChild(iframe);
+    await loaded;
+    await waitForHomeReady(iframe);
+
+    const doc = iframe.contentDocument;
+    const root = doc.documentElement;
+    const canvas = await html2canvas(root, {
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#0a0a0a',
+      scale: 1,
+      width: CAPTURE_W,
+      height: CAPTURE_H,
+      windowWidth: CAPTURE_W,
+      windowHeight: CAPTURE_H,
+      scrollX: 0,
+      scrollY: 0,
+      logging: false,
+      foreignObjectRendering: false,
+      ignoreElements: el => el.classList?.contains?.('dev-bar') || el.classList?.contains?.('toast-container'),
+    });
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Canvas vazio (possível CORS em imagens).'))), 'image/png');
+    });
+
+    const fileName = `aleff-site-${siteCaptureStamp()}.png`;
+    dismiss();
+    openCapturePreview(blob, fileName);
+    Toast.success('Foto pronta', 'Confira a prévia e baixe o PNG.');
+  } catch (e) {
+    dismiss();
+    console.error('Site capture error:', e);
+    Toast.error(
+      'Falha na captura',
+      e?.message || 'Não foi possível gerar o PNG da home.'
+    );
+  } finally {
+    if (iframe) iframe.remove();
+    setCaptureBusy(false);
+  }
+}
+
+document.getElementById('btnCaptureSite')?.addEventListener('click', captureSiteHome);
+document.getElementById('btnCaptureSiteHdr')?.addEventListener('click', captureSiteHome);
+document.getElementById('btnCaptureClose')?.addEventListener('click', closeCapturePreview);
+document.getElementById('capturePreview')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeCapturePreview();
+});
+document.getElementById('btnCaptureDownload')?.addEventListener('click', async () => {
+  if (!_captureObjectUrl || !_captureFileName) return;
+  try {
+    const blob = await fetch(_captureObjectUrl).then(r => r.blob());
+    downloadCaptureBlob(blob, _captureFileName);
+    Toast.success('Download', _captureFileName);
+  } catch (e) {
+    Toast.error('Download falhou', e?.message || 'Tente capturar de novo.');
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeCapturePreview();
+});
+
 /* -- Sync Drive --------------------------------------------- */
 document.getElementById('syncBtn')?.addEventListener('click', async function() {
   this.classList.add('spinning');
@@ -537,10 +964,19 @@ document.getElementById('syncBtn')?.addEventListener('click', async function() {
 
 /* -- Inicialização ------------------------------------------ */
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-  await Auth.logout();
-  location.href = '/loginsite.html';
+  await Auth.logoutToLogin();
 });
 document.getElementById('btnRecheckDrive')?.addEventListener('click', () => checkDriveStatus(true));
+document.getElementById('btnAiRefresh')?.addEventListener('click', () => checkAiStatus(true));
+document.getElementById('btnClipWarm')?.addEventListener('click', function () {
+  runAiAction(this, `${API}/ai/clip/warmup`, {}, 'Warmup CLIP iniciado.');
+});
+document.getElementById('btnClipBackfill')?.addEventListener('click', function () {
+  runAiAction(this, `${API}/ai/clip/backfill`, { batch_size: 24, max_batches: 0 }, 'Backfill CLIP iniciado.');
+});
+document.getElementById('btnFaceBackfill')?.addEventListener('click', function () {
+  runAiAction(this, `${API}/ai/face/backfill`, { batch_size: 16, max_batches: 0 }, 'Backfill de rostos iniciado.');
+});
 loadDashboard(false);</script>
 </body>
 </html>

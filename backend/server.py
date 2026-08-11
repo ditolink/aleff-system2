@@ -18,7 +18,6 @@ load_dotenv(PROJECT_ROOT / ".env", override=True)
 
 from backend.models.database import init_db, get_all_media
 from backend.routes.api import api
-from backend.services import clip_tagger
 from backend.utils.validators import MAX_FILE_SIZE
 from backend.utils.security import (
     path_needs_login,
@@ -33,6 +32,12 @@ from backend.utils.security import (
 
 # static_folder=None → NÃO serve arquivos automaticamente (evita furar o login)
 app = Flask(__name__, static_folder=None)
+
+try:
+    from backend.utils.observability import init_observability
+    init_observability(app)
+except Exception as _obs_err:
+    print(f"[OBS] skip: {_obs_err}")
 
 app.config["MAX_CONTENT_LENGTH"] = int(
     os.getenv("MAX_CONTENT_LENGTH", MAX_FILE_SIZE)
@@ -55,19 +60,24 @@ if not _secret:
         _secret = secrets.token_hex(32)
         print(f"[SECURITY] Não gravou secret persistente ({_sk_err}) — sessões resetam ao reiniciar.")
 app.config["SECRET_KEY"] = _secret
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(
-    days=int(os.getenv("SESSION_DAYS", "90"))
-)
+_flask_env = (os.getenv("FLASK_ENV") or os.getenv("ENV") or "").lower().strip()
+_is_prod = _flask_env in ("production", "prod")
+# Sessões mais curtas por padrão (antes 90d)
+_session_days = max(1, int(os.getenv("SESSION_DAYS", "14" if _is_prod else "30")))
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=_session_days)
 # Renova o cookie a cada request autenticado — fica logado até logout
 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "false").lower() in (
-    "1", "true", "yes",
-)
+# Fail-closed: em produção Secure=true mesmo se .env disser false
+_secure_env = (os.getenv("SESSION_COOKIE_SECURE") or "").lower().strip()
+if _is_prod or (os.getenv("HTTPS") or "").lower() in ("1", "true", "yes"):
+    if _secure_env in ("0", "false", "no", "off"):
+        print("[SECURITY] SESSION_COOKIE_SECURE=false ignorado em produção/HTTPS")
+    app.config["SESSION_COOKIE_SECURE"] = True
+else:
+    app.config["SESSION_COOKIE_SECURE"] = _secure_env in ("1", "true", "yes")
 app.config["SESSION_COOKIE_NAME"] = os.getenv("SESSION_COOKIE_NAME", "aleff_session")
-# Cookie válido pelo mesmo prazo da sessão permanente
-_session_days = max(1, int(os.getenv("SESSION_DAYS", "90")))
 app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=_session_days)
 # Não vazar traceback em produção
 app.config["PROPAGATE_EXCEPTIONS"] = False
@@ -76,7 +86,10 @@ _cors_raw = os.getenv(
     "CORS_ORIGINS",
     "http://127.0.0.1:3001,http://localhost:3001",
 )
-_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip() and o.strip() != "*"]
+if not _cors_origins:
+    _cors_origins = ["http://127.0.0.1:3001", "http://localhost:3001"]
+    print("[SECURITY] CORS_ORIGINS vazio/* — fallback localhost")
 CORS(
     app,
     origins=_cors_origins,
@@ -92,6 +105,25 @@ try:
     init_db()
 except Exception as _db_boot_err:
     print(f"[DB] falha no boot: {_db_boot_err}")
+
+# Pré-gera thumbs medium/small em background (Waitress também) — pesquisa lê do cache
+try:
+    if (os.getenv('THUMB_PREFETCH_ON_START', '1') or '').strip().lower() in ('1', 'true', 'yes', 'on'):
+        from backend.services import thumb_pipeline as _tp
+
+        def _boot_thumb_warm():
+            import time
+            time.sleep(2)
+            _tp.start_background_warm(
+                limit=int(os.getenv('THUMB_WARM_LIMIT', '240') or 240),
+                workers=int(os.getenv('THUMB_WARM_WORKERS', '8') or 8),
+            )
+
+        import threading as _threading
+        _threading.Thread(target=_boot_thumb_warm, daemon=True, name='thumb-warm-boot').start()
+        print('[Thumbs] Pré-render agendado (home + categorias).')
+except Exception as _tw_err:
+    print(f'[Thumbs] warm boot skip: {_tw_err}')
 
 # Só o que pode sair do frontend para o público
 _ALLOWED_EXT = frozenset({
@@ -239,14 +271,30 @@ def set_security_headers(response):
     if path.startswith("/api/auth/") or path in ("/loginsite", "/loginsite.html"):
         response.headers["Cache-Control"] = "no-store"
     elif path.startswith("/api/search/stats") or path.startswith("/api/tags"):
-        response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
     elif path.endswith((".mp4", ".webm", ".mov")):
-        response.headers["Cache-Control"] = "public, max-age=86400"
+        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
         response.headers["Accept-Ranges"] = "bytes"
     elif path.endswith((".css", ".js")):
-        response.headers["Cache-Control"] = "no-cache, must-revalidate"
-    elif path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg")):
-        response.headers["Cache-Control"] = "public, max-age=86400"
+        # Produção: cache longo (deploy troca URL ou hard-refresh). Dev: revalida.
+        if os.getenv("FLASK_ENV") == "production":
+            response.headers["Cache-Control"] = (
+                "public, max-age=86400, stale-while-revalidate=604800"
+            )
+        else:
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    elif path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico", ".woff2", ".woff")):
+        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+    elif path.startswith("/api/media/") and (
+        "/thumb-small" in path or "/thumb-medium" in path or "/thumb-cover" in path
+    ):
+        # URLs estáveis WebP — não reescrever (view já manda immutable longo)
+        if "Cache-Control" not in response.headers:
+            response.headers["Cache-Control"] = (
+                "public, max-age=31536000, immutable"
+            )
+    elif path.startswith("/api/media/") and "/thumb" in path:
+        response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
     elif path == "/" or path.endswith(".html"):
         response.headers["Cache-Control"] = "no-cache"
     return response
@@ -291,7 +339,59 @@ def index():
 
 @app.route("/health")
 def health():
-    return {"status": "ok"}
+    """Health público mínimo. Detalhes só com sessão gallery/system."""
+    db_ok = False
+    try:
+        from backend.models.database import get_conn
+        conn = get_conn()
+        conn.execute("SELECT 1").fetchone()
+        conn.close()
+        db_ok = True
+    except Exception as e:
+        print(f"[health] db: {e}")
+
+    status = 'ok' if db_ok else 'degraded'
+    payload = {'status': status, 'db': db_ok}
+
+    # Detalhes internos só autenticado (evita recon / contagem do acervo)
+    try:
+        from backend.utils.security import current_can
+        if current_can('gallery') or current_can('system'):
+            media_count = None
+            try:
+                from backend.models.database import get_conn
+                conn = get_conn()
+                media_count = conn.execute("SELECT COUNT(*) FROM media").fetchone()[0]
+                conn.close()
+            except Exception:
+                pass
+            drive_ok = None
+            drive_err = None
+            try:
+                from backend.services import drive as drive_svc
+                cached = getattr(drive_svc, '_ping_cache', {}).get('result')
+                if cached is not None:
+                    drive_ok, drive_err = cached
+                else:
+                    drive_ok, drive_err = drive_svc.drive_ping()
+            except Exception as e:
+                drive_ok = False
+                drive_err = str(e)[:120]
+            if drive_ok is False:
+                payload['status'] = 'degraded'
+            payload['media_count'] = media_count
+            payload['drive'] = {
+                'online': bool(drive_ok),
+                'error': drive_err if not drive_ok else None,
+            }
+            try:
+                from backend.services.ai_pipeline import get_public_ai_summary
+                payload['ai'] = get_public_ai_summary()
+            except Exception:
+                payload['ai'] = None
+    except Exception:
+        pass
+    return payload
 
 
 def _safe_next(raw) -> str:
@@ -373,50 +473,115 @@ if __name__ == "__main__":
 
     try:
         from backend.services import drive as drive_svc
-        online, err = drive_svc.drive_ping()
+        # Não bloqueia o boot — ping em background (status usa cache)
+        drive_svc.drive_ping_async()
         email = drive_svc.get_service_account_email()
-        if online:
-            print("[Drive] Online — pasta acessível.")
-        else:
-            print(f"[Drive] Offline: {err}")
-            if email:
-                print(f"[Drive] Compartilhe a pasta com: {email}")
+        print("[Drive] Ping em background…")
+        if email:
+            print(f"[Drive] Service account: {email}")
     except Exception as e:
         print(f"[Drive] falha na conexão inicial: {e}")
 
+    def _env_on(name, default='0'):
+        return os.getenv(name, default).strip().lower() in ('1', 'true', 'yes', 'on')
+
+    # Por padrão NÃO força OpenCLIP/Faces no boot (come RAM/CPU e atrasa tudo).
+    # Dashboard Dev → Warmup / Backfill quando quiser.
     def _warmup_clip_bg():
         try:
+            import time
+            time.sleep(8)  # deixa o HTTP responder primeiro
+            from backend.services import clip_tagger
             if not getattr(clip_tagger, "is_enabled", lambda: True)():
                 print("[CLIP] Desativado — busca rápida só com texto.")
+                return
+            if not _env_on('CLIP_WARMUP_ON_START', '0'):
+                print("[CLIP] Warmup automático off — use o dashboard Dev.")
                 return
             from backend.models.database import annotate_storage, embedding_stats
             samples = [annotate_storage(m) for m in get_all_media(limit=8)]
             thumb_urls = [m["thumb_url"] for m in samples if m.get("thumb_url")]
             clip_tagger.warmup(thumb_urls)
             print("[CLIP] Warmup em background concluído.")
-            stats = embedding_stats()
-            if stats.get("missing", 0) > 0:
-                print(
-                    f"[CLIP] Backfill: {stats['missing']} imagem(ns) sem índice — "
-                    "indexando em background…"
-                )
-                clip_tagger.backfill_embeddings(batch_size=12, pause_sec=0.15)
-                print("[CLIP] Backfill concluído:", embedding_stats())
+            if _env_on('CLIP_BACKFILL_ON_START', '0'):
+                stats = embedding_stats()
+                if stats.get("missing", 0) > 0:
+                    print(
+                        f"[CLIP] Backfill: {stats['missing']} imagem(ns) sem índice — "
+                        "indexando em background…"
+                    )
+                    clip_tagger.backfill_embeddings(batch_size=12, pause_sec=0.15)
+                    print("[CLIP] Backfill concluído:", embedding_stats())
         except Exception as e:
             print(f"[CLIP Warmup] falhou na inicialização: {e}")
 
     threading.Thread(target=_warmup_clip_bg, daemon=True, name="clip-warmup").start()
-    if getattr(clip_tagger, "is_enabled", lambda: True)():
-        print("[CLIP] Warmup + backfill em background — site já pode abrir.")
-    else:
-        print("[CLIP] Off — site leve, ideal pra hospedagem barata.")
+    print("[CLIP] Disponível sob demanda (dashboard) — não força no boot.")
+
+    def _warmup_face_bg():
+        try:
+            import time
+            time.sleep(10)
+            from backend.services import face_tagger
+            from backend.models.database import face_stats
+
+            if not face_tagger.is_enabled():
+                print("[FACE] Desativado (FACE_ENABLED=false).")
+                return
+            if not _env_on('FACE_WARMUP_ON_START', '0'):
+                print("[FACE] Warmup automático off — use o dashboard Dev.")
+                return
+            if not face_tagger.is_installed():
+                print("[FACE] Pacotes ausentes — pip install -r requirements-face.txt")
+                return
+            face_tagger.warmup()
+            if _env_on('FACE_BACKFILL_ON_START', '0'):
+                stats = face_stats()
+                if stats.get("missing", 0) > 0:
+                    print(
+                        f"[FACE] Backfill: {stats['missing']} imagem(ns) sem índice de rosto…"
+                    )
+                    face_tagger.backfill_faces(batch_size=10, pause_sec=0.12)
+                    print("[FACE] Backfill concluído:", face_stats())
+                else:
+                    print("[FACE] Índice de rostos ok:", stats)
+            else:
+                print("[FACE] Warmup ok — backfill só sob demanda.")
+        except Exception as e:
+            print(f"[FACE Warmup] falhou: {e}")
+
+    threading.Thread(target=_warmup_face_bg, daemon=True, name="face-warmup").start()
+
+    def _face_focus_bg():
+        """Preenche face_cx/cy e regenera thumbs com rosto no centro."""
+        try:
+            import time
+            time.sleep(14)
+            from backend.services import face_tagger
+            if not face_tagger.is_enabled() or not face_tagger.is_installed():
+                return
+            if not _env_on('FACE_FOCUS_BACKFILL_ON_START', '1'):
+                return
+            print('[FACE] Backfill de enquadramento (centro do rosto)…')
+            r = face_tagger.backfill_face_focus(batch_size=8, max_batches=50, pause_sec=0.1)
+            print('[FACE] Focus backfill:', r)
+        except Exception as e:
+            print(f'[FACE Focus] falhou: {e}')
+
+    threading.Thread(target=_face_focus_bg, daemon=True, name='face-focus-backfill').start()
 
     def _prefetch_thumbs_bg():
         try:
-            from backend.services import drive as drive_svc
-            recent = get_all_media(limit=64)
-            n = drive_svc.prefetch_thumbnails(recent, size=280, limit=64)
-            print(f"[Thumbs] Cache aquecido: {n} arquivo(s).")
+            import time
+            time.sleep(2)
+            if not _env_on('THUMB_PREFETCH_ON_START', '1'):
+                return
+            from backend.services import thumb_pipeline as tp
+            # Já agendado no import do app; aqui só reforça se __main__
+            tp.start_background_warm(
+                limit=int(os.getenv('THUMB_WARM_LIMIT', '120') or 120),
+                workers=int(os.getenv('THUMB_WARM_WORKERS', '6') or 6),
+            )
         except Exception as e:
             print(f"[Thumbs] Prefetch falhou: {e}")
 

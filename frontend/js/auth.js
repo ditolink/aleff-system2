@@ -157,15 +157,53 @@ const Auth = (() => {
   }
 
   async function logout() {
-    try {
-      try { await ensureCsrf(); } catch { /* ignore */ }
-      await window.fetch(`${API}/auth/logout`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: _csrf ? { 'X-CSRF-Token': _csrf } : {},
-      });
-    } catch { /* ignore */ }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        try { await ensureCsrf(attempt > 0); } catch { /* ignore */ }
+        const r = await window.fetch(`${API}/auth/logout`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: _csrf ? { 'X-CSRF-Token': _csrf } : {},
+        });
+        if (r.status === 403 && attempt === 0) {
+          _csrf = '';
+          continue;
+        }
+        break;
+      } catch { /* ignore */ }
+    }
     clearLocalSession();
+  }
+
+  function flashLoggedOut() {
+    try {
+      sessionStorage.setItem('authFlash', JSON.stringify({
+        type: 'success',
+        title: 'Sessão apagada',
+        message: 'Você saiu da conta.',
+      }));
+    } catch { /* ignore */ }
+  }
+
+  function consumeFlash() {
+    try {
+      const raw = sessionStorage.getItem('authFlash');
+      if (!raw) return null;
+      sessionStorage.removeItem('authFlash');
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Encerra sessão, notifica e vai ao formulário de login (não à tela "Sessão ativa"). */
+  async function logoutToLogin() {
+    await logout();
+    flashLoggedOut();
+    const onLogin = /loginsite(\.html)?$/i.test(location.pathname);
+    if (onLogin) return { onLoginPage: true };
+    location.href = `${LOGIN_PATH}?apagado=1`;
+    return { onLoginPage: false };
   }
 
   function headers(extra = {}) {
@@ -245,7 +283,8 @@ const Auth = (() => {
   function ensureKey() { goLogin(); return ''; }
 
   return {
-    me, login, logout, fetch, headers, requireLogin, can, role, ensureCsrf,
+    me, login, logout, logoutToLogin, flashLoggedOut, consumeFlash,
+    fetch, headers, requireLogin, can, role, ensureCsrf,
     getKey, setKey, clear, hasKey, ensureKey, LOGIN_PATH,
   };
 })();

@@ -130,12 +130,20 @@ def update_slot(slot_id: str, fields: dict) -> dict | None:
         if typ == "image":
             typ = "img"
 
-        # só paths relativos seguros dentro de frontend
+        # só paths relativos seguros dentro de frontend/fotos|videos
         if src:
-            if src.startswith("/") or ".." in src or src.startswith("http"):
-                # permite http(s) só de drive googleusercontent? melhor: só relativo
-                if not (src.startswith("fotos/") or src.startswith("videos/")):
-                    raise ValueError("Caminho de mídia inválido.")
+            src = src.lstrip("/")
+            low = src.lower()
+            if (
+                ".." in src
+                or src.startswith("/")
+                or "://" in src
+                or low.startswith(("javascript:", "data:", "vbscript:"))
+                or "\\" in src
+            ):
+                raise ValueError("Caminho de mídia inválido.")
+            if not (src.startswith("fotos/") or src.startswith("videos/")):
+                raise ValueError("Caminho de mídia inválido.")
             cur["src"] = src
             cur["filled"] = True
             cur["type"] = typ

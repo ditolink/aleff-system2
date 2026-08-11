@@ -1,0 +1,23 @@
+{
+  "first_row": [
+    {
+      "id": 2030,
+      "shape": "l-wide",
+      "path": "fotos/home_ed_2030.webp",
+      "why": "top solo appearance — olhar na camera, ensaio editorial"
+    },
+    {
+      "id": 2034,
+      "shape": "p-tall",
+      "path": "fotos/foto_barbara.png",
+      "why": "manual lock Barbara"
+    },
+    {
+      "id": 1637,
+      "shape": "p-tall",
+      "path": "fotos/home_ed_1637.webp",
+      "why": "top solo tall — sorriso/presenca, det alto"
+    }
+  ],
+  "method": "face det_score + framing + prefer fc=1; visual QA on ranked shortlist"
+}

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/login.css?v=20260801ay"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <script src="js/toast.js?v=3" defer></script>
-  <script src="js/auth.js?v=20260801au" defer></script>
+  <script src="js/auth.js?v=20260808a" defer></script>
 </head>
 <body class="login-page">
   <div class="login-shell">
@@ -162,12 +162,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(location.search);
   const next = safeNext(params.get('next'));
+  const justCleared = params.get('apagado') === '1';
   const form = document.getElementById('loginForm');
   const sessionCard = document.getElementById('sessionCard');
   const err = document.getElementById('loginErr');
   const btn = document.getElementById('loginBtn');
   const pass = document.getElementById('password');
   const togglePass = document.getElementById('togglePass');
+
+  function showLoginForm() {
+    form.hidden = false;
+    sessionCard.hidden = true;
+  }
+
+  function showClearedToast() {
+    const flash = typeof Auth !== 'undefined' && Auth.consumeFlash
+      ? Auth.consumeFlash()
+      : null;
+    if (typeof Toast === 'undefined') return;
+    if (flash) {
+      const fn = Toast[flash.type] || Toast.success;
+      fn(flash.title || 'Sessão apagada', flash.message || '');
+    } else if (justCleared) {
+      Toast.success('Sessão apagada', 'Você saiu da conta.');
+    }
+  }
+
+  function stripApagadoParam() {
+    if (!justCleared) return;
+    params.delete('apagado');
+    const q = params.toString();
+    history.replaceState({}, '', location.pathname + (q ? `?${q}` : '') + location.hash);
+  }
 
   togglePass?.addEventListener('click', () => {
     const show = pass.type === 'password';
@@ -188,29 +214,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof Auth === 'undefined') {
     showErr('Falha ao carregar autenticação. Recarregue a página (Ctrl+F5).');
     return;
-  }
-
-  try {
-    const me = await Auth.me(true);
-    if (me && me.logged_in) {
-      form.hidden = true;
-      sessionCard.hidden = false;
-      const who = me.user || 'equipe';
-      const su = document.getElementById('sessionUser');
-      if (su) su.textContent = who;
-      document.getElementById('sessionSub').textContent =
-        `${who}${me.role ? ' · ' + me.role : ''} — sessão pronta.`;
-      document.getElementById('continueBtn').onclick = () => { location.href = next; };
-      document.getElementById('logoutBtn').onclick = async () => {
-        await Auth.logout();
-        location.href = '/loginsite.html';
-      };
-      return;
-    }
-  } catch { /* segue pro formulário */ }
-
-  try { await Auth.ensureCsrf(true); } catch (e) {
-    showErr(e.message || 'Servidor offline. Rode o start.bat e tente de novo.');
   }
 
   form.addEventListener('submit', async (e) => {
@@ -238,6 +241,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       try { await Auth.ensureCsrf(true); } catch {}
     }
   });
+
+  // Logout acabou de acontecer → formulário + toast (nunca "Sessão ativa")
+  if (justCleared) {
+    try { await Auth.logout(); } catch { /* já limpo localmente */ }
+    showLoginForm();
+    showClearedToast();
+    stripApagadoParam();
+    try { await Auth.ensureCsrf(true); } catch (e) {
+      showErr(e.message || 'Servidor offline. Rode o start.bat e tente de novo.');
+    }
+    return;
+  }
+
+  try {
+    const me = await Auth.me(true);
+    if (me && me.logged_in) {
+      form.hidden = true;
+      sessionCard.hidden = false;
+      const who = me.user || 'equipe';
+      const su = document.getElementById('sessionUser');
+      if (su) su.textContent = who;
+      document.getElementById('sessionSub').textContent =
+        `${who}${me.role ? ' · ' + me.role : ''} — sessão pronta.`;
+      document.getElementById('continueBtn').onclick = () => { location.href = next; };
+      document.getElementById('logoutBtn').onclick = async () => {
+        const btnOut = document.getElementById('logoutBtn');
+        if (btnOut) btnOut.disabled = true;
+        try {
+          await Auth.logout();
+          Auth.flashLoggedOut();
+          showLoginForm();
+          showClearedToast();
+          try { await Auth.ensureCsrf(true); } catch {}
+        } finally {
+          if (btnOut) btnOut.disabled = false;
+        }
+      };
+      return;
+    }
+  } catch { /* segue pro formulário */ }
+
+  showClearedToast();
+  try { await Auth.ensureCsrf(true); } catch (e) {
+    showErr(e.message || 'Servidor offline. Rode o start.bat e tente de novo.');
+  }
 });
 </script>
 </body>
