@@ -140,6 +140,20 @@ server {
         try_files \$uri @app;
     }
 
+    # Originais / cache bruto — nunca servir via HTTP estático
+    location ^~ /data/ {
+        deny all;
+        return 404;
+    }
+    location ^~ /media_cache/ {
+        deny all;
+        return 404;
+    }
+    location ^~ /uploads/ {
+        deny all;
+        return 404;
+    }
+
     # Thumbs WebP pré-geradas (quando existirem) — sem Flask
     location ~ ^/data-thumbs/(small|medium)/([0-9]+)\.webp$ {
         alias $APP_DIR/data/thumbs/\$1/\$2.webp;

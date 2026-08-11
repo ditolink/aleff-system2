@@ -576,6 +576,48 @@ def public_originals_allowed() -> bool:
     return True
 
 
+def can_access_media_original() -> bool:
+    """Original HD: somente admin/dev (perm gallery) ou opt-in PUBLIC_MEDIA_ORIGINALS.
+
+    Visitante/anônimo: False.
+    Não confiar em query strings (?admin=true).
+    """
+    if public_originals_allowed():
+        return True
+    role = request_role()
+    if role in ('admin', 'dev') and role_can(role, 'gallery'):
+        return True
+    return False
+
+
+def require_media_original_access(*, media_id: int | None = None, mode: str = 'download'):
+    """Centraliza autorização de original. Retorna Response de erro ou None se ok."""
+    if can_access_media_original():
+        return None
+    log_media_original_denied(media_id=media_id, mode=mode)
+    code = 401 if not is_logged_in() else 403
+    return jsonify({
+        'status': 'error',
+        'message': 'Acesso ao arquivo original exige login de equipe (admin/dev).',
+    }), code
+
+
+def log_media_original_denied(*, media_id: int | None = None, mode: str = 'download') -> None:
+    """Log curto de tentativa — sem PII extra."""
+    try:
+        from flask import request as flask_request
+        ip = (flask_request.headers.get('X-Forwarded-For') or flask_request.remote_addr or '')
+        ip = str(ip).split(',')[0].strip()[:64]
+        role = request_role() or 'anonymous'
+        user = current_user() or '-'
+        print(
+            f'[media-guard] deny original media_id={media_id} mode={mode} '
+            f'role={role} user={user} ip={ip}'
+        )
+    except Exception:
+        pass
+
+
 # Alias legado (imports internos)
 _public_originals_allowed = public_originals_allowed
 
