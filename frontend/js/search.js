@@ -222,24 +222,24 @@
 
   function thumbUrlLegacy(item, size = 1200) {
     const raw = String(item?.thumb_url || '');
-    if (/^\/api\/local\//i.test(raw)) return safeUrl(raw) || '';
-    if (/^https:\/\/drive\.google\.com\/thumbnail\?/i.test(raw)) {
-      const did = String(item?.drive_id || '').trim();
-      if (did && !did.startsWith('local:')) {
-        return `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w${size}`;
-      }
+    // Nunca expor drive.google.com no frontend público
+    if (/drive\.google\.com/i.test(raw)) {
+      if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+      return '';
     }
-    const drive = String(item?.thumb_drive || '');
-    if (/^https:\/\/drive\.google\.com\/thumbnail\?/i.test(drive)) {
-      const did = String(item?.drive_id || '').trim();
-      if (did) return `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w${size}`;
+    if (/^\/api\/local\//i.test(raw) && item?.tipo === 'video') return safeUrl(raw) || '';
+    if (/^\/api\/local\//i.test(raw)) {
+      // imagem local: não servir original — thumb API
+      if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+      return '';
     }
     const proxy = String(item?.thumb_proxy || '');
     if (/^\/api\/media\/\d+\/thumb/i.test(proxy)) {
       return proxy.includes('sz=') ? proxy.replace(/([?&]sz=)\d+/i, `$1${size}`) : `${proxy}${proxy.includes('?') ? '&' : '?'}sz=${size}`;
     }
     if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
-    return raw;
+    if (raw.startsWith('/api/media/')) return raw;
+    return '';
   }
 
   function thumbUrl(item, size = 1200) {
@@ -250,15 +250,7 @@
   }
 
   function thumbFallback(item, size = 560) {
-    // 1) proxy clássico (JPEG legado em data/thumbs) — renderiza mesmo sem WebP
     if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
-    const drive = String(item?.thumb_drive || '');
-    if (/^https:\/\/drive\.google\.com\/thumbnail\?/i.test(drive) || item?.drive_id) {
-      const did = String(item?.drive_id || '').trim();
-      if (did && !did.startsWith('local:')) {
-        return `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w${size}`;
-      }
-    }
     return thumbUrlLegacy(item, size);
   }
 
@@ -305,6 +297,50 @@
       });
   }
 
+  function staffCanOriginal() {
+    try {
+      return typeof Auth !== 'undefined' && Auth.can && Auth.can('gallery');
+    } catch {
+      return false;
+    }
+  }
+
+  function syncLbStaffControls(item) {
+    const dl = $('lbDownload');
+    const drive = $('lbDrive');
+    const staff = staffCanOriginal();
+    if (dl) {
+      dl.hidden = !staff;
+      dl.onclick = null;
+      if (staff) {
+        dl.onclick = async () => {
+          try {
+            const r = await api(`${API}/media/${item.id}/download?dl=1`);
+            if (r.status === 401 || r.status === 403) {
+              throw new Error('Download do original exige login da equipe.');
+            }
+            if (!r.ok) throw new Error('Download negado');
+            const blob = await r.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            const base = displayName(item).replace(/[\\/:*?"<>|]+/g, '-');
+            a.download = base === 'Sem pasta' ? 'download' : base;
+            a.click();
+            URL.revokeObjectURL(a.href);
+          } catch (e) {
+            if (typeof Toast !== 'undefined') Toast.error('Download', e.message || 'Falha');
+          }
+        };
+      }
+    }
+    if (drive) {
+      const link = staff ? (item.drive_link || '') : '';
+      drive.hidden = !link;
+      drive.href = link || '#';
+      if (!link) drive.removeAttribute('href');
+    }
+  }
+
   function mediaStreamUrl(item) {
     if (!item) return '';
     const thumb = String(item.thumb_url || '');
@@ -334,6 +370,24 @@
   const lbFront = $('lbFront');
   let lbOpen = false;
 
+  function protectLbMedia(root) {
+    if (!root) return;
+    root.querySelectorAll('img, video').forEach((el) => {
+      el.setAttribute('draggable', 'false');
+      el.style.userSelect = 'none';
+      el.style.webkitUserDrag = 'none';
+    });
+    if (!root.dataset.mediaGuard) {
+      root.dataset.mediaGuard = '1';
+      root.addEventListener('contextmenu', (e) => {
+        if (e.target.closest('img, video, .ap-root, .ap-video')) e.preventDefault();
+      });
+      root.addEventListener('dragstart', (e) => {
+        if (e.target.closest('img, video')) e.preventDefault();
+      });
+    }
+  }
+
   function mountLbMedia(item, { stream, poster, label }) {
     if (lbFront._aplayer) {
       try { lbFront._aplayer.destroy(); } catch { /* ignore */ }
@@ -353,18 +407,20 @@
         lbFront.appendChild(player.root);
         lbFront._aplayer = player;
       } else if (stream) {
-        lbFront.innerHTML = `<video src="${esc(stream)}"${poster ? ` poster="${esc(poster)}"` : ''} playsinline preload="metadata" muted autoplay style="max-width:100%;max-height:78vh;object-fit:contain"></video>`;
+        lbFront.innerHTML = `<video src="${esc(stream)}"${poster ? ` poster="${esc(poster)}"` : ''} playsinline preload="metadata" muted autoplay style="max-width:100%;max-height:78vh;object-fit:contain" draggable="false"></video>`;
       } else {
         lbFront.innerHTML = '<p style="color:#666">Vídeo indisponível</p>';
       }
+      protectLbMedia(lbFront);
       return;
     }
     const src = stream || poster;
     if (src) {
-      lbFront.innerHTML = `<img src="${esc(src)}" alt="${esc(label || '')}" decoding="async"/>`;
+      lbFront.innerHTML = `<img src="${esc(src)}" alt="${esc(label || '')}" decoding="async" draggable="false"/>`;
     } else {
       lbFront.innerHTML = '<p style="color:#555">Carregando…</p>';
     }
+    protectLbMedia(lbFront);
   }
 
   async function openLightbox(idx) {
@@ -377,9 +433,7 @@
     $('lbTitle').textContent = displayName(item);
     $('lbMeta').textContent = [item.categoria, item.autor, item.data_upload].filter(Boolean).join(' · ');
     $('lbCtr').textContent = `${idx + 1} / ${state.items.length}`;
-    // drive_link não vem mais no card público
-    $('lbDrive').href = item.drive_link || '#';
-    $('lbDrive').style.display = item.drive_link ? '' : 'none';
+    syncLbStaffControls(item);
 
     if (lbFront._aplayer) {
       try { lbFront._aplayer.destroy(); } catch { /* ignore */ }
@@ -413,13 +467,14 @@
     });
 
     try {
+      if (typeof Auth !== 'undefined' && Auth.me) await Auth.me();
       const r = await api(`${API}/media/${item.id}`);
       const data = await r.json();
       const full = data.item || data.media || data;
       if (!lbOpen || state.lbIndex !== idx) return;
       const label = (full.pasta || item.pasta || '').trim() || 'Sem pasta';
       $('lbTitle').textContent = label;
-      if (full.drive_link) $('lbDrive').href = full.drive_link;
+      syncLbStaffControls({ ...item, ...full });
       if (full.tipo === 'video') {
         const nextStream = mediaStreamUrl({ ...item, ...full });
         const nextPoster = thumbUrl({ ...item, ...full }, LB_SZ);
@@ -428,25 +483,6 @@
     } catch {
       /* preview already shown */
     }
-
-    $('lbDownload').onclick = async () => {
-      try {
-        const r = await api(`${API}/media/${item.id}/download`);
-        if (r.status === 401) {
-          throw new Error('Download do original exige login da galeria.');
-        }
-        if (!r.ok) throw new Error('Download negado');
-        const blob = await r.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        const base = displayName(item).replace(/[\\/:*?"<>|]+/g, '-');
-        a.download = base === 'Sem pasta' ? 'download' : base;
-        a.click();
-        URL.revokeObjectURL(a.href);
-      } catch (e) {
-        if (typeof Toast !== 'undefined') Toast.error('Download', e.message || 'Falha');
-      }
-    };
   }
 
   function closeLightbox() {
