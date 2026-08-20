@@ -673,14 +673,71 @@ body{
 .lb-arrow:hover{background:rgba(255,255,255,.08);color:#fff}
 .lb-arrow-prev{left:24px}
 .lb-arrow-next{right:24px}
-.lb-stage{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:60px 80px 20px}
-.lb-card{position:relative;max-width:min(92vw,1100px);max-height:78vh}
-.lb-front img,.lb-front > video{
-  max-width:100%;max-height:78vh;display:block;margin:0 auto;
-  border-radius:2px;object-fit:contain;
+.lb-stage{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:60px 80px 20px;min-height:0}
+/* Flip carta → foto — mesma linguagem do lightbox da Home (index) */
+.lb-card{
+  position:relative;
+  perspective:1800px;
+  width:min(92vw,1100px);
+  height:min(78vh,84vh);
+  max-width:min(92vw,1100px);
+  max-height:78vh;
+  display:flex;align-items:center;justify-content:center;
+  transform-style:preserve-3d;
 }
-.lb-front .aplayer{margin:0 auto}
-.lb-back{display:none}
+.lb-back,.lb-front{
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+  transition:transform .65s cubic-bezier(.34,.96,.4,1);
+}
+.lb-back{
+  position:absolute;
+  width:min(60vw,460px);height:min(70vh,560px);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(255,255,255,.06) 0%,transparent 55%),
+    linear-gradient(145deg,#1a1a1a,#0a0a0a);
+  border:1px solid rgba(255,255,255,.12);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transform:rotateY(0deg);
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+  z-index:1;
+}
+.lb-back::before{
+  content:'';position:absolute;inset:14px;
+  border:1px solid rgba(255,255,255,.08);border-radius:12px;
+}
+.lb-back svg{width:64px;height:64px;opacity:.5}
+.lb-back span{
+  font-size:13px;letter-spacing:.3em;text-transform:uppercase;
+  color:rgba(255,255,255,.35);font-weight:700;
+}
+.lb-front{
+  position:absolute;
+  display:flex;align-items:center;justify-content:center;
+  transform:rotateY(-180deg);
+  border-radius:18px;overflow:visible;
+  max-width:min(92vw,1100px);max-height:78vh;
+  z-index:2;
+}
+.lb-front img,.lb-front > video{
+  display:block;
+  max-width:min(92vw,1100px);max-height:78vh;
+  width:auto;height:auto;margin:0 auto;
+  border-radius:18px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+  background:#111;
+  object-fit:contain;
+}
+.lb-front .aplayer{
+  display:block;margin:0 auto;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.lb-card.flipped .lb-back{transform:rotateY(180deg);pointer-events:none}
+.lb-card.flipped .lb-front{transform:rotateY(0deg)}
+@media (prefers-reduced-motion:reduce){
+  .lb-back,.lb-front{transition:none}
+}
 .lb-footer{
   width:100%;display:flex;align-items:center;gap:18px;
   padding:16px 40px 24px;border-top:1px solid rgba(255,255,255,.06);
