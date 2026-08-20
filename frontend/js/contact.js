@@ -38,23 +38,43 @@ const ContactSend = (() => {
     }
   }
 
+  /**
+   * Abre URL externa sem fechar o site.
+   *
+   * NUNCA passe um 3º argumento (features) para window.open com target _blank:
+   * o browser interpreta isso como POPUP. O compose do Gmail redireciona
+   * (accounts → mail) e esse popup costuma fechar sozinho após alguns segundos.
+   * Aba real (_blank sem features, via <a rel=noopener>) permanece aberta.
+   *
+   * Retorna { ok, mode } — sem referência a Window (não chama .close()).
+   */
   function openExternal(url, { sameTab = false } = {}) {
-    if (!url) return null;
+    if (!url) return { ok: false, mode: 'none' };
     if (sameTab) {
       window.location.assign(url);
-      return window;
+      return { ok: true, mode: 'same-tab' };
     }
-    const win = window.open(url, '_blank', 'noopener,noreferrer');
-    if (win) return win;
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => a.remove(), 500);
-    return null;
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return { ok: true, mode: 'tab' };
+    } catch (_) {
+      try {
+        // Sem 3º argumento = aba/janela normal (não popup com features)
+        const win = window.open(url, '_blank');
+        if (win) {
+          try { win.opener = null; } catch (_) { /* ignore */ }
+          return { ok: true, mode: 'window-open' };
+        }
+      } catch (_) { /* ignore */ }
+      return { ok: false, mode: 'blocked' };
+    }
   }
 
   /** Mensagens por canal — tom certo pra cada plataforma */
@@ -289,28 +309,46 @@ const ContactSend = (() => {
 
   function sendInstagram(texto) {
     const url = buildInstagramUrl(texto);
-    const opened = openExternal(url, { sameTab: isMobile() });
-    return { url, opened: !!opened };
+    // Mobile: mesma aba costuma abrir o app; desktop: nova aba
+    const result = openExternal(url, { sameTab: isMobile() });
+    return { url, opened: !!result?.ok, mode: result?.mode || 'none' };
   }
 
-  /** Gmail — igual WhatsApp: abre compose já com a mensagem preenchida (sem copiar). */
+  /**
+   * Gmail Web compose — mensagem preenchida (to / su / body).
+   * Sempre URL do Gmail (não mailto): mailto + same-tab tirava o usuário do site;
+   * popup com features fechava sozinho após o redirect do Google.
+   */
   function buildGmailUrl(
     texto,
     { subject = 'Contato via portfólio — Aleff Thiago', to = 'aleffthigo@gmail.com' } = {}
   ) {
-    const subjectEnc = encodeURIComponent(subject);
+    const params = new URLSearchParams({
+      view: 'cm',
+      fs: '1',
+      tf: '1',
+      to: String(to || ''),
+      su: String(subject || ''),
+      body: String(texto || ''),
+    });
+    return `https://mail.google.com/mail/?${params.toString()}`;
+  }
+
+  /** mailto só como fallback explícito (copiar / app nativo) — não usado no clique principal. */
+  function buildMailtoUrl(
+    texto,
+    { subject = 'Contato via portfólio — Aleff Thiago', to = 'aleffthigo@gmail.com' } = {}
+  ) {
+    const subjectEnc = encodeURIComponent(String(subject || ''));
     const bodyEnc = encodeURIComponent(String(texto || ''));
-    const toEnc = encodeURIComponent(to);
-    if (isMobile()) {
-      return `mailto:${to}?subject=${subjectEnc}&body=${bodyEnc}`;
-    }
-    return `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${toEnc}&su=${subjectEnc}&body=${bodyEnc}`;
+    return `mailto:${to}?subject=${subjectEnc}&body=${bodyEnc}`;
   }
 
   function sendGmail(texto, opts = {}) {
     const url = buildGmailUrl(texto, opts);
-    const opened = openExternal(url, { sameTab: isMobile() });
-    return { url, opened: !!opened };
+    // Sempre nova aba — o site Aleff permanece aberto; Gmail não é popup.
+    const result = openExternal(url, { sameTab: false });
+    return { url, opened: !!result?.ok, mode: result?.mode || 'none' };
   }
 
   return {
@@ -328,6 +366,7 @@ const ContactSend = (() => {
     buildInstagramUrl,
     sendInstagram,
     buildGmailUrl,
+    buildMailtoUrl,
     sendGmail,
   };
 })();
