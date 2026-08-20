@@ -205,13 +205,21 @@
     };
   })();
 
-  /* ── Hero: parallax no rosto + nav some no scroll ───── */
+  /* ── Hero: parallax no rosto; nav fica sempre usável ───── */
   function initHero() {
     const heroBg = $('#heroBg');
     const heroContent = $('#heroContent');
     const nav = $('#siteNav');
     if (!heroBg || !heroContent) return;
     const lightParallax = isMobileUI();
+
+    // Nav normal: sem sumir / sem pointer-events:none no scroll
+    if (nav) {
+      nav.style.opacity = '';
+      nav.style.transform = '';
+      nav.style.pointerEvents = '';
+      nav.classList.remove('is-fading');
+    }
 
     const onScroll = rafThrottle(() => {
       const sy = window.scrollY;
@@ -225,13 +233,7 @@
         heroContent.style.opacity = String(Math.max(0, 1 - Math.pow(fade, 1.5)));
       }
       if (nav) {
-        // Some junto com o parallax (Trabalhos / Contato / Buscar)
-        const navFade = Math.min(1, sy / 280);
-        const opacity = Math.max(0, 1 - Math.pow(navFade, 1.35));        nav.style.opacity = String(opacity);
-        nav.style.transform = `translateY(${sy * 0.04}px)`;
-        nav.style.pointerEvents = opacity < 0.12 ? 'none' : 'auto';
         nav.classList.toggle('is-scrolled', sy > 40);
-        nav.classList.toggle('is-fading', sy > 24);
       }
     });
 
@@ -864,11 +866,30 @@
 
     function openExternal(url, opts) {
       if (CS?.openExternal) return CS.openExternal(url, opts);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      try {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return { ok: true, mode: 'tab' };
+      } catch (_) {
+        const win = window.open(url, '_blank');
+        if (win) {
+          try { win.opener = null; } catch (_e) { /* ignore */ }
+          return { ok: true, mode: 'window-open' };
+        }
+        return { ok: false, mode: 'blocked' };
+      }
     }
 
-    if (btn) {
+    if (btn && !btn.dataset.emailHandlerBound) {
+      btn.dataset.emailHandlerBound = 'true';
       btn.addEventListener('click', async () => {
+        if (btn.disabled) return;
         const active = document.querySelector('.contato-channels .ch.is-active');
         method = active?.dataset.method || method || 'whatsapp';
         const cfg = methods[method];
@@ -887,10 +908,33 @@
             const subjectRaw = CS?.buildGmailSubject
               ? CS.buildGmailSubject(fields)
               : 'Contato via portfólio — Aleff Thiago';
-            const gmailUrl = CS?.buildGmailUrl
-              ? CS.buildGmailUrl(texto, { subject: subjectRaw })
-              : `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=aleffthigo@gmail.com&su=${encodeURIComponent(subjectRaw)}&body=${encodeURIComponent(texto)}`;
-            openExternal(gmailUrl);
+            let opened = false;
+            if (CS?.sendGmail) {
+              const result = CS.sendGmail(texto, { subject: subjectRaw });
+              opened = !!result?.opened;
+            } else {
+              const gmailUrl = CS?.buildGmailUrl
+                ? CS.buildGmailUrl(texto, { subject: subjectRaw })
+                : `https://mail.google.com/mail/?${new URLSearchParams({
+                    view: 'cm',
+                    fs: '1',
+                    tf: '1',
+                    to: 'aleffthigo@gmail.com',
+                    su: subjectRaw,
+                    body: texto,
+                  }).toString()}`;
+              const result = openExternal(gmailUrl);
+              opened = !!(result && result.ok !== false && result !== null);
+            }
+            if (!opened) {
+              await copyMessage();
+              if (window.Toast?.warning) {
+                Toast.warning(
+                  'Não foi possível abrir o Gmail',
+                  'Mensagem copiada. Cole no compose ou use “Copiar mensagem”.',
+                );
+              }
+            }
           } else if (method === 'instagram') {
             const igUrl = CS?.buildInstagramUrl
               ? CS.buildInstagramUrl(texto)

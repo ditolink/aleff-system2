@@ -2219,13 +2219,25 @@ def to_search_card(item: dict, thumb_size: int = 560) -> dict:
     card.pop('drive_link', None)
     card.pop('thumb_drive', None)
     card.pop('_drive_id_internal', None)
-    # Não expor proxy local de imagem (original) no card público
-    if card.get('storage') == 'local' and (card.get('tipo') or '') != 'video':
-        mid = card.get('id')
-        if mid:
-            card['thumb_proxy'] = f'/api/media/{int(mid)}/thumb?sz={int(thumb_size) or 280}'
-            if not card.get('thumb_url') or str(card.get('thumb_url')).startswith('/api/local/'):
-                card['thumb_url'] = card.get('thumb_small') or card['thumb_proxy']
+    mid = card.get('id')
+    # Nunca expor /api/local/<uid> no JSON público
+    for key in ('thumb_url', 'thumb_proxy', 'thumb_small', 'thumb_medium'):
+        val = str(card.get(key) or '')
+        if val.startswith('/api/local/'):
+            if mid and (card.get('tipo') or '') == 'video':
+                card[key] = (
+                    f'/api/media/{int(mid)}/download?dl=0'
+                    if key == 'thumb_proxy'
+                    else f'/api/media/{int(mid)}/thumb-medium'
+                )
+            elif mid:
+                card[key] = f'/api/media/{int(mid)}/thumb?sz={int(thumb_size) or 280}'
+            else:
+                card.pop(key, None)
+    if card.get('storage') == 'local' and (card.get('tipo') or '') != 'video' and mid:
+        card['thumb_proxy'] = f'/api/media/{int(mid)}/thumb?sz={int(thumb_size) or 280}'
+        if not card.get('thumb_url') or str(card.get('thumb_url')).startswith('/api/local/'):
+            card['thumb_url'] = card.get('thumb_small') or card['thumb_proxy']
     return card
 
 

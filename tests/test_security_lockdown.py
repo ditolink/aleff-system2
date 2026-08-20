@@ -44,6 +44,8 @@ def test_is_safe_image_url_blocks_ssrf():
     assert sec.is_safe_image_url('https://169.254.169.254/latest/meta-data/') is False
     assert sec.is_safe_image_url('https://evil.example.com/x.jpg') is False
     assert sec.is_safe_image_url('/api/media/12/thumb-medium') is True
+    assert sec.is_safe_image_url('/api/media/12/thumb-cover') is True
+    assert sec.is_safe_image_url('/api/local/deadbeefdeadbeef') is False
     assert sec.is_safe_image_url(
         'https://drive.google.com/thumbnail?id=abc&sz=w280'
     ) is True
@@ -100,13 +102,41 @@ def test_health_public_is_minimal(client):
     assert 'ai' not in data
 
 
+def test_can_access_media_original_roles(monkeypatch):
+    monkeypatch.setenv('PUBLIC_MEDIA_ORIGINALS', 'false')
+    monkeypatch.setattr(sec, 'request_role', lambda: None)
+    assert sec.can_access_media_original() is False
+    monkeypatch.setattr(sec, 'request_role', lambda: 'admin')
+    assert sec.can_access_media_original() is True
+    monkeypatch.setattr(sec, 'request_role', lambda: 'dev')
+    assert sec.can_access_media_original() is True
+
+
 def test_download_attachment_requires_auth(client):
     r = client.get('/api/media/1/download')
-    # 401 (auth) ou 404 (mídia inexistente) — nunca 200 com original anônimo
-    assert r.status_code in (401, 404)
-    if r.status_code == 401:
+    # 401/403 (auth) ou 404 (mídia inexistente) — nunca 200 com original anônimo
+    assert r.status_code in (401, 403, 404)
+    if r.status_code in (401, 403):
         body = r.get_json() or {}
         assert body.get('status') == 'error'
+
+
+def test_download_head_also_protected(client, monkeypatch):
+    from backend.routes import api as api_mod
+
+    monkeypatch.setattr(
+        api_mod,
+        'get_media',
+        lambda mid: {
+            'id': mid,
+            'nome': 'foto.jpg',
+            'tipo': 'foto',
+            'drive_id': 'local:deadbeefdeadbeef',
+            'mime_type': 'image/jpeg',
+        },
+    )
+    r = client.head('/api/media/42/download')
+    assert r.status_code in (401, 403)
 
 
 def test_download_view_redirects_to_thumb_when_exists(client, monkeypatch):
@@ -127,6 +157,42 @@ def test_download_view_redirects_to_thumb_when_exists(client, monkeypatch):
     r = client.get('/api/media/42/download?dl=0', follow_redirects=False)
     assert r.status_code == 302
     assert '/thumb-medium' in (r.headers.get('Location') or '')
+
+
+def test_admin_download_allowed(client, monkeypatch):
+    from backend.routes import api as api_mod
+    from flask import Response
+
+    monkeypatch.setattr(
+        api_mod,
+        'get_media',
+        lambda mid: {
+            'id': mid,
+            'nome': 'foto.jpg',
+            'tipo': 'foto',
+            'drive_id': 'local:aabbccddeeff0011',
+            'mime_type': 'image/jpeg',
+        },
+    )
+    monkeypatch.setattr(
+        api_mod.drive_svc,
+        'open_media_file',
+        lambda did: (None, 'image/jpeg'),
+    )
+    monkeypatch.setattr(api_mod, 'increment_downloads', lambda mid: None)
+    monkeypatch.setattr(
+        api_mod,
+        'send_file',
+        lambda *a, **k: Response(b'\xff\xd8\xff\xd9', mimetype='image/jpeg'),
+    )
+
+    with client.session_transaction() as sess:
+        sess['admin'] = True
+        sess['role'] = 'admin'
+        sess['user'] = 'admin'
+
+    r = client.get('/api/media/7/download?dl=1')
+    assert r.status_code == 200
 
 
 def test_media_list_requires_auth(client):

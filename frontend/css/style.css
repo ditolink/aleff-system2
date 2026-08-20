@@ -31,18 +31,21 @@ body {
   gap: 20px;
   background: transparent;
   backdrop-filter: none;
-  transition: opacity .15s linear, transform .15s linear, padding .3s;
-  will-change: opacity, transform;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition: background .25s ease, border-color .25s ease, padding .3s, backdrop-filter .25s ease;
 }
 .site-nav.is-scrolled {
-  background: transparent;
-  backdrop-filter: none;
-  border-bottom: 1px solid transparent;
+  background: rgba(10, 10, 10, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 12px;
   padding-bottom: 12px;
 }
 .site-nav.is-fading {
-  /* opacidade/transform vêm do JS (igual ao parallax) */
+  /* legado: não some mais a nav */
 }
 .logo { display: flex; align-items: center; text-decoration: none; flex-shrink: 0; }
 .nav-links { display: flex; gap: 28px; list-style: none; }
@@ -235,8 +238,9 @@ body {
   backdrop-filter: none;
 }
 .site-nav--slim.is-scrolled {
-  background: transparent;
-  backdrop-filter: none;
+  background: rgba(10, 10, 10, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .site-nav--slim .nav-links { gap: 22px; }
 .nav-search-kbd { display: none; }
@@ -487,6 +491,8 @@ body {
   filter: grayscale(42%) brightness(0.78) contrast(1.04);
   transition: filter .55s var(--ease-out), transform .9s var(--ease-out);
   background: #141414;
+  -webkit-user-drag: none;
+  user-select: none;
   /* skel discreto até a foto pintar */
 }
 @media (max-width: 768px) {

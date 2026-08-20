@@ -225,7 +225,9 @@ def upload_ep():
 
     file = request.files['file']
 
-    filename = file.filename or 'sem_nome'
+    from backend.utils.validators import safe_upload_basename
+
+    filename = safe_upload_basename(file.filename or 'sem_nome') or 'sem_nome'
 
     file_bytes = file.read()
 
@@ -488,13 +490,17 @@ def delete_media_ep(media_id):
 
 
 
-@api.route('/local/<uid>', methods=['GET'])
+@api.route('/local/<uid>', methods=['GET', 'HEAD'])
 def local_media_ep(uid):
     """Serve arquivo local com Range (seek no player de vídeo).
-    Imagens originais exigem gallery; vídeo pode ser público (player do site).
+    Imagens originais: somente admin/dev.
+    Vídeo: stream inline público para o player do site (não attachment).
     """
     import re
-    from backend.utils.security import current_can, public_originals_allowed
+    from backend.utils.security import (
+        can_access_media_original,
+        require_media_original_access,
+    )
 
     if not re.fullmatch(r'[a-f0-9]{16,64}', uid or ''):
         return err('Arquivo inválido.', 400)
@@ -505,50 +511,80 @@ def local_media_ep(uid):
     is_video = (mime or '').startswith('video/') or path.suffix.lower() in (
         '.mp4', '.webm', '.mov', '.m4v', '.mkv',
     )
-    if not is_video and not (public_originals_allowed() or current_can('gallery')):
-        return err('Arquivo original exige login.', 401)
-    # send_file no path real → conditional/etag/Range (não carrega tudo na RAM)
-    return send_file(
+    as_attach = request.args.get('dl', '0') in ('1', 'true', 'download')
+    if as_attach or not is_video:
+        denied = require_media_original_access(media_id=None, mode='local')
+        if denied:
+            return denied
+    elif not can_access_media_original():
+        # stream público de vídeo — sem attachment
+        as_attach = False
+
+    resp = send_file(
         path,
         mimetype=mime,
-        as_attachment=False,
+        as_attachment=bool(as_attach and can_access_media_original()),
         conditional=True,
         etag=True,
         last_modified=True,
-        max_age=86400,
+        max_age=3600 if is_video else 0,
     )
+    if is_video and not can_access_media_original():
+        resp.headers['Cache-Control'] = 'private, max-age=3600'
+        resp.headers['Content-Disposition'] = 'inline'
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
+    elif can_access_media_original():
+        resp.headers['Cache-Control'] = 'private, no-store'
+    else:
+        resp.headers['Cache-Control'] = 'private, max-age=0'
+    return resp
 
 
-@api.route('/media/<int:media_id>/download', methods=['GET'])
+@api.route('/media/<int:media_id>/download', methods=['GET', 'HEAD'])
 def download_ep(media_id):
-    """Original HD. Público só com PUBLIC_MEDIA_ORIGINALS (+ confirm em prod).
-    Sem auth: vídeos podem streamar; fotos redirecionam p/ thumb-medium (lightbox).
+    """Original HD / stream de vídeo.
+
+    - Attachment: somente admin|dev (ou PUBLIC_MEDIA_ORIGINALS).
+    - Foto sem auth: nunca original (401 attachment / 302 thumb-medium view).
+    - Vídeo ?dl=0: stream inline do arquivo completo — necessário ao <video>/Range.
+
+    RISCO RESIDUAL (aceito até haver pipeline de preview):
+    Visitante recebe bytes do arquivo original de vídeo. URL assinada sozinha
+    NÃO remove o original; transcodificação (ffmpeg → 720p/preview) exigiria
+    storage + job no sync + mudança de URL no player. Não implementado aqui.
     """
-    from backend.utils.security import current_can, public_originals_allowed
+    from backend.utils.security import (
+        can_access_media_original,
+        log_media_original_denied,
+        require_media_original_access,
+    )
 
     item = get_media(media_id)
 
     if not item:
-        return err(
-            'Mídia não encontrada.',
-            404
-        )
+        return err('Mídia não encontrada.', 404)
 
     is_video = (item.get('tipo') or '') == 'video'
-    can_original = public_originals_allowed() or current_can('gallery')
+    can_original = can_access_media_original()
     as_attach = request.args.get('dl', '1') not in ('0', 'false', 'view')
 
-    # Foto sem auth: não vaza HD — thumb medium (ou 401 se attachment)
+    # Qualquer download como attachment exige original access
+    if as_attach:
+        denied = require_media_original_access(media_id=media_id, mode='download')
+        if denied:
+            return denied
+
+    # Foto sem auth: não vaza HD
     if not can_original and not is_video:
-        if as_attach:
-            return err('Download do original exige login.', 401)
+        log_media_original_denied(media_id=media_id, mode='view')
         return redirect(f'/api/media/{media_id}/thumb-medium', code=302)
 
     try:
-        # Stream do disco (cache) — não carrega o arquivo inteiro na RAM do Waitress
         path, mime = drive_svc.open_media_file(item['drive_id'])
 
-        increment_downloads(media_id)
+        if can_original:
+            increment_downloads(media_id)
 
         download_name = item['nome']
         if '.' not in os.path.basename(download_name):
@@ -559,26 +595,31 @@ def download_ep(media_id):
             )
             download_name += ext
 
+        # Visitante: nunca Content-Disposition attachment
+        use_attach = bool(as_attach and can_original)
+
         resp = send_file(
             path,
             mimetype=mime,
-            as_attachment=as_attach,
-            download_name=download_name,
+            as_attachment=use_attach,
+            download_name=download_name if use_attach else None,
             conditional=True,
             etag=True,
             last_modified=True,
-            max_age=86400,
+            max_age=3600 if (is_video and not can_original) else 0,
         )
-        resp.headers['Cache-Control'] = 'private, max-age=3600'
+        if can_original:
+            resp.headers['Cache-Control'] = 'private, no-store'
+        else:
+            resp.headers['Cache-Control'] = 'private, max-age=3600'
+            resp.headers['Content-Disposition'] = 'inline'
+            resp.headers['X-Content-Type-Options'] = 'nosniff'
+            resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
         return resp
 
     except Exception as e:
-
         print(f'[Download] {e}')
-        return err(
-            'Erro no download.',
-            500
-        )
+        return err('Erro no download.', 500)
 
 
 @api.route('/media/<int:media_id>/thumb', methods=['GET'])
@@ -616,10 +657,12 @@ def media_thumb_ep(media_id):
         return resp
     except Exception as e:
         print(f'[Thumb] media={media_id}: {e}')
-        from backend.utils.security import is_safe_thumb_url
+        # Só paths internos do app — nunca redirect para drive.google.com (vaza fileId)
         legacy = (item.get('thumb_url') or '').strip()
-        if is_safe_thumb_url(legacy):
-            return redirect(legacy, code=302)
+        if legacy.startswith('/api/media/') and 'drive.google' not in legacy.lower():
+            from backend.utils.security import is_safe_thumb_url
+            if is_safe_thumb_url(legacy):
+                return redirect(legacy, code=302)
         return err('Thumbnail indisponível.', 404)
 
 
@@ -696,12 +739,10 @@ def _serve_tier_thumb(media_id: int, tier: str):
         except Exception:
             pass
 
-    # Último recurso: proxy clássico / Drive redirect
+    # Último recurso: proxy clássico interno — NÃO redirecionar para Drive (vaza fileId)
     try:
         return media_thumb_ep(media_id)
     except Exception:
-        if did and not did.startswith('local:'):
-            return redirect(drive_svc._thumb_url(did, size=prefer), code=302)
         return err('Thumbnail indisponível.', 404)
 
 
@@ -752,30 +793,48 @@ def media_thumb_cover_ep(media_id):
 @api.route('/thumbs/prefetch-plan', methods=['GET'])
 def thumbs_prefetch_plan_ep():
     """
-    IDs prioritários pra pré-cache (home + categorias).
-    Retorna URLs medium estáveis — frontend aquece o browser cache de uma vez.
+    URLs de thumb medium pra pré-cache no browser (home + categorias).
+
+    Público: NÃO devolve lista crua de `ids` (reduz enumeração em massa).
+    As URLs ainda contêm o id (necessário ao proxy atual) — risco residual documentado.
     """
+    from backend.utils.security import is_logged_in
     from backend.services import thumb_pipeline as tp
 
-    limit = safe_int(request.args.get('limit', 240), default=240, min_v=8, max_v=400)
+    # Anônimo: teto menor (menos superfície). Staff: até 400.
+    default_lim = 120 if not is_logged_in() else 240
+    max_lim = 120 if not is_logged_in() else 400
+    limit = safe_int(
+        request.args.get('limit', default_lim),
+        default=default_lim,
+        min_v=8,
+        max_v=max_lim,
+    )
     ids = tp.get_prefetch_plan_cached(limit=limit)
-    # ready_medium: conta rápida via listdir do tier (1× FS) em vez de N×stat
     ready_set = set()
     try:
-        ready_set = {int(p.stem) for p in tp.tier_dir('medium').glob('*.webp') if p.stat().st_size > 80}
+        ready_set = {
+            int(p.stem)
+            for p in tp.tier_dir('medium').glob('*.webp')
+            if p.stat().st_size > 80
+        }
     except Exception:
         pass
     ready_medium = sum(1 for i in ids if i in ready_set)
     urls = [f'/api/media/{i}/thumb-medium' for i in ids]
     payload = {
-        'ids': ids,
         'urls': urls,
-        'total': len(ids),
+        'total': len(urls),
         'ready_medium': ready_medium,
-        'pending_medium': max(0, len(ids) - ready_medium),
+        'pending_medium': max(0, len(urls) - ready_medium),
     }
+    # IDs explícitos só para equipe (warm/debug) — visitante usa urls
+    if is_logged_in():
+        payload['ids'] = ids
     resp = make_response(jsonify({'status': 'ok', 'message': 'ok', **payload}), 200)
-    resp.headers['Cache-Control'] = 'public, max-age=30, stale-while-revalidate=60'
+    resp.headers['Cache-Control'] = 'private, max-age=30' if is_logged_in() else (
+        'public, max-age=30, stale-while-revalidate=60'
+    )
     return resp
 
 
