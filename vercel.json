@@ -7,6 +7,11 @@
       "config": {
         "includeFiles": [
           "frontend/**"
+        ],
+        "excludeFiles": [
+          "frontend/videos/*.mp4",
+          "frontend/videos/*.mov",
+          "frontend/videos/*.avi"
         ]
       }
     }

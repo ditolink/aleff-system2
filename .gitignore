@@ -71,3 +71,5 @@ frontend/videos/*.mp4
 frontend/videos/*.mov
 frontend/videos/*.avi
 !frontend/videos/.gitkeep
+.vercel
+.env*
