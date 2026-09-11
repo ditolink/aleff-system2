@@ -1,0 +1,18 @@
+.git
+.github
+.venv
+venv
+tests
+.pytest_cache
+*.bat
+deploy
+Dockerfile*
+Procfile
+railway.toml
+data/
+requirements-dev.txt
+requirements-clip.txt
+requirements-face.txt
+OLHA AQUI
+playwright-report
+test-results
