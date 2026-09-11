@@ -11,5 +11,8 @@
     "@biomejs/biome": "^1.9.4",
     "@playwright/test": "^1.49.0",
     "knip": "^5.41.0"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
   }
 }
