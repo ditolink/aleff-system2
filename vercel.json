@@ -1,25 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/server.py",
-      "use": "@vercel/python",
-      "config": {
-        "includeFiles": [
-          "frontend/**"
-        ],
-        "excludeFiles": [
-          "frontend/videos/*.mp4",
-          "frontend/videos/*.mov",
-          "frontend/videos/*.avi"
-        ]
-      }
+  "functions": {
+    "backend/server.py": {
+      "runtime": "python3.12",
+      "maxDuration": 10
     }
-  ],
+  },
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/server.py"
-    }
+    { "src": "/api/(.*)", "dest": "backend/server.py" },
+    { "src": "/(.*)", "dest": "backend/server.py" }
   ]
 }
