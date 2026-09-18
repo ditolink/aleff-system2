@@ -7,9 +7,10 @@ google-auth-oauthlib==1.2.1
 werkzeug==3.0.3
 waitress==3.0.2
 Pillow==10.4.0
-opencv-python-headless>=4.8,<5
+opencv-python-headless==4.10.0.84
 requests==2.32.3
 numpy==2.1.3
+cryptography==45.0.3
 
 # OpenCLIP pesa ~2GB+ RAM. Em VPS fraca deixe CLIP_ENABLED=false e NÃO instale:
 # open-clip-torch

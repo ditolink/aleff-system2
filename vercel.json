@@ -5,21 +5,13 @@
       "src": "backend/server.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": [
-          "frontend/**"
-        ],
-        "excludeFiles": [
-          "frontend/videos/*.mp4",
-          "frontend/videos/*.mov",
-          "frontend/videos/*.avi"
-        ]
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.12"
       }
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/server.py"
-    }
+    { "src": "/api/(.*)", "dest": "backend/server.py" },
+    { "src": "/(.*)", "dest": "backend/server.py" }
   ]
 }
