@@ -352,6 +352,11 @@ def index():
     return _send_frontend("index.html")
 
 
+@app.route("/index.html")
+def index_html_redirect():
+    return redirect("/")
+
+
 @app.route("/health")
 def health():
     """Health público mínimo. Detalhes só com sessão gallery/system."""

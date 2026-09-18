@@ -5,7 +5,13 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = str(Path(__file__).resolve().parents[2] / "data" / "media.db")
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_LOCAL_DB_PATH = _PROJECT_ROOT / "data" / "media.db"
+if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_VERSION"):
+    # Vercel's deployment filesystem is read-only; /tmp is writable per instance.
+    DB_PATH = os.getenv("ALEFF_DB_PATH", "/tmp/aleff-system2/media.db")
+else:
+    DB_PATH = os.getenv("ALEFF_DB_PATH", str(_LOCAL_DB_PATH))
 
 _READ_CACHE = {
     "stats": {"value": None, "ts": 0.0, "ttl": 12.0},
