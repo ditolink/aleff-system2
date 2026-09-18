@@ -39,8 +39,23 @@ try:
 except Exception as _obs_err:
     print(f"[OBS] skip: {_obs_err}")
 
-app.config["MAX_CONTENT_LENGTH"] = int(
-    os.getenv("MAX_CONTENT_LENGTH", MAX_FILE_SIZE)
+def _env_int(name, default, minimum=None):
+    raw_value = os.getenv(name)
+    try:
+        value = int(raw_value) if raw_value is not None and raw_value.strip() else default
+    except (TypeError, ValueError):
+        print(f"[WARN] {name} inválida ('{raw_value}'), usando padrão de {default}")
+        value = default
+    if minimum is not None and value < minimum:
+        print(f"[WARN] {name} abaixo do mínimo ({minimum}), usando {minimum}")
+        value = minimum
+    return value
+
+
+app.config["MAX_CONTENT_LENGTH"] = _env_int(
+    "MAX_CONTENT_LENGTH",
+    MAX_FILE_SIZE,
+    minimum=1,
 )
 
 # Sessão segura (cookie HttpOnly). Sem SECRET_KEY no .env, persiste em data/
@@ -63,7 +78,7 @@ app.config["SECRET_KEY"] = _secret
 _flask_env = (os.getenv("FLASK_ENV") or os.getenv("ENV") or "").lower().strip()
 _is_prod = _flask_env in ("production", "prod")
 # Sessões mais curtas por padrão (antes 90d)
-_session_days = max(1, int(os.getenv("SESSION_DAYS", "14" if _is_prod else "30")))
+_session_days = _env_int("SESSION_DAYS", 14 if _is_prod else 30, minimum=1)
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=_session_days)
 # Renova o cookie a cada request autenticado — fica logado até logout
 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
@@ -115,8 +130,8 @@ try:
             import time
             time.sleep(2)
             _tp.start_background_warm(
-                limit=int(os.getenv('THUMB_WARM_LIMIT', '240') or 240),
-                workers=int(os.getenv('THUMB_WARM_WORKERS', '8') or 8),
+                limit=_env_int("THUMB_WARM_LIMIT", 240, minimum=0),
+                workers=_env_int("THUMB_WARM_WORKERS", 8, minimum=1),
             )
 
         import threading as _threading
@@ -579,15 +594,15 @@ if __name__ == "__main__":
             from backend.services import thumb_pipeline as tp
             # Já agendado no import do app; aqui só reforça se __main__
             tp.start_background_warm(
-                limit=int(os.getenv('THUMB_WARM_LIMIT', '120') or 120),
-                workers=int(os.getenv('THUMB_WARM_WORKERS', '6') or 6),
+                limit=_env_int("THUMB_WARM_LIMIT", 120, minimum=0),
+                workers=_env_int("THUMB_WARM_WORKERS", 6, minimum=1),
             )
         except Exception as e:
             print(f"[Thumbs] Prefetch falhou: {e}")
 
     threading.Thread(target=_prefetch_thumbs_bg, daemon=True, name="thumb-prefetch").start()
 
-    port = int(os.getenv("PORT", 3001))
+    port = _env_int("PORT", 3001, minimum=1)
     default_host = (
         "127.0.0.1"
         if os.getenv("FLASK_ENV", "production") != "development"
@@ -613,7 +628,7 @@ if __name__ == "__main__":
     else:
         try:
             from waitress import serve
-            threads = int(os.getenv("WAITRESS_THREADS", "12"))
+            threads = _env_int("WAITRESS_THREADS", 12, minimum=1)
             print(f"[HTTP] Waitress · {threads} threads (stream de vídeo ok)")
             serve(
                 app,

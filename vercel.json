@@ -1,11 +1,15 @@
 {
   "version": 2,
-  "functions": {
-    "backend/server.py": {
-      "runtime": "python3.12",
-      "maxDuration": 10
+  "builds": [
+    {
+      "src": "backend/server.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.12"
+      }
     }
-  },
+  ],
   "routes": [
     { "src": "/api/(.*)", "dest": "backend/server.py" },
     { "src": "/(.*)", "dest": "backend/server.py" }
