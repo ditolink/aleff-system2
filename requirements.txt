@@ -16,3 +16,5 @@ gunicorn==23.0.0
 # OpenCLIP pesa ~2GB+ RAM. Em VPS fraca deixe CLIP_ENABLED=false e NÃO instale:
 # open-clip-torch
 # torch
+insightface==0.7.3
+onnxruntime==1.19.2
