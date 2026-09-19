@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260807h"/>
+  <script src="js/config.js"></script>
   <script src="js/toast.js" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
   <script src="js/auth.js?v=20260808a" defer></script>
@@ -571,7 +572,7 @@
 
 <script>
 (() => {
-  const API = '/api';
+  const API = `${window.API_BASE_URL}/api`;
   const $ = (id) => document.getElementById(id);
 
   const state = {
@@ -601,7 +602,7 @@
 
   function mediaStreamFor(item, thumb) {
     if (!item) return thumb || '';
-    if (item.id) return `/api/media/${item.id}/download`;
+    if (item.id) return `${window.API_BASE_URL}/api/media/${item.id}/download`;
     return thumb || '';
   }
 
@@ -634,7 +635,7 @@
     if (/^\/api\/local\//i.test(raw)) return safeUrl(raw);
     const m = raw.match(/^(\/api\/media\/\d+\/thumb)(?:\?.*)?$/i);
     if (m) return `${m[1]}?sz=${size}`;
-    if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+    if (item?.id) return `${window.API_BASE_URL}/api/media/${item.id}/thumb?sz=${size}`;
     return safeUrl(raw);
   }
 
@@ -655,7 +656,7 @@
     try {
       // Drive e CLIP: status público (sem key) — leem credenciais do .env no servidor
       const [health, drive, clip] = await Promise.all([
-        fetch('/health', { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
+        fetch(`${window.API_BASE_URL}/health`, { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
         fetch(`${API}/drive/status`, { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
         fetch(`${API}/ai/clip/status`, { cache: 'no-store' }).then(async (r) => ({ ok: r.ok, data: await r.json().catch(() => ({})) })),
       ]);
@@ -967,7 +968,7 @@
     if (!state.current) return;
     if (!hasAuth()) {
       Toast.error('Faça login', 'Sessão necessária para salvar.');
-      location.href = '/loginsite?next=/admin.html';
+      location.href = '/loginsite?next=/admin';
       return;
     }
     const body = {
@@ -998,7 +999,7 @@
   async function deleteItem(id) {
     if (!hasAuth()) {
       Toast.error('Faça login', 'Sessão necessária para excluir.');
-      location.href = '/loginsite?next=/admin.html';
+      location.href = '/loginsite?next=/admin';
       return;
     }
     if (!confirm('Excluir esta mídia do acervo (e do Drive, se configurado)?')) return;
@@ -1019,7 +1020,7 @@
     if (!state.current) return;
     if (!hasAuth()) {
       Toast.error('Faça login', 'Sessão necessária.');
-      location.href = '/loginsite?next=/admin.html';
+      location.href = '/loginsite?next=/admin';
       return;
     }
     const dismiss = Toast.info('OpenCLIP…', 'Gerando tags…', 0);

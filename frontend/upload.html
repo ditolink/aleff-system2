@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260807e"/>
+  <script src="js/config.js"></script>
   <script src="js/toast.js" defer></script>
   <script src="js/auth.js?v=20260808a" defer></script>
   <script src="js/dev-bar.js?v=20260808a" defer></script>
@@ -287,7 +288,7 @@
 </main>
 
 <script>
-const API = '/api';
+const API = `${window.API_BASE_URL}/api`;
 let selectedFiles = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -461,7 +462,7 @@ upSubmit.addEventListener('click', async () => {
   if (!selectedFiles.length) return;
   const me = await Auth.me();
   if (!me.logged_in) {
-    location.href = '/loginsite.html?next=/upload.html';
+    location.href = '/loginsite?next=/upload';
     return;
   }
   upSubmit.disabled = true;

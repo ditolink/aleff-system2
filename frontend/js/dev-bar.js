@@ -1,6 +1,6 @@
 /* studio-bar — toolbar da equipe + sessão no portfólio */
 (() => {
-  const API = '/api';
+  const API = `${window.API_BASE_URL}/api`;
 
   /* English labels — clear studio navigation */
   const STUDIO_LINKS = [

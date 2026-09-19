@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260801av"/>
+  <script src="js/config.js"></script>
   <script src="js/toast.js" defer></script>
   <script src="js/auth.js?v=20260808a" defer></script>
   <script src="js/dev-bar.js?v=20260808a" defer></script>
@@ -93,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!me) return;
   if (!Auth.can('code') && me.role !== 'dev') {
     Toast.error('Bloqueado', 'Código só para conta Dev.');
-    location.href = '/dashboard.html';
+    location.href = '/dashboard';
     return;
   }
 
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentDir = path;
     crumb.textContent = '/' + (path || '');
     upBtn.hidden = !path;
-    const r = await Auth.fetch('/api/dev/tree?path=' + encodeURIComponent(path));
+    const r = await Auth.fetch(`${window.API_BASE_URL}/api/dev/tree?path=` + encodeURIComponent(path));
     const d = await r.json();
     if (!r.ok) { Toast.error('Erro', d.message || 'Árvore'); return; }
     const data = d.data || d;
@@ -132,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function openFile(path) {
-    const r = await Auth.fetch('/api/dev/file?path=' + encodeURIComponent(path));
+    const r = await Auth.fetch(`${window.API_BASE_URL}/api/dev/file?path=` + encodeURIComponent(path));
     const d = await r.json();
     if (!r.ok) { Toast.error('Bloqueado', d.message || 'Arquivo'); return; }
     const data = d.data || d;

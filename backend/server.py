@@ -99,7 +99,8 @@ app.config["PROPAGATE_EXCEPTIONS"] = False
 
 _cors_raw = os.getenv(
     "CORS_ORIGINS",
-    "http://127.0.0.1:3001,http://localhost:3001",
+    "http://127.0.0.1:3001,http://localhost:3001,"
+    "https://aleffthiago.com.br,https://www.aleffthiago.com.br",
 )
 _cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip() and o.strip() != "*"]
 if not _cors_origins:
@@ -440,7 +441,7 @@ def loginsite_page():
 @app.route("/login.html")
 def login_redirect():
     q = request.query_string.decode() if request.query_string else ""
-    return redirect("/loginsite.html" + (f"?{q}" if q else ""), code=302)
+    return redirect("/loginsite" + (f"?{q}" if q else ""), code=302)
 
 
 @app.route("/<path:path>")
@@ -449,9 +450,25 @@ def serve_frontend(path):
     if path.startswith("api/") or _is_blocked_request_path(path):
         abort(404)
 
+    clean_pages = {
+        "index.html": "/",
+        "loginsite.html": "/loginsite",
+        "dashboard.html": "/dashboard",
+        "upload.html": "/upload",
+        "admin.html": "/admin",
+        "search.html": "/search",
+        "slots.html": "/slots",
+        "settings.html": "/settings",
+        "code.html": "/code",
+    }
+    clean_path = clean_pages.get(path.lower())
+    if clean_path:
+        query = f"?{request.query_string.decode()}" if request.query_string else ""
+        return redirect(clean_path + query, code=301)
+
     # Páginas protegidas: login obrigatório (HTML real, não API)
     if path_needs_login(path) and not is_logged_in():
-        return redirect(f"/loginsite.html?next=/{path.lstrip('/')}")
+        return redirect(f"/loginsite?next=/{path.lstrip('/')}")
 
     # code / settings: só DEV (perm code|system) — admin não abre a shell
     if path_needs_dev(path):
@@ -474,7 +491,7 @@ def serve_frontend(path):
     # atalho /dashboard → /dashboard.html
     html_path = path + ".html"
     if path_needs_login(html_path) and not is_logged_in():
-        return redirect(f"/loginsite.html?next=/{html_path}")
+        return redirect(f"/loginsite?next=/{path.lstrip('/')}")
     if path_needs_dev(html_path):
         need = path_dev_perm(html_path) or "system"
         if not current_can(need):
@@ -607,12 +624,8 @@ if __name__ == "__main__":
 
     threading.Thread(target=_prefetch_thumbs_bg, daemon=True, name="thumb-prefetch").start()
 
-    port = _env_int("PORT", 3001, minimum=1)
-    default_host = (
-        "127.0.0.1"
-        if os.getenv("FLASK_ENV", "production") != "development"
-        else "0.0.0.0"
-    )
+    port = _env_int("PORT", 5000, minimum=1)
+    default_host = "0.0.0.0"
     host = os.getenv("HOST", default_host)
     debug = os.getenv("FLASK_ENV", "production") == "development"
 

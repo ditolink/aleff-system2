@@ -925,7 +925,7 @@
     const nodes = $$('.gi-slot[data-slot-id]');
     if (!nodes.length) return;
     try {
-      const r = await fetch('/api/portfolio/slots', { cache: 'no-store' });
+      const r = await fetch(`${window.API_BASE_URL}/api/portfolio/slots`, { cache: 'no-store' });
       const data = await r.json();
       const slots = data.slots || {};
       nodes.forEach((el) => {
@@ -977,7 +977,7 @@
     // Curadoria manual em index.html (Thalles, shows, casais…) — não trocar por API
     if (root.querySelector('[data-idx]')) return;
     try {
-      const r = await fetch('/api/portfolio/home?limit=22', { cache: 'no-store' });
+      const r = await fetch(`${window.API_BASE_URL}/api/portfolio/home?limit=22`, { cache: 'no-store' });
       if (!r.ok) return;
       const data = await r.json();
       const items = data.items || [];
@@ -1005,7 +1005,7 @@
         }
         if (it.type !== 'photo') return;
         const layout = it.layout === 'l-wide' ? 'l-wide' : 'p-tall';
-        const src = it.thumb_url || (it.id ? `/api/media/${it.id}/thumb?sz=720` : '');
+        const src = it.thumb_url || (it.id ? `${window.API_BASE_URL}/api/media/${it.id}/thumb?sz=720` : '');
         if (!src) return;
         const title = it.title || it.pasta || it.nome || 'Trabalho';
         const cat = it.cat_label || it.categoria || it.pasta || '';
@@ -1078,7 +1078,7 @@
       if (/^\/api\/local\//i.test(raw)) return raw;
       const m = raw.match(/^(\/api\/media\/\d+\/thumb)/i);
       if (m) return `${m[1]}?sz=480`;
-      if (it.id) return `/api/media/${it.id}/thumb?sz=480`;
+      if (it.id) return `${window.API_BASE_URL}/api/media/${it.id}/thumb?sz=480`;
       return raw;
     }
 
@@ -1207,7 +1207,7 @@
 
     // Preferência: backend já devolve 1 foto por rosto (InsightFace)
     try {
-      const r = await fetch('/api/contato/reel?limit=24', { credentials: 'same-origin' });
+      const r = await fetch(`${window.API_BASE_URL}/api/contato/reel?limit=24`, { credentials: 'include' });
       if (r.ok) {
         const data = await r.json();
         faceMeta = data.face || null;
@@ -1226,7 +1226,7 @@
           per_page: String(n),
           page: '1',
         });
-        const r = await fetch(`/api/search?${qs}`, { credentials: 'same-origin' });
+        const r = await fetch(`${window.API_BASE_URL}/api/search?${qs}`, { credentials: 'include' });
         if (!r.ok) return [];
         const data = await r.json();
         return data.items || [];

@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const API = '/api';
+  const API = `${window.API_BASE_URL}/api`;
   const PER_PAGE = 36;
   const CACHE_KEY = 'aleff_search_warmup_v1';
   const QUERY_CACHE_KEY = 'aleff_search_qcache_v1';
@@ -159,9 +159,9 @@
       return s.startsWith('/') || s.startsWith('http') ? s : '';
     }
     if (tier === 'medium') {
-      return item.thumb_medium || `/api/media/${item.id}/thumb-medium`;
+      return item.thumb_medium || `${API}/media/${item.id}/thumb-medium`;
     }
-    return item.thumb_small || `/api/media/${item.id}/thumb-small`;
+    return item.thumb_small || `${API}/media/${item.id}/thumb-small`;
   }
 
   function coverUrl(c) {

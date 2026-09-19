@@ -1,8 +1,8 @@
 /* auth.js — sessão equipe via /api/auth/*  →  /loginsite.html
    Admin/dev permanecem logados até logout explícito. */
 const Auth = (() => {
-  const API = '/api';
-  const LOGIN_PATH = '/loginsite.html';
+  const API = `${window.API_BASE_URL}/api`;
+  const LOGIN_PATH = '/loginsite';
   const ME_CACHE_KEY = 'authMeCache';
   const ME_STICKY_KEY = 'authMeSticky';
   const ME_TTL_MS = 45000;

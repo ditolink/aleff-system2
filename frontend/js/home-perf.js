@@ -3,8 +3,8 @@
 (() => {
   'use strict';
 
-  const API_SMALL = (id) => `/api/media/${id}/thumb-small`;
-  const API_MED = (id) => `/api/media/${id}/thumb-medium`;
+  const API_SMALL = (id) => `${window.API_BASE_URL}/api/media/${id}/thumb-small`;
+  const API_MED = (id) => `${window.API_BASE_URL}/api/media/${id}/thumb-medium`;
 
   function sizesFor(gi) {
     if (!gi) return '(max-width: 768px) 48vw, 22vw';

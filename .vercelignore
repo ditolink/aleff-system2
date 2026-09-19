@@ -8,6 +8,7 @@ notebooks/
 *.ipynb
 .env
 .env.local
+backend/
 data/
 assets/raw/
 *.mp4

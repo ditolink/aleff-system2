@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/logo.css"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260807e"/>
+  <script src="js/config.js"></script>
   <script src="js/toast.js" defer></script>
   <script src="js/auth.js?v=20260808a" defer></script>
   <script src="js/dev-bar.js?v=20260808a" defer></script>
@@ -164,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ectx = editorCanvas.getContext('2d', { willReadFrequently: true });
 
   async function load() {
-    const r = await Auth.fetch('/api/portfolio/slots');
+    const r = await Auth.fetch(`${window.API_BASE_URL}/api/portfolio/slots`);
     const d = await r.json();
     const slots = (d.slots || d.data?.slots || {});
     render(slots);
@@ -213,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         fileInput.click();
       });
       card.querySelector('[data-act="clear"]')?.addEventListener('click', async () => {
-        const r = await Auth.fetch(`/api/portfolio/slots/${id}`, { method: 'DELETE' });
+        const r = await Auth.fetch(`${window.API_BASE_URL}/api/portfolio/slots/${id}`, { method: 'DELETE' });
         if (!r.ok) { Toast.error('Erro', 'Não limpou'); return; }
         Toast.success('Slot limpo', id);
         load();
@@ -240,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     fd.append('title', title);
     fd.append('cat', cat);
     Toast.info?.('Enviando…', file.name) || Toast.success('Enviando', file.name);
-    const r = await Auth.fetch(`/api/portfolio/slots/${id}/upload`, { method: 'POST', body: fd });
+    const r = await Auth.fetch(`${window.API_BASE_URL}/api/portfolio/slots/${id}/upload`, { method: 'POST', body: fd });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { Toast.error('Falha', d.message || 'Upload'); return; }
     Toast.success('No ar', `Slot ${id} atualizado`);

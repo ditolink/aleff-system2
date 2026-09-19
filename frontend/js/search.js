@@ -1,6 +1,6 @@
 /* search.js — Acervo visual / Aleff Thiago */
 (function () {
-  const API = '/api';
+  const API = `${window.API_BASE_URL}/api`;
   const PER_PAGE = 36;
   const GRID_SZ = () => (window.matchMedia('(max-width:900px)').matches ? 420 : 560);
   const LB_SZ = 1200;
@@ -192,7 +192,7 @@
       const r = await api(`${API}/thumbs/prefetch-plan?limit=240`);
       if (!r.ok) return;
       const data = await r.json();
-      const urls = data.urls || (data.ids || []).map((id) => `/api/media/${id}/thumb-medium`);
+      const urls = data.urls || (data.ids || []).map((id) => `${API}/media/${id}/thumb-medium`);
       if (urls.length) {
         enqueuePrefetch(urls, { burst: true });
         console.debug('[thumbs] pré-cache browser', urls.length, 'ready_server', data.ready_medium);
@@ -206,7 +206,7 @@
     const s = String(item.thumb_small || '');
     if (/^\/api\/media\/\d+\/thumb-small/i.test(s)) return s;
     if (/^\/api\/local\//i.test(s)) return s;
-    if (item.id) return `/api/media/${item.id}/thumb-small`;
+    if (item.id) return `${API}/media/${item.id}/thumb-small`;
     return thumbUrlLegacy(item, 320);
   }
 
@@ -216,7 +216,7 @@
     const s = String(item.thumb_medium || '');
     if (/^\/api\/media\/\d+\/thumb-medium/i.test(s)) return s;
     if (/^\/api\/local\//i.test(s)) return s;
-    if (item.id) return `/api/media/${item.id}/thumb-medium`;
+    if (item.id) return `${API}/media/${item.id}/thumb-medium`;
     return thumbUrlLegacy(item, GRID_SZ());
   }
 
@@ -238,7 +238,7 @@
     if (/^\/api\/media\/\d+\/thumb/i.test(proxy)) {
       return proxy.includes('sz=') ? proxy.replace(/([?&]sz=)\d+/i, `$1${size}`) : `${proxy}${proxy.includes('?') ? '&' : '?'}sz=${size}`;
     }
-    if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+    if (item?.id) return `${API}/media/${item.id}/thumb?sz=${size}`;
     return raw;
   }
 
@@ -251,7 +251,7 @@
 
   function thumbFallback(item, size = 560) {
     // 1) proxy clássico (JPEG legado em data/thumbs) — renderiza mesmo sem WebP
-    if (item?.id) return `/api/media/${item.id}/thumb?sz=${size}`;
+    if (item?.id) return `${API}/media/${item.id}/thumb?sz=${size}`;
     const drive = String(item?.thumb_drive || '');
     if (/^https:\/\/drive\.google\.com\/thumbnail\?/i.test(drive) || item?.drive_id) {
       const did = String(item?.drive_id || '').trim();
@@ -311,7 +311,7 @@
     // Vídeo local: stream via /api/local (público só para video/)
     if (/^\/api\/local\/[a-f0-9]+$/i.test(thumb) && item.tipo === 'video') return thumb;
     if (/^(\/?videos\/)/i.test(thumb)) return thumb;
-    if (item.tipo === 'video' && item.id) return `/api/media/${item.id}/download?dl=0`;
+    if (item.tipo === 'video' && item.id) return `${API}/media/${item.id}/download?dl=0`;
     return safeUrl(thumb);
   }
 
@@ -1166,7 +1166,7 @@
         face_y: c.face_y,
       };
       if (!safeUrl(state.coverByCat[cat] || '') && c.id) {
-        state.coverByCat[cat] = `/api/media/${c.id}/thumb-cover`;
+        state.coverByCat[cat] = `${API}/media/${c.id}/thumb-cover`;
       }
     });
   }
