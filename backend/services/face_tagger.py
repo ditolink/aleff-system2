@@ -18,7 +18,8 @@ from typing import Optional
 
 import numpy as np
 
-FACE_ENABLED = os.getenv('FACE_ENABLED', 'true').lower().strip() in ('1', 'true', 'yes', 'on')
+# Em servidores pequenos, deixar false por padrão evita picos de RAM e timeouts.
+FACE_ENABLED = os.getenv('FACE_ENABLED', 'false').lower().strip() in ('1', 'true', 'yes', 'on')
 # ArcFace (buffalo_l): mesma pessoa costuma ficar acima de ~0.35–0.45
 FACE_SIM_THRESHOLD = float(os.getenv('FACE_SIM_THRESHOLD', '0.42'))
 FACE_MODEL = os.getenv('FACE_MODEL', 'buffalo_l')

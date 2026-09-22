@@ -108,7 +108,7 @@ except Exception as _db_boot_err:
 
 # Pré-gera thumbs medium/small em background (Waitress também) — pesquisa lê do cache
 try:
-    if (os.getenv('THUMB_PREFETCH_ON_START', '1') or '').strip().lower() in ('1', 'true', 'yes', 'on'):
+    if (os.getenv('THUMB_PREFETCH_ON_START', '0') or '').strip().lower() in ('1', 'true', 'yes', 'on'):
         from backend.services import thumb_pipeline as _tp
 
         def _boot_thumb_warm():
@@ -613,8 +613,8 @@ if __name__ == "__main__":
     else:
         try:
             from waitress import serve
-            threads = int(os.getenv("WAITRESS_THREADS", "12"))
-            print(f"[HTTP] Waitress · {threads} threads (stream de vídeo ok)")
+            threads = int(os.getenv("WAITRESS_THREADS", "4"))
+            print(f"[HTTP] Waitress · {threads} threads (modo leve para 512MB)")
             serve(
                 app,
                 host=host,

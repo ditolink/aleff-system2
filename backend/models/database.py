@@ -5,7 +5,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = str(Path(__file__).resolve().parents[2] / "data" / "media.db")
+DEFAULT_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "media.db"
+DB_PATH = str(Path(os.getenv("DATABASE_PATH", str(DEFAULT_DB_PATH))).expanduser().resolve())
 
 _READ_CACHE = {
     "stats": {"value": None, "ts": 0.0, "ttl": 12.0},
@@ -43,6 +44,12 @@ def invalidate_read_caches():
         pass
 
 def get_conn():
+    base_dir = Path(DB_PATH).resolve().parent
+    try:
+        base_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        print(f"[DB] Não foi possível criar o diretório do banco: {base_dir} ({e})")
+        raise
     conn = sqlite3.connect(DB_PATH, timeout=8)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
