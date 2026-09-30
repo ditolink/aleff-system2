@@ -1542,7 +1542,7 @@
         } catch (_) {}
         if (document.querySelector('script[data-search-warmup]')) return;
         const s = document.createElement('script');
-        s.src = 'js/search-warmup.js?v=20260810warm5';
+        s.src = 'js/search-warmup.js?v=20260930warmfix';
         s.dataset.searchWarmup = '1';
         s.onload = () => {
           try {

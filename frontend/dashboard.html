@@ -513,19 +513,21 @@ async function checkAiStatus(notify = false) {
     const idx = clip.index || {};
     const fidx = face.index || {};
 
+    const hfConfigured = !!clip.hf_api_configured;
     const clipOn = clip.enabled !== false && !!(clip.installed || clip.loaded || clip.ready);
     const clipLoaded = !!clip.loaded;
     if (clipDot) {
-      clipDot.className = 'drive-dot ' + (clipOn ? (clipLoaded ? 'on' : 'warn') : 'off');
+      clipDot.className = 'drive-dot ' + (clipLoaded ? 'on' : (clipOn || hfConfigured ? 'warn' : 'off'));
     }
     if (clipLabel) {
       clipLabel.textContent = clip.enabled === false
-        ? 'CLIP off'
+        ? (hfConfigured ? 'HF API configurada · CLIP local off' : 'CLIP off')
         : (clipLoaded ? 'CLIP pronto' : (clip.installed ? 'CLIP idle' : 'CLIP —'));
     }
     if (clipMeta) {
       clipMeta.innerHTML = [
         aiRow('Modelo', `${clip.model || '—'} / ${clip.pretrained || '—'}`),
+        aiRow('Hugging Face', hfConfigured ? 'Token configurado · teste a geração de tags' : 'Não configurada'),
         aiRow('Device', clip.device || '—'),
         aiRow('Índice', `${idx.embeddings ?? 0} / ${idx.images ?? 0} (faltam ${idx.missing ?? 0})`),
         aiRow('Backfill', clip.backfill_running ? 'rodando' : 'idle'),
