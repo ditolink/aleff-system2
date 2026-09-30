@@ -27,6 +27,13 @@
       const local = img.getAttribute('src') || '';
       const small = API_SMALL(id);
       const med = API_MED(id);
+      if (local && !/^\/api\//i.test(local)) {
+        img.addEventListener('error', () => {
+          img.removeAttribute('srcset');
+          img.removeAttribute('sizes');
+          img.src = local;
+        }, { once: true });
+      }
       const srcset = local.includes('foto_barbara')
         ? `${med} 800w, ${local} 1200w`
         : `${small} 320w, ${med} 800w, ${local} 1200w`;

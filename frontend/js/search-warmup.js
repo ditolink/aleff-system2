@@ -330,9 +330,6 @@
       metrics.warmup_ready += 1;
       metrics.warmup_duration = state.startedAt ? Date.now() - state.startedAt : 0;
     }
-    window.__searchWarmup.status = state.status;
-    window.__searchWarmup.readyAt = state.readyAt;
-    window.__searchWarmup.resultCount = state.resultCount;
     console.debug(
       '[SearchWarmup] READY',
       fromCache ? 'cache' : 'fresh',
@@ -433,7 +430,6 @@
     metrics.cache_miss += 1;
     state.status = STATUS.WARMING;
     state.startedAt = Date.now();
-    window.__searchWarmup.status = state.status;
     metrics.warmup_started += 1;
 
     if (state.abort) {
@@ -561,7 +557,6 @@
       if (e && e.name === 'AbortError') return;
       state.status = STATUS.FAILED;
       metrics.warmup_failed += 1;
-      window.__searchWarmup.status = state.status;
       console.warn('[SearchWarmup] failed', e);
     }
   }
@@ -579,7 +574,6 @@
 
   function invalidate(reason) {
     state.status = STATUS.STALE;
-    window.__searchWarmup.status = state.status;
     clearOffscreenStage();
     if (state.thumbCtrl) {
       try {

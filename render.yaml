@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: aleff-backend
+    runtime: docker
+    dockerfilePath: Dockerfile.lite
+    plan: free
+    region: oregon
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 3001
+      - key: CLIP_ENABLED
+        value: "false"
+      - key: CODE_VIEWER_ENABLED
+        value: "false"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "https://aleffthiago.com.br,https://www.aleffthiago.com.br,http://localhost:3001"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DRIVE_FOLDER_ID
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+      - key: AUTH_USERS
+        sync: false
+      - key: HF_API_TOKEN
+        sync: false

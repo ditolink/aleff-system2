@@ -157,12 +157,125 @@ def _torch_device_label():
         return 'unavailable'
 
 
+def _hf_token() -> str:
+    return os.getenv('HF_API_TOKEN', '').strip()
+
+
 def is_enabled():
-    return CLIP_ENABLED
+    return CLIP_ENABLED or bool(_hf_token())
 
 
 def is_ready():
-    return CLIP_ENABLED and _model_cache is not None
+    return (_model_cache is not None) or bool(_hf_token())
+
+
+def _hf_encode_image(image) -> bytes | None:
+    token = _hf_token()
+    if not token or image is None:
+        return None
+    try:
+        import numpy as np
+        buf = io.BytesIO()
+        image.save(buf, format='JPEG', quality=85)
+        raw_bytes = buf.getvalue()
+        url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/clip-ViT-B-32"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/octet-stream"
+        }
+        r = _requests_session.post(url, headers=headers, data=raw_bytes, timeout=25)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, list) and len(data) > 0:
+                if isinstance(data[0], list):
+                    data = data[0]
+                vec = np.array(data, dtype=np.float32)
+                norm = np.linalg.norm(vec)
+                if norm > 1e-9:
+                    vec = vec / norm
+                return vec.tobytes()
+        elif r.status_code == 503:
+            print("[CLIP/HF] Modelo inicializando no Hugging Face (cold start)...")
+        else:
+            print(f"[CLIP/HF] Resposta {r.status_code}: {r.text[:120]}")
+    except Exception as e:
+        print(f"[CLIP/HF] Falha ao extrair embedding de imagem: {e}")
+    return None
+
+
+def _hf_encode_text(text: str):
+    token = _hf_token()
+    if not token or not text:
+        return None
+    try:
+        import numpy as np
+        url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/clip-ViT-B-32"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        r = _requests_session.post(url, headers=headers, json={"inputs": text.strip()}, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, list) and len(data) > 0:
+                if isinstance(data[0], list):
+                    data = data[0]
+                vec = np.array(data, dtype=np.float32)
+                norm = np.linalg.norm(vec)
+                if norm > 1e-9:
+                    vec = vec / norm
+                return vec
+    except Exception as e:
+        print(f"[CLIP/HF] Falha ao extrair embedding de texto: {e}")
+    return None
+
+
+def _hf_generate_tags(image, top_k=12, threshold=0.15):
+    token = _hf_token()
+    if not token or image is None:
+        return None
+    try:
+        buf = io.BytesIO()
+        image.save(buf, format='JPEG', quality=85)
+        raw_bytes = buf.getvalue()
+        sample_en = TAG_EN[:32]
+        url = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        import base64
+        payload = {
+            "inputs": base64.b64encode(raw_bytes).decode('ascii'),
+            "parameters": {"candidate_labels": sample_en}
+        }
+        r = _requests_session.post(url, headers=headers, json=payload, timeout=25)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, list):
+                en_to_pt = dict(zip(TAG_EN, TAG_PT))
+                tags, scores = [], {}
+                for item in data:
+                    if len(tags) >= top_k:
+                        break
+                    score = float(item.get('score', 0.0))
+                    if score < threshold:
+                        continue
+                    lbl = item.get('label')
+                    pt_tag = en_to_pt.get(lbl, lbl)
+                    if pt_tag and pt_tag not in scores:
+                        tags.append(pt_tag)
+                        scores[pt_tag] = round(score, 4)
+                return {
+                    'tags': tags,
+                    'scores': scores,
+                    'status': 'ok',
+                    'message': f'{len(tags)} tags geradas com Hugging Face Inference API',
+                    'model': 'HuggingFace/openai/clip-vit-base-patch32'
+                }
+    except Exception as e:
+        print(f"[CLIP/HF] Falha ao gerar tags via HF: {e}")
+    return None
 
 
 def _load_model():
@@ -300,26 +413,36 @@ def encode_image_embedding(image_url, media_id=None):
     (media_embeddings) e usar depois na busca semântica.
     Retorna bytes (float32) prontos pra sqlite BLOB, ou None se falhar.
     """
-    try:
-        import numpy as np
-        torch = _get_torch()
-        model, preprocess, tokenizer = _load_model()
-        device = next(model.parameters()).device
-        image = None
-        if media_id is not None:
-            image = _fetch_image_for_media_id(media_id)
-        if image is None:
-            image = _fetch_image(image_url)
-        if image is None:
-            return None
-        img_in = preprocess(image).unsqueeze(0).to(device)
-        with torch.no_grad():
-            feat = model.encode_image(img_in)
-            feat = feat / feat.norm(dim=-1, keepdim=True)
-        return feat.cpu().numpy().astype('float32').tobytes()
-    except Exception as e:
-        print(f"[CLIP] Falha ao gerar embedding de imagem: {e}")
+    image = None
+    if media_id is not None:
+        image = _fetch_image_for_media_id(media_id)
+    if image is None:
+        image = _fetch_image(image_url)
+    if image is None:
         return None
+
+    # 1. Tenta modelo local se CLIP_ENABLED
+    if CLIP_ENABLED:
+        try:
+            import numpy as np
+            torch = _get_torch()
+            model, preprocess, tokenizer = _load_model()
+            device = next(model.parameters()).device
+            img_in = preprocess(image).unsqueeze(0).to(device)
+            with torch.no_grad():
+                feat = model.encode_image(img_in)
+                feat = feat / feat.norm(dim=-1, keepdim=True)
+            return feat.cpu().numpy().astype('float32').tobytes()
+        except Exception as e:
+            print(f"[CLIP] Falha no modelo local: {e}")
+
+    # 2. Fallback para Hugging Face Serverless API
+    if _hf_token():
+        hf_emb = _hf_encode_image(image)
+        if hf_emb:
+            return hf_emb
+
+    return None
 
 
 _text_emb_cache = {}
@@ -331,7 +454,7 @@ def encode_text_query(text):
     Embedding CLIP do texto. Instantâneo se o modelo ainda não estiver pronto
     (retorna None → busca segue só com FTS). Com modelo quente, usa cache.
     """
-    if not CLIP_ENABLED or _model_cache is None:
+    if not is_enabled():
         return None
     key = (text or '').strip().lower()
     if not key:
@@ -339,27 +462,42 @@ def encode_text_query(text):
     cached = _text_emb_cache.get(key)
     if cached is not None:
         return cached
-    try:
-        import numpy as np
-        torch = _get_torch()
-        model, preprocess, tokenizer = _model_cache, _preprocess_cache, _tokenizer_cache
-        device = next(model.parameters()).device
-        txt_in = tokenizer([text.strip()]).to(device)
-        with torch.no_grad():
-            feat = model.encode_text(txt_in)
-            feat = feat / feat.norm(dim=-1, keepdim=True)
-        vec = feat.cpu().numpy().astype('float32')[0]
-        if len(_text_emb_cache) >= _TEXT_CACHE_MAX:
-            # descarta o mais antigo
-            try:
-                _text_emb_cache.pop(next(iter(_text_emb_cache)))
-            except Exception:
-                _text_emb_cache.clear()
-        _text_emb_cache[key] = vec
-        return vec
-    except Exception as e:
-        print(f"[CLIP] Falha ao gerar embedding de texto: {e}")
-        return None
+
+    # 1. Tenta modelo local se estiver quente
+    if CLIP_ENABLED and _model_cache is not None:
+        try:
+            import numpy as np
+            torch = _get_torch()
+            model, preprocess, tokenizer = _model_cache, _preprocess_cache, _tokenizer_cache
+            device = next(model.parameters()).device
+            txt_in = tokenizer([text.strip()]).to(device)
+            with torch.no_grad():
+                feat = model.encode_text(txt_in)
+                feat = feat / feat.norm(dim=-1, keepdim=True)
+            vec = feat.cpu().numpy().astype('float32')[0]
+            if len(_text_emb_cache) >= _TEXT_CACHE_MAX:
+                try:
+                    _text_emb_cache.pop(next(iter(_text_emb_cache)))
+                except Exception:
+                    _text_emb_cache.clear()
+            _text_emb_cache[key] = vec
+            return vec
+        except Exception as e:
+            print(f"[CLIP] Falha no encode local de texto: {e}")
+
+    # 2. Fallback para Hugging Face Serverless API
+    if _hf_token():
+        vec = _hf_encode_text(text)
+        if vec is not None:
+            if len(_text_emb_cache) >= _TEXT_CACHE_MAX:
+                try:
+                    _text_emb_cache.pop(next(iter(_text_emb_cache)))
+                except Exception:
+                    _text_emb_cache.clear()
+            _text_emb_cache[key] = vec
+            return vec
+
+    return None
 
 
 _backfill_running = False
@@ -467,48 +605,59 @@ def generate_tags(image_url, top_k=12, threshold=0.15):
     Returns:
         dict com 'tags', 'scores', 'status', 'message', 'model'
     """
-    if not CLIP_ENABLED:
-        return {'tags':[],'scores':{},'status':'error','message':'OpenCLIP desativado.','model':DEFAULT_MODEL}
-    try:
-        torch = _get_torch()
-        import open_clip
-        model, preprocess, tokenizer = _load_model()
-        device = next(model.parameters()).device
-        image  = _fetch_image(image_url)
-        if not image and str(image_url).startswith('/api/media/'):
-            try:
-                image = _fetch_image_for_media_id(int(str(image_url).split('/')[3]))
-            except Exception:
-                image = None
-        if not image:
-            return {'tags':[],'scores':{},'status':'error','message':'Não foi possível baixar a imagem.','model':f'{DEFAULT_MODEL}/{DEFAULT_PRETRAIN}'}
-        img_in  = preprocess(image).unsqueeze(0).to(device)
-        txt_in  = tokenizer(TAG_EN).to(device)
-        with torch.no_grad():
-            img_f = model.encode_image(img_in)
-            txt_f = model.encode_text(txt_in)
-            img_f /= img_f.norm(dim=-1, keepdim=True)
-            txt_f /= txt_f.norm(dim=-1, keepdim=True)
-            sims  = (100.0 * img_f @ txt_f.T).softmax(dim=-1)[0].cpu().numpy()
-        indexed = sorted(enumerate(sims), key=lambda x: x[1], reverse=True)
-        tags, scores = [], {}
-        for idx, score in indexed:
-            if len(tags) >= top_k: break
-            if score < threshold:  break
-            tag = TAG_PT[idx]
-            if tag not in scores:
-                tags.append(tag)
-                scores[tag] = round(float(score), 4)
-        return {'tags':tags,'scores':scores,'status':'ok',
-                'message':f'{len(tags)} tags geradas com OpenCLIP',
-                'model':f'{DEFAULT_MODEL}/{DEFAULT_PRETRAIN}'}
-    except ImportError as e:
-        return {'tags':[],'scores':{},'status':'error',
-                'message': str(e) if 'PyTorch' in str(e) else 'OpenCLIP não instalado. Rode: pip install open-clip-torch',
-                'model':DEFAULT_MODEL}
-    except Exception as e:
-        print(f"[CLIP] Erro: {e}")
-        return {'tags':[],'scores':{},'status':'error','message':str(e),'model':DEFAULT_MODEL}
+    if not is_enabled():
+        return {'tags':[],'scores':{},'status':'error','message':'OpenCLIP e HF API desativados.','model':DEFAULT_MODEL}
+
+    image = None
+    if str(image_url).startswith('/api/media/'):
+        try:
+            image = _fetch_image_for_media_id(int(str(image_url).split('/')[3]))
+        except Exception:
+            image = None
+    if not image:
+        image = _fetch_image(image_url)
+    if not image:
+        return {'tags':[],'scores':{},'status':'error','message':'Não foi possível baixar a imagem.','model':f'{DEFAULT_MODEL}/{DEFAULT_PRETRAIN}'}
+
+    # 1. Tenta modelo local se CLIP_ENABLED
+    if CLIP_ENABLED:
+        try:
+            torch = _get_torch()
+            import open_clip
+            model, preprocess, tokenizer = _load_model()
+            device = next(model.parameters()).device
+            img_in  = preprocess(image).unsqueeze(0).to(device)
+            txt_in  = tokenizer(TAG_EN).to(device)
+            with torch.no_grad():
+                img_f = model.encode_image(img_in)
+                txt_f = model.encode_text(txt_in)
+                img_f /= img_f.norm(dim=-1, keepdim=True)
+                txt_f /= txt_f.norm(dim=-1, keepdim=True)
+                sims  = (100.0 * img_f @ txt_f.T).softmax(dim=-1)[0].cpu().numpy()
+            indexed = sorted(enumerate(sims), key=lambda x: x[1], reverse=True)
+            tags, scores = [], {}
+            for idx, score in indexed:
+                if len(tags) >= top_k: break
+                if score < threshold:  break
+                tag = TAG_PT[idx]
+                if tag not in scores:
+                    tags.append(tag)
+                    scores[tag] = round(float(score), 4)
+            return {'tags':tags,'scores':scores,'status':'ok',
+                    'message':f'{len(tags)} tags geradas com OpenCLIP',
+                    'model':f'{DEFAULT_MODEL}/{DEFAULT_PRETRAIN}'}
+        except Exception as e:
+            print(f"[CLIP] Erro local em generate_tags: {e}")
+
+    # 2. Fallback para Hugging Face Serverless API
+    if _hf_token():
+        hf_tags = _hf_generate_tags(image, top_k=top_k, threshold=threshold)
+        if hf_tags:
+            return hf_tags
+
+    return {'tags':[],'scores':{},'status':'error',
+            'message':'Modelo local indisponível e HF_API_TOKEN não configurado.',
+            'model':DEFAULT_MODEL}
 
 _info_cache = {'at': 0.0, 'result': None}
 _INFO_TTL_SEC = 12.0
@@ -544,6 +693,7 @@ def get_model_info():
         'vocab_size':len(TAG_PT),
         'installed': installed,
         'torch_available': _torch_cache is not None or installed,
+        'hf_api_configured': bool(_hf_token()),
         'backfill_running': _backfill_running,
     }
     try:
