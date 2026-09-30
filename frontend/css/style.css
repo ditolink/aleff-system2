@@ -1031,8 +1031,6 @@ body {
 .foto-item.r-wide { aspect-ratio: 16/9; align-self: center; }
 .foto-item img, .foto-item video { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(100%) brightness(0.62); transition: filter .5s, transform .7s cubic-bezier(.25,.46,.45,.94); }
 .foto-item:hover img, .foto-item:hover video { filter: grayscale(20%) brightness(0.85); transform: scale(1.05); }
-.foto-caption { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px; background: linear-gradient(to top, rgba(10,10,10,0.95), transparent); font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.92); opacity: 0; transform: translateY(4px); transition: opacity .3s, transform .3s; font-weight: 300; }
-.foto-item:hover .foto-caption { opacity: 1; transform: translateY(0); }
 
 /* =====================
    SERVIÇOS
@@ -1058,7 +1056,7 @@ body {
 .srv-list li::before { content: '—'; position: absolute; left: 0; color: rgba(255,255,255,0.9); font-size: 13px; }
 
 /* =====================
-   PELO CAMINHO — marcas do acervo
+  SHOWS — imagens do acervo
 ===================== */
 .marks-section {
   border-top: 1px solid var(--dim);
@@ -1120,14 +1118,6 @@ body {
   margin: 0;
   line-height: 1.3;
 }
-.marks-note {
-  margin: 28px 0 0;
-  font-size: 13px;
-  color: rgba(255,255,255,.42);
-  font-weight: 300;
-  letter-spacing: .02em;
-}
-
 /* =====================
    CONTATO
 ===================== */
@@ -2514,47 +2504,6 @@ footer .fcopy,
   aspect-ratio: 3 / 4;
 }
 
-/* Capítulos: label discreto + espaço negativo */
-.home-gallery .work-section .galeria-trabalhos .chapter-break {
-  margin: 0;
-  padding: 56px 0 22px;
-  gap: 18px;
-}
-.home-gallery .work-section .galeria-trabalhos .chapter-break::before,
-.home-gallery .work-section .galeria-trabalhos .chapter-break::after {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  height: 1px;
-  opacity: 0.85;
-}
-.home-gallery .work-section .galeria-trabalhos .chapter-break span {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.48);
-  font-weight: 400;
-  padding: 0 6px;
-  white-space: nowrap;
-}
-.home-gallery .work-section .galeria-trabalhos .chapter-break:first-of-type {
-  padding-top: 48px;
-}
-
-/* Apresentação curta entre hero e galeria */
-.home-gallery .intro-section {
-  padding: 48px 40px 28px;
-  max-width: 1360px;
-  margin: 0 auto;
-}
-.home-gallery .intro-lede {
-  margin: 0;
-  max-width: 42ch;
-  font-size: clamp(17px, 2.2vw, 22px);
-  font-weight: 300;
-  line-height: 1.45;
-  color: rgba(255,255,255,0.72);
-  letter-spacing: 0.01em;
-}
-
 .home-gallery .work-section .sec-hdr {
   padding-left: 40px;
   padding-right: 40px;
@@ -2578,9 +2527,6 @@ footer .fcopy,
 }
 
 @media (max-width: 768px) {
-  .home-gallery .intro-section {
-    padding: 32px 16px 16px;
-  }
   .home-gallery .work-section .sec-hdr {
     padding-left: 16px;
     padding-right: 16px;
@@ -2591,17 +2537,6 @@ footer .fcopy,
   }
   .home-gallery .work-section .galeria-trabalhos .gi.l-hero {
     aspect-ratio: 16 / 10;
-  }
-  .home-gallery .work-section .galeria-trabalhos .chapter-break {
-    padding: 40px 0 16px;
-  }
-  .home-gallery .work-section .galeria-trabalhos .chapter-break span {
-    font-size: 9px;
-    letter-spacing: 0.14em;
-    white-space: normal;
-    text-align: center;
-    max-width: 16rem;
-    line-height: 1.35;
   }
   .home-gallery .videos-section {
     padding-top: 32px;

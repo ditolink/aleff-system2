@@ -15,10 +15,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/ui.css?v=20260809flat3"/>
-  <link rel="stylesheet" href="css/style.css?v=20260810perf"/>
+  <link rel="stylesheet" href="css/style.css?v=20260930minimal"/>
   <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
-  <link rel="stylesheet" href="css/logo.css?v=20260808masonry"/>
+  <link rel="stylesheet" href="css/logo.css?v=20260930camera"/>
   <link rel="stylesheet" href="css/dev-bar.css?v=20260801az"/>
   <script src="js/toast.js" defer></script>
   <script src="js/auth.js?v=20260808a" defer></script>
@@ -26,7 +26,7 @@
   <script src="js/contact.js?v=20260809igopen" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
   <script src="js/home-perf.js?v=20260810perf" defer></script>
-  <script src="js/main.js?v=20260810perf" defer></script>
+  <script src="js/main.js?v=20260930captions" defer></script>
 
   <!-- Vercel Speed Insights -->
   <script>
@@ -82,14 +82,7 @@
   </div>
 </section>
 
-<!-- APRESENTAÇÃO / IDENTIDADE -->
-<section class="intro-section" id="apresentacao" aria-label="Apresentação">
-  <div class="intro-inner rv">
-    <p class="intro-lede">Fotografia e vídeo com presença — shows, casamentos, ensaios e editorial em Minas Gerais.</p>
-  </div>
-</section>
-
-<!-- TRABALHOS — vitrine editorial (poucos capítulos, só o melhor). API não sobrescreve se houver tiles. -->
+<!-- TRABALHOS — a curadoria estática mantém a ordem visual. -->
 <section class="work-section work-section--editorial" id="work" aria-label="Trabalhos">
   <div class="sec-hdr rv">
     <span class="sec-label">Trabalhos</span>
@@ -100,17 +93,14 @@
       <img src="fotos/foto_casal_por_do_sol.jpg" alt="Casal em silhueta no pôr do sol" width="1024" height="682" loading="eager" decoding="async" fetchpriority="high"/>
     </div>
 
-    <div class="grid-break chapter-break" role="presentation" data-category="luz" data-editorial-title="Quando a luz cai" aria-label="Quando a luz cai"><span>Quando a luz cai</span></div>
     <div class="gi l-wide rv" data-idx="1" data-media-id="1675"><img src="fotos/home_ed_1675.webp" srcset="/api/media/1675/thumb-small 320w, /api/media/1675/thumb-medium 800w, fotos/home_ed_1675.webp 1200w" sizes="(max-width:768px) 100vw, 48vw" alt="" width="720" height="481" loading="eager" decoding="async" fetchpriority="low"/></div>
     <div class="gi p-tall rv" data-idx="2" data-media-id="1855"><img src="fotos/home_ed_1855.webp" srcset="/api/media/1855/thumb-small 320w, /api/media/1855/thumb-medium 800w, fotos/home_ed_1855.webp 1200w" sizes="(max-width:768px) 48vw, 22vw" alt="" width="504" height="756" loading="eager" decoding="async" fetchpriority="low"/></div>
     <div class="gi p-tall rv" data-idx="3" data-media-id="1709"><img src="fotos/home_ed_1709.webp" srcset="/api/media/1709/thumb-small 320w, /api/media/1709/thumb-medium 800w, fotos/home_ed_1709.webp 1200w" sizes="(max-width:768px) 48vw, 22vw" alt="" width="720" height="1080" loading="lazy" decoding="async"/></div>
 
-    <div class="grid-break chapter-break" role="presentation" data-category="casal" data-editorial-title="Entre nós" aria-label="Entre nós"><span>Entre nós</span></div>
     <div class="gi l-wide rv" data-idx="4" data-media-id="27"><img src="fotos/home_ed_27.webp" srcset="/api/media/27/thumb-small 320w, /api/media/27/thumb-medium 800w, fotos/home_ed_27.webp 1200w" sizes="(max-width:768px) 100vw, 48vw" alt="" width="720" height="481" loading="lazy" decoding="async"/></div>
     <div class="gi p-tall rv" data-idx="5" data-media-id="75"><img src="fotos/home_ed_75.webp" srcset="/api/media/75/thumb-small 320w, /api/media/75/thumb-medium 800w, fotos/home_ed_75.webp 1200w" sizes="(max-width:768px) 48vw, 22vw" alt="" width="720" height="1079" loading="lazy" decoding="async"/></div>
     <div class="gi p-tall rv" data-idx="6" data-media-id="61"><img src="fotos/home_ed_61.webp" srcset="/api/media/61/thumb-small 320w, /api/media/61/thumb-medium 800w, fotos/home_ed_61.webp 1200w" sizes="(max-width:768px) 48vw, 22vw" alt="" width="720" height="1080" loading="lazy" decoding="async"/></div>
 
-    <div class="grid-break chapter-break" role="presentation" data-category="retrato" data-editorial-title="Um lugar para ser" aria-label="Um lugar para ser"><span>Um lugar para ser</span></div>
     <div class="gi l-wide rv" data-idx="7" data-media-id="1953"><img src="fotos/home_ed_1953.webp" srcset="/api/media/1953/thumb-small 320w, /api/media/1953/thumb-medium 800w, fotos/home_ed_1953.webp 1200w" sizes="(max-width:768px) 100vw, 48vw" alt="" width="720" height="481" loading="lazy" decoding="async"/></div>
     <div class="gi p-tall rv" data-idx="8" data-manual-curated="true" data-media-id="2034"><img src="fotos/foto_barbara.png" srcset="/api/media/2034/thumb-medium 800w, fotos/foto_barbara.png 1200w" sizes="(max-width:768px) 48vw, 22vw" alt="Barbara" width="682" height="1024" loading="lazy" decoding="async"/></div>
     <div class="gi p-tall rv" data-idx="9" data-media-id="2033"><img src="fotos/home_ed_2033.webp" srcset="/api/media/2033/thumb-small 320w, /api/media/2033/thumb-medium 800w, fotos/home_ed_2033.webp 1200w" sizes="(max-width:768px) 48vw, 22vw" alt="" width="504" height="756" loading="lazy" decoding="async"/></div>
@@ -139,11 +129,11 @@
   <div class="grid videos-grid" id="galeriaVideos">
     <div class="gi v-wide rv" data-idx="13">
       <video src="videos/video_casamento21.mp4" poster="fotos/thumb_casamento21.jpg" muted loop playsinline preload="none"></video>
-      <div class="gi-ov"><div class="gi-play" aria-hidden="true"></div><p class="gi-title">O Beijo</p></div>
+      <div class="gi-ov"><div class="gi-play" aria-hidden="true"></div></div>
     </div>
     <div class="gi v-wide rv" data-idx="14">
       <video src="videos/VIDEORAPS.mp4" poster="fotos/thumb_videoraps.jpg" muted loop playsinline preload="none"></video>
-      <div class="gi-ov"><div class="gi-play" aria-hidden="true"></div><p class="gi-title">Sessão de Rap</p></div>
+      <div class="gi-ov"><div class="gi-play" aria-hidden="true"></div></div>
     </div>
   </div>
 </section>
@@ -185,14 +175,13 @@
 
 <!-- BASTIDORES -->
 <section class="strip-section">
-  <div class="sec-hdr rv" style="padding:0;border:none"><span class="sec-label">Bastidores &amp; Momentos</span></div>
   <div class="foto-strip">
-    <div class="foto-item r-vert rv"><video src="videos/Reel01.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 01</p></div>
-    <div class="foto-item r-vert rv d1"><video src="videos/Reel02.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 02</p></div>
-    <div class="foto-item r-vert rv d2"><video src="videos/video67.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 04</p></div>
-    <div class="foto-item r-vert rv d3"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 05</p></div>
-    <div class="foto-item r-vert rv d3"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 06</p></div>
-    <div class="foto-item r-vert rv d3"><video src="videos/REELS1.mp4" muted loop playsinline preload="metadata"></video><p class="foto-caption">Reel 03 · Ação &amp; Movimento</p></div>
+    <div class="foto-item r-vert rv"><video src="videos/Reel01.mp4" muted loop playsinline preload="metadata"></video></div>
+    <div class="foto-item r-vert rv d1"><video src="videos/Reel02.mp4" muted loop playsinline preload="metadata"></video></div>
+    <div class="foto-item r-vert rv d2"><video src="videos/video67.mp4" muted loop playsinline preload="metadata"></video></div>
+    <div class="foto-item r-vert rv d3"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video></div>
+    <div class="foto-item r-vert rv d3"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video></div>
+    <div class="foto-item r-vert rv d3"><video src="videos/REELS1.mp4" muted loop playsinline preload="metadata"></video></div>
   </div>
 </section>
 
@@ -206,12 +195,8 @@
   </div>
 </section>
 
-<!-- PELO CAMINHO — marcas reais do acervo, sem depoimento inventado -->
+<!-- SHOWS -->
 <section class="marks-section" aria-label="Trabalhos marcados">
-  <div class="sec-hdr rv" style="padding:0;border:none">
-    <span class="sec-label">Pelo caminho</span>
-    <span class="sec-count">no set</span>
-  </div>
   <div class="marks-rail">
     <a class="marks-card rv" href="#work">
       <img src="fotos/foto_thalles.jpg" width="1080" height="1350" alt="Thalles Roberto em Montes Claros" loading="lazy" decoding="async"/>
@@ -242,7 +227,6 @@
       </div>
     </a>
   </div>
-  <p class="marks-note rv">O que já passou pela lente.</p>
 </section>
 
 <!-- CONTATO -->
