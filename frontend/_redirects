@@ -1,0 +1,4 @@
+# Cloudflare Pages / Netlify proxy reverso
+# Redireciona chamadas da API para o backend leve no Render
+# Caso altere a URL do seu backend no Render, atualize a URL abaixo:
+/api/*  https://aleff-backend.onrender.com/api/:splat  200
