@@ -11,6 +11,8 @@
   <meta property="og:description" content="Fotografia e vídeo: casamentos, ensaios, shows e editorial."/>
   <meta property="og:url" content="https://aleffthiago.com.br/"/>
   <meta name="theme-color" content="#0a0a0a"/>
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="icon" href="/assets/pwa-icon.svg" type="image/svg+xml"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
@@ -27,6 +29,7 @@
   <script src="js/player.js?v=20260807v" defer></script>
   <script src="js/home-perf.js?v=20260810perf" defer></script>
   <script src="js/main.js?v=20260810perf" defer></script>
+  <script src="js/pwa.js?v=20260930pwa" defer></script>
 
   <!-- Vercel Speed Insights -->
   <script>
@@ -63,6 +66,9 @@
     <a href="loginsite.html" class="nav-search-btn btn-anim" title="Entrar">
       Entrar
     </a>
+    <button type="button" class="nav-search-btn btn-anim" id="installAppBtn" hidden aria-label="Instalar Aleff Thiago no computador">
+      Instalar app
+    </button>
   </div>
 </nav>
 
