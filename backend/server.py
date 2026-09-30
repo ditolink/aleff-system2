@@ -142,7 +142,7 @@ except Exception as _tw_err:
 
 # Só o que pode sair do frontend para o público
 _ALLOWED_EXT = frozenset({
-    ".html", ".css", ".js", ".map",
+    ".html", ".css", ".js", ".map", ".webmanifest",
     ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico",
     ".mp4", ".webm", ".mov",
     ".woff", ".woff2", ".ttf", ".otf",
@@ -233,6 +233,9 @@ def _send_frontend(rel: str):
             max_age=86400,
         )
 
+    if suf == ".webmanifest":
+        return send_file(target, mimetype="application/manifest+json")
+
     return send_from_directory(FRONTEND_DIR, rel)
 
 
@@ -290,6 +293,8 @@ def set_security_headers(response):
     elif path.endswith((".mp4", ".webm", ".mov")):
         response.headers["Cache-Control"] = "public, max-age=604800, immutable"
         response.headers["Accept-Ranges"] = "bytes"
+    elif path in ("/sw.js", "/manifest.webmanifest"):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
     elif path.endswith((".css", ".js")):
         # Produção: cache longo (deploy troca URL ou hard-refresh). Dev: revalida.
         if os.getenv("FLASK_ENV") == "production":
