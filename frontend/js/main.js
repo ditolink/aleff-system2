@@ -21,17 +21,8 @@
     { type: 'img', src: '/api/media/2156/thumb-medium', mediaId: 2156 },
     { type: 'img', src: '/api/media/1285/thumb-medium', mediaId: 1285 },
     { type: 'img', src: '/api/media/1942/thumb-medium', mediaId: 1942 },
-    { type: 'video', src: 'videos/video_casamento21.mp4', poster: 'fotos/thumb_casamento21.jpg' },
-    { type: 'video', src: 'videos/VIDEORAPS.mp4', poster: 'fotos/thumb_videoraps.jpg' },
-  ];
-
-  const fotoPool = [
-    { type: 'video', src: 'videos/Reel01.mp4' },
-    { type: 'video', src: 'videos/Reel02.mp4' },
-    { type: 'video', src: 'videos/video67.mp4' },
-    { type: 'video', src: 'videos/video12.mp4' },
-    { type: 'video', src: 'videos/COMERCIAL01.mp4' },
-    { type: 'video', src: 'videos/Reel03.mp4' },
+    { type: 'video', src: 'videos/video_casamento21.mp4', poster: 'fotos/thumb_casamento21.webp' },
+    { type: 'video', src: 'videos/VIDEORAPS.mp4', poster: 'fotos/thumb_videoraps.webp' },
   ];
 
   /* ── Helpers ──────────────────────────────────────────── */
@@ -244,7 +235,7 @@
 
   /* ── Vídeos: lazy + hover (não baixa tudo de uma vez) ─── */
   function isAutoplayTile(v) {
-    const parent = v?.closest?.('.gi, .foto-item');
+    const parent = v?.closest?.('.gi');
     return !!(
       v?.hasAttribute?.('autoplay') ||
       v?.dataset?.autoplay === '1' ||
@@ -264,13 +255,13 @@
 
   function resumeAutoplayVideos() {
     $$('.gi.gi-autoplay video, .gi[data-autoplay="1"] video, video[autoplay]').forEach((v) => {
-      if (!v.closest('.gi, .foto-item')) return;
+      if (!v.closest('.gi')) return;
       playMutedLoop(v);
     });
   }
 
   function applyVideoFrame(v) {
-    const parent = v.closest('.gi, .foto-item');
+    const parent = v.closest('.gi');
     if (!parent) return;
     const apply = () => {
       if (!(v.videoWidth > 0 && v.videoHeight > 0)) return;
@@ -307,7 +298,7 @@
   }
 
   function initVideoHover() {
-    const videos = $$('.gi video, .foto-item video');
+    const videos = $$('.gi video');
     if (!videos.length) return;
 
     // Evita congestionamento: só metadata quando entra na tela
@@ -441,7 +432,7 @@
     }
 
     function pauseGridVideos() {
-      $$('.gi video, .foto-item video').forEach((v) => {
+      $$('.gi video').forEach((v) => {
         try {
           v.pause();
         } catch { /* ignore */ }
@@ -551,13 +542,6 @@
         const idx = Number.parseInt(gi.dataset.idx || '', 10);
         if (!Number.isFinite(idx)) return;
         openLb(mediaPool, idx);
-        return;
-      }
-      const foto = e.target.closest('.foto-item');
-      if (foto) {
-        const items = $$('.foto-item');
-        const i = items.indexOf(foto);
-        if (i >= 0) openLb(fotoPool, i);
       }
     });
 

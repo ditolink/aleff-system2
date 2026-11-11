@@ -15,18 +15,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/ui.css?v=20260809flat3"/>
-  <link rel="stylesheet" href="css/style.css?v=20260930minimal"/>
+  <link rel="stylesheet" href="css/style.css?v=20261111clean"/>
   <link rel="stylesheet" href="css/motion.css?v=20260810m"/>
   <link rel="stylesheet" href="css/player.css?v=20260807v"/>
   <link rel="stylesheet" href="css/logo.css?v=20260930camera"/>
-  <link rel="stylesheet" href="css/dev-bar.css?v=20260801az"/>
+  <link rel="preload" as="image" href="fotos/aleff-hero.webp" fetchpriority="high"/>
   <script src="js/toast.js" defer></script>
-  <script src="js/auth.js?v=20260808a" defer></script>
-  <script src="js/dev-bar.js?v=20260808a" defer></script>
+  <script>
+    // Barra da equipe: só baixa para quem já fez login neste navegador.
+    (function () {
+      try { if (!localStorage.getItem('authMeSticky')) return; } catch (e) { return; }
+      var css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'css/dev-bar.css?v=20260801az';
+      document.head.appendChild(css);
+      ['js/auth.js?v=20260808a', 'js/dev-bar.js?v=20261111a'].forEach(function (src) {
+        var el = document.createElement('script');
+        el.src = src;
+        el.async = false;
+        document.head.appendChild(el);
+      });
+    })();
+  </script>
   <script src="js/contact.js?v=20260809igopen" defer></script>
   <script src="js/player.js?v=20260807v" defer></script>
   <script src="js/home-perf.js?v=20260810perf" defer></script>
-  <script src="js/main.js?v=20260930captions" defer></script>
+  <script src="js/main.js?v=20261111clean" defer></script>
 
   <!-- Vercel Speed Insights -->
   <script>
@@ -69,7 +83,7 @@
 <!-- HERO — rosto em parallax, composição limpa -->
 <section class="hero hero--face" id="hero">
   <div class="hero-parallax" id="heroBg">
-    <img class="hero-face" src="fotos/aleff-hero.jpg" alt="Aleff Thiago" id="heroFace"/>
+    <img class="hero-face" src="fotos/aleff-hero.webp" alt="Aleff Thiago" id="heroFace" width="1080" height="1440" fetchpriority="high" decoding="async"/>
     <div class="hero-overlay"></div>
   </div>
   <div class="hero-content" id="heroContent">
@@ -128,11 +142,11 @@
   </div>
   <div class="grid videos-grid" id="galeriaVideos">
     <div class="gi v-wide rv" data-idx="13">
-      <video src="videos/video_casamento21.mp4" poster="fotos/thumb_casamento21.jpg" muted loop playsinline preload="none"></video>
+      <video src="videos/video_casamento21.mp4" poster="fotos/thumb_casamento21.webp" muted loop playsinline preload="none"></video>
       <div class="gi-ov"><div class="gi-play" aria-hidden="true"></div></div>
     </div>
     <div class="gi v-wide rv" data-idx="14">
-      <video src="videos/VIDEORAPS.mp4" poster="fotos/thumb_videoraps.jpg" muted loop playsinline preload="none"></video>
+      <video src="videos/VIDEORAPS.mp4" poster="fotos/thumb_videoraps.webp" muted loop playsinline preload="none"></video>
       <div class="gi-ov"><div class="gi-play" aria-hidden="true"></div></div>
     </div>
   </div>
@@ -143,14 +157,13 @@
   <div class="sobre-grid">
     <div class="rv">
       <div class="sobre-img-wrap">
-        <img class="sobre-img" src="fotos/aleff-profile.png" alt="Aleff Thiago"/>
-        <div class="sobre-img-badge"><p class="badge-num">5+</p><p class="badge-lbl">Anos capturando</p></div>
+        <img class="sobre-img" src="fotos/aleff-profile.webp" alt="Aleff Thiago" width="834" height="897" loading="lazy" decoding="async"/>
       </div>
     </div>
     <div class="rv d1">
       <p class="sobre-eyebrow">Sobre mim</p>
       <h2 class="sobre-title">Foto e vídeo<br><em>em Minas Gerais.</em></h2>
-      <p class="sobre-bio">Sou o <strong>Aleff Thiago</strong>, fotógrafo e videomaker de <strong>Minas Gerais</strong>. Cubro shows e eventos ao vivo — já trabalhei com <strong>Thalles Roberto, Jota Quest e Detonautas</strong>. Faço retratos, ensaios de casal, pista &amp; ação e projetos editoriais. Cada projeto recebe atenção total, do planejamento à entrega.</p>
+      <p class="sobre-bio">Sou o <strong>Aleff Thiago</strong>, fotógrafo e videomaker de <strong>Minas Gerais</strong>. Cubro shows e eventos ao vivo — já trabalhei com <strong>Thalles Roberto, Jota Quest e Detonautas</strong>. Faço retratos, ensaios de casal, pista &amp; ação e projetos editoriais.</p>
       <div class="tags" id="sobreTags">
         <span class="tag tag-rv">Casamento</span><span class="tag tag-rv">Shows &amp; Eventos</span><span class="tag tag-rv">Retratos</span><span class="tag tag-rv">Casais</span><span class="tag tag-rv">Pista &amp; Ação</span><span class="tag tag-rv">Vídeo</span><span class="tag tag-rv">Editorial</span>
       </div>
@@ -173,25 +186,13 @@
   </div>
 </section>
 
-<!-- BASTIDORES -->
-<section class="strip-section">
-  <div class="foto-strip">
-    <div class="foto-item r-vert rv"><video src="videos/Reel01.mp4" muted loop playsinline preload="metadata"></video></div>
-    <div class="foto-item r-vert rv d1"><video src="videos/Reel02.mp4" muted loop playsinline preload="metadata"></video></div>
-    <div class="foto-item r-vert rv d2"><video src="videos/video67.mp4" muted loop playsinline preload="metadata"></video></div>
-    <div class="foto-item r-vert rv d3"><video src="videos/video12.mp4" muted loop playsinline preload="metadata"></video></div>
-    <div class="foto-item r-vert rv d3"><video src="videos/COMERCIAL01.mp4" muted loop playsinline preload="metadata"></video></div>
-    <div class="foto-item r-vert rv d3"><video src="videos/REELS1.mp4" muted loop playsinline preload="metadata"></video></div>
-  </div>
-</section>
-
 <!-- SERVIÇOS -->
 <section class="servicos" id="servicos">
   <div class="sec-hdr rv" style="padding:0;border:none"><span class="sec-label">O que ofereço</span></div>
   <div class="srv-grid">
-    <div class="srv rv"><p class="srv-n">01</p><span class="srv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14"/><path d="M7 5h3l2 4h4l2-4h3"/><rect x="5" y="8" width="14" height="10" rx="2"/></svg></span><h3 class="srv-name">Shows &amp; Eventos</h3><p class="srv-desc">Cobertura ao vivo — palco, público e bastidor.</p><ul class="srv-list"><li>Foto no evento inteiro</li><li>Boa em luz baixa</li><li>Edição e entrega rápida</li></ul></div>
-    <div class="srv rv d1"><p class="srv-n">02</p><span class="srv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M3 15h18"/></svg></span><h3 class="srv-name">Retratos &amp; Ensaios</h3><p class="srv-desc">Individual, casal ou família — interno ou externo.</p><ul class="srv-list"><li>Ensaio individual ou casal</li><li>Locações internas e externas</li><li>Galeria online de entrega</li></ul></div>
-    <div class="srv rv d2"><p class="srv-n">03</p><span class="srv-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14"/><path d="M5 17h14"/><path d="M8 7v10"/><path d="M16 7v10"/></svg></span><h3 class="srv-name">Vídeo &amp; Reels</h3><p class="srv-desc">Do conceito à entrega, no formato que você precisa.</p><ul class="srv-list"><li>Roteiro e direção</li><li>Edição</li><li>Vários formatos de entrega</li></ul></div>
+    <div class="srv rv"><h3 class="srv-name">Shows &amp; Eventos</h3><p class="srv-desc">Cobertura ao vivo — palco, público e bastidor.</p><ul class="srv-list"><li>Foto no evento inteiro</li><li>Boa em luz baixa</li><li>Edição e entrega rápida</li></ul></div>
+    <div class="srv rv d1"><h3 class="srv-name">Retratos &amp; Ensaios</h3><p class="srv-desc">Individual, casal ou família — interno ou externo.</p><ul class="srv-list"><li>Ensaio individual ou casal</li><li>Locações internas e externas</li><li>Galeria online de entrega</li></ul></div>
+    <div class="srv rv d2"><h3 class="srv-name">Vídeo &amp; Reels</h3><p class="srv-desc">Do conceito à entrega, no formato que você precisa.</p><ul class="srv-list"><li>Roteiro e direção</li><li>Edição</li><li>Vários formatos de entrega</li></ul></div>
   </div>
 </section>
 
@@ -370,7 +371,7 @@ Obrigado!</pre>
     <span class="logo-text"><strong>ALEFF</strong><span>Thiago</span></span>
   </a>
   <span class="fcopy">© 2026 — Todos os direitos reservados · @sanmuelkaleb</span>
-  <div class="f-social"><a href="https://instagram.com/aleffthiagofilms" target="_blank">Instagram</a><a href="https://wa.me/5538999078483?text=Oi%2C%20Aleff!%20Venho%20em%20contato%20pelo%20site." target="_blank">WhatsApp</a><a href="mailto:aleffthigo@gmail.com">E-mail</a></div>
+  <div class="f-social"><a href="https://instagram.com/aleffthiagofilms" target="_blank" rel="noopener">Instagram</a><a href="https://wa.me/5538999078483?text=Oi%2C%20Aleff!%20Venho%20em%20contato%20pelo%20site." target="_blank" rel="noopener">WhatsApp</a><a href="mailto:aleffthigo@gmail.com">E-mail</a></div>
 </footer>
 
 <!-- LIGHTBOX -->

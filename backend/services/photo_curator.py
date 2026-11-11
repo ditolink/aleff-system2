@@ -1152,10 +1152,10 @@ def apply_home(report: dict) -> None:
         else:
             pool.append(f"    {{ type: 'img', src: '{path}', title: '{title}' }},")
     pool.append(
-        "    { type: 'video', src: 'videos/video_casamento21.mp4', title: 'O Beijo', poster: 'fotos/thumb_casamento21.jpg' },"
+        "    { type: 'video', src: 'videos/video_casamento21.mp4', title: 'O Beijo', poster: 'fotos/thumb_casamento21.webp' },"
     )
     pool.append(
-        "    { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Sessão de Rap', poster: 'fotos/thumb_videoraps.jpg' },"
+        "    { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Sessão de Rap', poster: 'fotos/thumb_videoraps.webp' },"
     )
     pool.append("  ];")
     main2, n = re.subn(

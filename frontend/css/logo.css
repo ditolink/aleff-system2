@@ -49,8 +49,7 @@
   color: rgba(255,255,255,.52);
   text-transform: uppercase;
 }
-.logo-text i,
-.logo-text .logo-line { display: none !important; }
+.logo-text i { display: none !important; }
 .logo--compact .logo-mark { width: 14px; height: 14px; }
 .logo--compact .logo-text strong { font-size: 11px; letter-spacing: 0.18em; }
 .logo--compact .logo-text span { font-size: 9px; letter-spacing: 0.08em; }
@@ -76,9 +75,7 @@ body.is-studio-staff .gi.gi-slot {
   display: block;
 }
 .work-section .galeria-trabalhos .gi.gi-slot.l-wide,
-.work-section .galeria-trabalhos .gi.gi-slot.l-wide-16,
-.gi.gi-slot.l-wide,
-.gi.gi-slot.l-wide-16 {
+.gi.gi-slot.l-wide {
   aspect-ratio: 16 / 10;
   grid-column: span 1;
   min-height: 120px;
@@ -89,17 +86,4 @@ body.is-studio-staff .gi.gi-slot {
   border-color: rgba(255,255,255,0.2);
   box-shadow: none;
 }
-.gi.gi-slot .slot-inner {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 8px; padding: 20px; text-align: center;
-  color: rgba(255,255,255,0.3);
-}
-.gi.gi-slot .slot-inner svg { width: 22px; height: 22px; color: rgba(255,255,255,0.25); }
-.gi.gi-slot .slot-lbl {
-  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
-}
-.gi.gi-slot .slot-sub {
-  font-size: 12px; color: rgba(255,255,255,0.2); font-weight: 300; max-width: 140px; line-height: 1.4;
-}
+
