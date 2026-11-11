@@ -10,7 +10,7 @@ from PIL import Image
 DEFAULT_MODEL    = os.getenv('CLIP_MODEL',    'ViT-B-32')
 DEFAULT_PRETRAIN = os.getenv('CLIP_PRETRAIN', 'laion400m_e32')
 # false = site rápido (só texto/FTS). true = OpenCLIP local (precisa RAM ~2GB+)
-CLIP_ENABLED = os.getenv('CLIP_ENABLED', 'true').lower().strip() in ('1', 'true', 'yes', 'on')
+CLIP_ENABLED = os.getenv('CLIP_ENABLED', 'false').lower().strip() in ('1', 'true', 'yes', 'on')
 
 _model_cache = _preprocess_cache = _tokenizer_cache = None
 _torch_cache = None

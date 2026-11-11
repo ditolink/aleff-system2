@@ -7,7 +7,7 @@ Instalar (open source / grátis):
   pip install -r requirements-face.txt
 
 Env:
-  FACE_ENABLED=true
+  FACE_ENABLED=true   # padrão: false (servidor leve)
   FACE_SIM_THRESHOLD=0.42   # quanto maior, mais rigoroso (menos “mesmo rosto”)
 """
 from __future__ import annotations
@@ -16,9 +16,12 @@ import os
 import threading
 from typing import Optional
 
-import numpy as np
+try:  # numpy só existe quando os extras de IA estão instalados
+    import numpy as np
+except ImportError:  # pragma: no cover
+    np = None
 
-FACE_ENABLED = os.getenv('FACE_ENABLED', 'true').lower().strip() in ('1', 'true', 'yes', 'on')
+FACE_ENABLED = os.getenv('FACE_ENABLED', 'false').lower().strip() in ('1', 'true', 'yes', 'on')
 # ArcFace (buffalo_l): mesma pessoa costuma ficar acima de ~0.35–0.45
 FACE_SIM_THRESHOLD = float(os.getenv('FACE_SIM_THRESHOLD', '0.42'))
 FACE_MODEL = os.getenv('FACE_MODEL', 'buffalo_l')
@@ -44,9 +47,9 @@ def is_installed() -> bool:
     if _installed_cache is not None:
         return _installed_cache
     import importlib.util
-    _installed_cache = (
-        importlib.util.find_spec('insightface') is not None
-        and importlib.util.find_spec('onnxruntime') is not None
+    _installed_cache = np is not None and all(
+        importlib.util.find_spec(mod) is not None
+        for mod in ('insightface', 'onnxruntime')
     )
     return _installed_cache
 

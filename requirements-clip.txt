@@ -1,6 +1,8 @@
-# OpenCLIP na Oracle Ampere (ARM64) e x86
-# Na VM: pip install -r requirements.txt -r requirements-clip.txt
+# OpenCLIP — tags automáticas por imagem. Opcional, uso local (~2 GB de RAM).
+#   pip install -r requirements.txt -r requirements-clip.txt
+#   e no .env: CLIP_ENABLED=true
 
+numpy>=2.1
 torch>=2.2.0
 torchvision>=0.17.0
 open-clip-torch>=2.24.0
