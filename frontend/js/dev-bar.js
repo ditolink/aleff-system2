@@ -434,7 +434,7 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  async function init() {
     const data = await me();
     if (!data || !data.logged_in) return;
 
@@ -466,5 +466,12 @@
     } else {
       injectPublicSession(data.user, data.role, false);
     }
-  });
+  }
+
+  // Também funciona quando o script é carregado depois do DOM pronto.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

@@ -121,9 +121,15 @@ try:
 except Exception as _db_boot_err:
     print(f"[DB] falha no boot: {_db_boot_err}")
 
+# Serverless (Vercel/Lambda): instância efêmera, sem disco persistente — nada de
+# trabalho em background no boot.
+_is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_VERSION"))
+
 # Pré-gera thumbs medium/small em background (Waitress também) — pesquisa lê do cache
 try:
-    if (os.getenv('THUMB_PREFETCH_ON_START', '1') or '').strip().lower() in ('1', 'true', 'yes', 'on'):
+    if not _is_serverless and (
+        os.getenv('THUMB_PREFETCH_ON_START', '1') or ''
+    ).strip().lower() in ('1', 'true', 'yes', 'on'):
         from backend.services import thumb_pipeline as _tp
 
         def _boot_thumb_warm():

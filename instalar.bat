@@ -6,7 +6,7 @@ echo ================================================
 python --version >nul 2>&1
 if errorlevel 1 (echo ERRO: Python nao encontrado. Baixe em python.org & pause & exit /b 1)
 echo Instalando pacotes...
-python -m pip install flask flask-cors python-dotenv google-api-python-client google-auth-httplib2 google-auth-oauthlib werkzeug
+python -m pip install -r requirements.txt
 echo.
 echo ================================================
 echo   Instalacao concluida!

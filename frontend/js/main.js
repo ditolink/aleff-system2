@@ -8,30 +8,21 @@
   /* Media pool (lightbox) — espelha #galeriaTrabalhos + #galeriaVideos */
   /* Lightbox: medium thumbs (~800px) — nunca originais HD */
   const mediaPool = [
-    { type: 'img', src: 'fotos/foto_casal_por_do_sol.jpg', title: 'Silhueta' },
-    { type: 'img', src: '/api/media/1675/thumb-medium', title: 'Quando a luz cai', mediaId: 1675 },
-    { type: 'img', src: '/api/media/1855/thumb-medium', title: 'Quando a luz cai', mediaId: 1855 },
-    { type: 'img', src: '/api/media/1709/thumb-medium', title: 'Quando a luz cai', mediaId: 1709 },
-    { type: 'img', src: '/api/media/27/thumb-medium', title: 'Entre nós', mediaId: 27 },
-    { type: 'img', src: '/api/media/75/thumb-medium', title: 'Entre nós', mediaId: 75 },
-    { type: 'img', src: '/api/media/61/thumb-medium', title: 'Entre nós', mediaId: 61 },
-    { type: 'img', src: '/api/media/1953/thumb-medium', title: 'Um lugar para ser', mediaId: 1953 },
-    { type: 'img', src: '/api/media/2034/thumb-medium', title: 'Barbara', mediaId: 2034 },
-    { type: 'img', src: '/api/media/2033/thumb-medium', title: 'Um lugar para ser', mediaId: 2033 },
-    { type: 'img', src: '/api/media/2156/thumb-medium', title: 'Um lugar para ser', mediaId: 2156 },
-    { type: 'img', src: '/api/media/1285/thumb-medium', title: 'Um lugar para ser', mediaId: 1285 },
-    { type: 'img', src: '/api/media/1942/thumb-medium', title: 'Um lugar para ser', mediaId: 1942 },
-    { type: 'video', src: 'videos/video_casamento21.mp4', title: 'O Beijo', poster: 'fotos/thumb_casamento21.jpg' },
-    { type: 'video', src: 'videos/VIDEORAPS.mp4', title: 'Sessão de Rap', poster: 'fotos/thumb_videoraps.jpg' },
-  ];
-
-  const fotoPool = [
-    { type: 'video', src: 'videos/Reel01.mp4', title: 'Reel 01' },
-    { type: 'video', src: 'videos/Reel02.mp4', title: 'Reel 02' },
-    { type: 'video', src: 'videos/video67.mp4', title: 'Reel 04' },
-    { type: 'video', src: 'videos/video12.mp4', title: 'Reel 05' },
-    { type: 'video', src: 'videos/COMERCIAL01.mp4', title: 'Reel 06' },
-    { type: 'video', src: 'videos/Reel03.mp4', title: 'Reel 03' },
+    { type: 'img', src: 'fotos/foto_casal_por_do_sol.jpg' },
+    { type: 'img', src: '/api/media/1675/thumb-medium', mediaId: 1675 },
+    { type: 'img', src: '/api/media/1855/thumb-medium', mediaId: 1855 },
+    { type: 'img', src: '/api/media/1709/thumb-medium', mediaId: 1709 },
+    { type: 'img', src: '/api/media/27/thumb-medium', mediaId: 27 },
+    { type: 'img', src: '/api/media/75/thumb-medium', mediaId: 75 },
+    { type: 'img', src: '/api/media/61/thumb-medium', mediaId: 61 },
+    { type: 'img', src: '/api/media/1953/thumb-medium', mediaId: 1953 },
+    { type: 'img', src: '/api/media/2034/thumb-medium', mediaId: 2034 },
+    { type: 'img', src: '/api/media/2033/thumb-medium', mediaId: 2033 },
+    { type: 'img', src: '/api/media/2156/thumb-medium', mediaId: 2156 },
+    { type: 'img', src: '/api/media/1285/thumb-medium', mediaId: 1285 },
+    { type: 'img', src: '/api/media/1942/thumb-medium', mediaId: 1942 },
+    { type: 'video', src: 'videos/video_casamento21.mp4', poster: 'fotos/thumb_casamento21.webp' },
+    { type: 'video', src: 'videos/VIDEORAPS.mp4', poster: 'fotos/thumb_videoraps.webp' },
   ];
 
   /* ── Helpers ──────────────────────────────────────────── */
@@ -244,7 +235,7 @@
 
   /* ── Vídeos: lazy + hover (não baixa tudo de uma vez) ─── */
   function isAutoplayTile(v) {
-    const parent = v?.closest?.('.gi, .foto-item');
+    const parent = v?.closest?.('.gi');
     return !!(
       v?.hasAttribute?.('autoplay') ||
       v?.dataset?.autoplay === '1' ||
@@ -264,13 +255,13 @@
 
   function resumeAutoplayVideos() {
     $$('.gi.gi-autoplay video, .gi[data-autoplay="1"] video, video[autoplay]').forEach((v) => {
-      if (!v.closest('.gi, .foto-item')) return;
+      if (!v.closest('.gi')) return;
       playMutedLoop(v);
     });
   }
 
   function applyVideoFrame(v) {
-    const parent = v.closest('.gi, .foto-item');
+    const parent = v.closest('.gi');
     if (!parent) return;
     const apply = () => {
       if (!(v.videoWidth > 0 && v.videoHeight > 0)) return;
@@ -307,7 +298,7 @@
   }
 
   function initVideoHover() {
-    const videos = $$('.gi video, .foto-item video');
+    const videos = $$('.gi video');
     if (!videos.length) return;
 
     // Evita congestionamento: só metadata quando entra na tela
@@ -441,7 +432,7 @@
     }
 
     function pauseGridVideos() {
-      $$('.gi video, .foto-item video').forEach((v) => {
+      $$('.gi video').forEach((v) => {
         try {
           v.pause();
         } catch { /* ignore */ }
@@ -551,13 +542,6 @@
         const idx = Number.parseInt(gi.dataset.idx || '', 10);
         if (!Number.isFinite(idx)) return;
         openLb(mediaPool, idx);
-        return;
-      }
-      const foto = e.target.closest('.foto-item');
-      if (foto) {
-        const items = $$('.foto-item');
-        const i = items.indexOf(foto);
-        if (i >= 0) openLb(fotoPool, i);
       }
     });
 

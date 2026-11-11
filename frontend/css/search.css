@@ -36,7 +36,6 @@ body{
   box-shadow:0 8px 24px rgba(0,0,0,.25);
 }
 .nav-right{display:flex;gap:8px}
-.status-group,.drive-status,.clip-status{display:none}
 
 /* ── HERO ── */
 .search-hero{
@@ -404,7 +403,7 @@ body{
   background:linear-gradient(180deg,transparent 18%,rgba(0,0,0,.78) 100%);
   pointer-events:none;
 }
-.cat-btn-scrim{display:none}
+
 .cat-btn-idx,.cat-btn-body{position:relative;z-index:2}
 .cat-btn-idx{
   font-size:10px;letter-spacing:.16em;color:rgba(255,255,255,.4);font-weight:700;
@@ -544,19 +543,8 @@ body{
   opacity:.85;pointer-events:none;
 }
 .rcard.is-broken .rcard-thumb{opacity:.2}
-.rcard-skel .rcard-ph{
-  min-height:160px;
-  background:linear-gradient(90deg,#1a1a1a 25%,#242424 50%,#1a1a1a 75%);
-  background-size:200% 100%;
-  animation:skel-shine 1.1s linear infinite;
-}
-@keyframes skel-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@media (prefers-reduced-motion:reduce){
-  .rcard-skel .rcard-ph{animation:none}
-}
 
-.scroll-sentinel{display:none}
-.load-more-wrap{display:none}
+@keyframes skel-shine{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* Paginação — mesmo idioma visual dos .fbtn / filtros */
 .pager{

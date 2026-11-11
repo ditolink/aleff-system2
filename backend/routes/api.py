@@ -1693,8 +1693,8 @@ def dev_system_ep():
         'user': current_user(),
         'ai': get_public_ai_summary(),
         'flags': {
-            'clip_enabled': _env_flag('CLIP_ENABLED', 'true'),
-            'face_enabled': _env_flag('FACE_ENABLED', 'true'),
+            'clip_enabled': _env_flag('CLIP_ENABLED', 'false'),
+            'face_enabled': _env_flag('FACE_ENABLED', 'false'),
             'search_use_clip': _env_flag('SEARCH_USE_CLIP', '0'),
             'sync_fetch_exif': _env_flag('SYNC_FETCH_EXIF', '1'),
             'code_viewer_enabled': _env_flag('CODE_VIEWER_ENABLED', 'false'),

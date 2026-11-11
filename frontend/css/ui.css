@@ -41,8 +41,7 @@ body:not(.login-page) {
 }
 
 /* ── Tipografia de seção ─────────────────── */
-.ui-kicker,
-.contato-kicker {
+.ui-kicker {
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -54,8 +53,7 @@ body:not(.login-page) {
   margin-bottom: 18px;
   font-weight: 400;
 }
-.ui-kicker::before,
-.contato-kicker::before {
+.ui-kicker::before {
   content: '';
   width: 18px;
   height: 1px;
@@ -73,16 +71,14 @@ body:not(.login-page) {
   color: var(--white);
 }
 
-.ui-dot,
-.contato-dot {
+.ui-dot {
   font-family: var(--font);
   font-weight: 300;
   font-style: italic;
   color: rgba(255, 255, 255, 0.45);
 }
 
-.ui-sub,
-.contato-sub {
+.ui-sub {
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.7;
@@ -100,32 +96,7 @@ body:not(.login-page) {
   padding: 26px 26px 22px;
 }
 
-.ui-panel--glass {
-  background: rgba(10, 10, 10, 0.34);
-  backdrop-filter: blur(32px) saturate(1.2);
-  -webkit-backdrop-filter: blur(32px) saturate(1.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 28px 80px rgba(0, 0, 0, 0.42),
-    0 8px 24px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.02);
-}
-
 /* Login: vidro ainda mais transparente sobre a foto */
-.login-page .ui-panel--glass {
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, transparent 42%),
-    rgba(8, 8, 8, 0.32);
-  backdrop-filter: blur(36px) saturate(1.25);
-  -webkit-backdrop-filter: blur(36px) saturate(1.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 32px 90px rgba(0, 0, 0, 0.48),
-    0 10px 28px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
-}
 
 /* ── Campos ──────────────────────────────── */
 .fg {
@@ -197,8 +168,7 @@ body:not(.login-page) {
   padding-right: 40px;
 }
 
-.ui-underline,
-.line-grow {
+.ui-underline {
   position: absolute;
   left: 0;
   bottom: 0;
@@ -207,8 +177,7 @@ body:not(.login-page) {
   pointer-events: none;
   overflow: hidden;
 }
-.ui-underline::after,
-.line-grow::after {
+.ui-underline::after {
   content: '';
   display: block;
   height: 100%;
@@ -218,8 +187,7 @@ body:not(.login-page) {
   transform-origin: left;
   transition: transform 0.45s var(--ease-out);
 }
-.fg:focus-within .ui-underline::after,
-.fg:focus-within .line-grow::after {
+.fg:focus-within .ui-underline::after {
   transform: scaleX(1);
 }
 
@@ -405,8 +373,7 @@ body:not(.login-page) {
 @media (prefers-reduced-motion: reduce) {
   .ui-cta::before,
   .ui-cta .btn-spin i,
-  .ui-underline::after,
-  .line-grow::after {
+  .ui-underline::after {
     animation: none !important;
     transition: none !important;
   }
